@@ -1,6 +1,6 @@
-"""Credits dialog — renders CREDITS.md."""
+"""Credits dialog — PyQt6."""
 
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QPushButton
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QPushButton
 from ...utils import i18n
 
 

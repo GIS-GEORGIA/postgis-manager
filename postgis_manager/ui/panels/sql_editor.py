@@ -1,92 +1,93 @@
-"""SQL Editor panel with syntax highlighting, history, and result table."""
+"""SQL Editor panel — PyQt6, syntax highlighting, history, result table."""
 
 from __future__ import annotations
-import time
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
     QTextEdit, QTableWidget, QTableWidgetItem, QPushButton,
     QLabel, QComboBox, QFileDialog, QMessageBox, QHeaderView,
     QAbstractItemView,
 )
-from PyQt5.QtGui import QFont, QSyntaxHighlighter, QTextCharFormat, QColor
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QRegExp
+from PyQt6.QtGui import (
+    QFont, QSyntaxHighlighter, QTextCharFormat, QColor,
+    QKeySequence, QShortcut,
+)
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QRegularExpression
 
 from ...db.connection import DBManager
 from ...utils import i18n, config
 
 
 class SQLHighlighter(QSyntaxHighlighter):
-    KEYWORDS = [
-        "SELECT","FROM","WHERE","JOIN","LEFT","RIGHT","INNER","OUTER","FULL",
-        "ON","AS","AND","OR","NOT","IN","IS","NULL","LIKE","ILIKE","BETWEEN",
-        "ORDER","BY","GROUP","HAVING","LIMIT","OFFSET","INSERT","INTO","VALUES",
-        "UPDATE","SET","DELETE","CREATE","TABLE","INDEX","VIEW","DROP","ALTER",
-        "ADD","COLUMN","SCHEMA","DATABASE","GRANT","REVOKE","WITH","UNION","ALL",
-        "DISTINCT","CASE","WHEN","THEN","ELSE","END","EXISTS","RETURNING",
-        "TRUNCATE","CASCADE","VACUUM","ANALYZE","EXPLAIN","BEGIN","COMMIT",
-        "ROLLBACK","SAVEPOINT","RELEASE","TRUE","FALSE",
-    ]
-    POSTGIS = [
-        "ST_GeomFromText","ST_AsText","ST_AsGeoJSON","ST_Transform","ST_SRID",
-        "ST_Area","ST_Length","ST_Perimeter","ST_Distance","ST_Buffer",
-        "ST_Intersection","ST_Union","ST_Difference","ST_SymDifference",
-        "ST_Contains","ST_Within","ST_Overlaps","ST_Touches","ST_Crosses",
-        "ST_Disjoint","ST_Equals","ST_Intersects","ST_DWithin","ST_Expand",
-        "ST_Envelope","ST_ConvexHull","ST_Centroid","ST_PointOnSurface",
-        "ST_Simplify","ST_SimplifyPreserveTopology","ST_IsValid","ST_IsSimple",
-        "ST_IsEmpty","ST_MakeValid","ST_SetSRID","ST_FlipCoordinates",
-        "ST_X","ST_Y","ST_Z","ST_M","ST_StartPoint","ST_EndPoint",
-        "ST_NPoints","ST_NRings","ST_GeometryN","ST_ExteriorRing",
-        "geometry_columns","geography_columns","spatial_ref_sys",
-        "ST_LineInterpolatePoint","ST_LineLocatePoint","ST_AddMeasure",
-        "ST_LineSubstring","ST_Project","ST_MakeLine","ST_MakePoint",
-        "postgis_version","postgis_lib_version","pgr_dijkstra",
-        "pgr_drivingDistance","pgr_version",
-    ]
+    KEYWORDS = (
+        "SELECT FROM WHERE JOIN LEFT RIGHT INNER OUTER FULL ON AS AND OR NOT "
+        "IN IS NULL LIKE ILIKE BETWEEN ORDER BY GROUP HAVING LIMIT OFFSET "
+        "INSERT INTO VALUES UPDATE SET DELETE CREATE TABLE INDEX VIEW DROP "
+        "ALTER ADD COLUMN SCHEMA DATABASE WITH UNION ALL DISTINCT CASE WHEN "
+        "THEN ELSE END EXISTS RETURNING TRUNCATE CASCADE VACUUM ANALYZE "
+        "EXPLAIN BEGIN COMMIT ROLLBACK SAVEPOINT RELEASE TRUE FALSE"
+    ).split()
+
+    POSTGIS = (
+        "ST_GeomFromText ST_AsText ST_AsGeoJSON ST_Transform ST_SRID "
+        "ST_Area ST_Length ST_Perimeter ST_Distance ST_Buffer "
+        "ST_Intersection ST_Union ST_Difference ST_Contains ST_Within "
+        "ST_Overlaps ST_Touches ST_Intersects ST_DWithin ST_Envelope "
+        "ST_ConvexHull ST_Centroid ST_Simplify ST_IsValid ST_IsSimple "
+        "ST_IsEmpty ST_MakeValid ST_SetSRID ST_X ST_Y ST_Z "
+        "ST_NPoints ST_GeometryN ST_ExteriorRing geometry_columns "
+        "ST_LineInterpolatePoint ST_MakeLine ST_MakePoint "
+        "postgis_version postgis_lib_version pgr_dijkstra "
+        "pgr_drivingDistance pgr_version ST_SnapToGrid ST_Collect"
+    ).split()
 
     def __init__(self, doc):
         super().__init__(doc)
-        self.rules = []
+        self.rules: list[tuple] = []
 
         kw_fmt = QTextCharFormat()
         kw_fmt.setForeground(QColor("#569CD6"))
         kw_fmt.setFontWeight(700)
         for kw in self.KEYWORDS:
-            self.rules.append((QRegExp(r'\b' + kw + r'\b', Qt.CaseInsensitive), kw_fmt))
+            self.rules.append((
+                QRegularExpression(r'\b' + kw + r'\b',
+                    QRegularExpression.PatternOption.CaseInsensitiveOption),
+                kw_fmt))
 
-        postgis_fmt = QTextCharFormat()
-        postgis_fmt.setForeground(QColor("#4EC9B0"))
+        pg_fmt = QTextCharFormat()
+        pg_fmt.setForeground(QColor("#4EC9B0"))
         for fn in self.POSTGIS:
-            self.rules.append((QRegExp(r'\b' + fn + r'\b', Qt.CaseInsensitive), postgis_fmt))
+            self.rules.append((
+                QRegularExpression(r'\b' + fn + r'\b',
+                    QRegularExpression.PatternOption.CaseInsensitiveOption),
+                pg_fmt))
 
         str_fmt = QTextCharFormat()
         str_fmt.setForeground(QColor("#CE9178"))
-        self.rules.append((QRegExp(r"'[^']*'"), str_fmt))
+        self.rules.append((QRegularExpression(r"'[^']*'"), str_fmt))
 
         num_fmt = QTextCharFormat()
         num_fmt.setForeground(QColor("#B5CEA8"))
-        self.rules.append((QRegExp(r'\b\d+\.?\d*\b'), num_fmt))
+        self.rules.append((QRegularExpression(r'\b\d+\.?\d*\b'), num_fmt))
 
-        comment_fmt = QTextCharFormat()
-        comment_fmt.setForeground(QColor("#6A9955"))
-        comment_fmt.setFontItalic(True)
-        self.rules.append((QRegExp(r'--[^\n]*'), comment_fmt))
+        cmt_fmt = QTextCharFormat()
+        cmt_fmt.setForeground(QColor("#6A9955"))
+        cmt_fmt.setFontItalic(True)
+        self.rules.append((QRegularExpression(r'--[^\n]*'), cmt_fmt))
 
-        schema_fmt = QTextCharFormat()
-        schema_fmt.setForeground(QColor("#DCDCAA"))
-        self.rules.append((QRegExp(r'"[^"]+"'), schema_fmt))
+        id_fmt = QTextCharFormat()
+        id_fmt.setForeground(QColor("#DCDCAA"))
+        self.rules.append((QRegularExpression(r'"[^"]+"'), id_fmt))
 
-    def highlightBlock(self, text):
+    def highlightBlock(self, text: str):
         for pattern, fmt in self.rules:
-            idx = pattern.indexIn(text)
-            while idx >= 0:
-                length = pattern.matchedLength()
-                self.setFormat(idx, length, fmt)
-                idx = pattern.indexIn(text, idx + length)
+            it = pattern.globalMatch(text)
+            while it.hasNext():
+                m = it.next()
+                self.setFormat(m.capturedStart(), m.capturedLength(), fmt)
 
 
 class QueryWorker(QThread):
-    done = pyqtSignal(object, object, float)
+    done  = pyqtSignal(object, object, float)
     error = pyqtSignal(str)
 
     def __init__(self, db: DBManager, sql: str):
@@ -123,25 +124,21 @@ class SQLEditorPanel(QWidget):
         toolbar.addWidget(self._run_btn)
 
         self._stop_btn = QPushButton(i18n.t("sql_stop"))
-        self._stop_btn.setProperty("class", "secondary")
         self._stop_btn.setEnabled(False)
         self._stop_btn.clicked.connect(self._stop_query)
         toolbar.addWidget(self._stop_btn)
 
         self._clear_btn = QPushButton(i18n.t("sql_clear"))
-        self._clear_btn.setProperty("class", "secondary")
         self._clear_btn.clicked.connect(self._clear)
         toolbar.addWidget(self._clear_btn)
 
         toolbar.addStretch()
 
         self._save_btn = QPushButton(i18n.t("sql_save"))
-        self._save_btn.setProperty("class", "secondary")
         self._save_btn.clicked.connect(self._save_query)
         toolbar.addWidget(self._save_btn)
 
         self._load_btn = QPushButton(i18n.t("sql_load"))
-        self._load_btn.setProperty("class", "secondary")
         self._load_btn.clicked.connect(self._load_query)
         toolbar.addWidget(self._load_btn)
 
@@ -150,11 +147,9 @@ class SQLEditorPanel(QWidget):
         self._history_combo.setPlaceholderText("History...")
         self._history_combo.currentIndexChanged.connect(self._load_history)
         toolbar.addWidget(self._history_combo)
-
         layout.addLayout(toolbar)
 
-        # Splitter: editor / results
-        splitter = QSplitter(Qt.Vertical)
+        splitter = QSplitter(Qt.Orientation.Vertical)
         layout.addWidget(splitter)
 
         # Editor
@@ -162,25 +157,24 @@ class SQLEditorPanel(QWidget):
         ed_layout = QVBoxLayout(editor_widget)
         ed_layout.setContentsMargins(0, 0, 0, 0)
 
-        self._template_row = QHBoxLayout()
-        for tmpl_name, sql in [
+        tpl_row = QHBoxLayout()
+        for name, sql in [
             ("SELECT *", 'SELECT * FROM "{schema}"."{table}" LIMIT 100;'),
-            ("COUNT", 'SELECT COUNT(*) FROM "{schema}"."{table}";'),
-            ("Columns", "SELECT column_name, udt_name FROM information_schema.columns WHERE table_schema='{schema}' AND table_name='{table}';"),
-            ("Extent", 'SELECT ST_Extent(geom) FROM "{schema}"."{table}";'),
+            ("COUNT",    'SELECT COUNT(*) FROM "{schema}"."{table}";'),
+            ("Extent",   'SELECT ST_Extent(geom) FROM "{schema}"."{table}";'),
             ("Validate", 'SELECT ctid, ST_IsValidReason(geom) FROM "{schema}"."{table}" WHERE NOT ST_IsValid(geom);'),
+            ("Columns",  "SELECT column_name, udt_name FROM information_schema.columns WHERE table_schema='{schema}' AND table_name='{table}';"),
         ]:
-            btn = QPushButton(tmpl_name)
+            btn = QPushButton(name)
             btn.setFixedHeight(24)
-            btn.setProperty("class", "secondary")
             btn.clicked.connect(lambda _, s=sql: self._insert_template(s))
-            self._template_row.addWidget(btn)
-        self._template_row.addStretch()
-        ed_layout.addLayout(self._template_row)
+            tpl_row.addWidget(btn)
+        tpl_row.addStretch()
+        ed_layout.addLayout(tpl_row)
 
         self._editor = QTextEdit()
         self._editor.setFont(QFont("Courier New", 12))
-        self._editor.setPlaceholderText("-- Enter SQL here (F5 to run)")
+        self._editor.setPlaceholderText("-- Enter SQL here  (F5 to run)")
         self._highlighter = SQLHighlighter(self._editor.document())
         ed_layout.addWidget(self._editor)
         splitter.addWidget(editor_widget)
@@ -195,25 +189,23 @@ class SQLEditorPanel(QWidget):
 
         self._result_table = QTableWidget()
         self._result_table.setAlternatingRowColors(True)
-        self._result_table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self._result_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
-        self._result_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self._result_table.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows)
+        self._result_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Interactive)
+        self._result_table.setEditTriggers(
+            QAbstractItemView.EditTrigger.NoEditTriggers)
         res_layout.addWidget(self._result_table)
 
-        export_row = QHBoxLayout()
+        exp_row = QHBoxLayout()
         self._export_btn = QPushButton("💾 Export results to CSV")
-        self._export_btn.setProperty("class", "secondary")
         self._export_btn.clicked.connect(self._export_csv)
-        export_row.addWidget(self._export_btn)
-        export_row.addStretch()
-        res_layout.addLayout(export_row)
-
+        exp_row.addWidget(self._export_btn)
+        exp_row.addStretch()
+        res_layout.addLayout(exp_row)
         splitter.addWidget(result_widget)
         splitter.setSizes([300, 300])
 
-        # Keyboard shortcuts
-        from PyQt5.QtWidgets import QShortcut
-        from PyQt5.QtGui import QKeySequence
         QShortcut(QKeySequence("F5"), self, self._run_query)
 
     def set_active_layer(self, schema: str, table: str):
@@ -235,10 +227,8 @@ class SQLEditorPanel(QWidget):
         self._run_btn.setEnabled(False)
         self._stop_btn.setEnabled(True)
         self._result_label.setText("Running...")
-
-        self._history.insert(0, sql[:80])
+        self._history.insert(0, sql)
         self._history_combo.insertItem(0, sql[:60].replace("\n", " "))
-
         self._worker = QueryWorker(self.db, sql)
         self._worker.done.connect(self._on_result)
         self._worker.error.connect(self._on_error)
@@ -254,17 +244,18 @@ class SQLEditorPanel(QWidget):
             self._result_table.setRowCount(n)
             self._result_table.setColumnCount(len(cols))
             self._result_table.setHorizontalHeaderLabels(cols)
-            for r_idx, row in enumerate(rows):
-                for c_idx, val in enumerate(row):
+            for r, row in enumerate(rows):
+                for c, val in enumerate(row):
                     self._result_table.setItem(
-                        r_idx, c_idx, QTableWidgetItem(str(val) if val is not None else ""))
+                        r, c, QTableWidgetItem(
+                            str(val) if val is not None else ""))
         else:
             self._result_label.setText(
                 i18n.t("sql_no_result") + f"  ({ms:.1f} ms)")
             self._result_table.setRowCount(0)
             self._result_table.setColumnCount(0)
         if self.parent() and hasattr(self.parent(), "log"):
-            self.parent().log(f"SQL executed in {ms:.1f} ms", "success")
+            self.parent().log(f"SQL done in {ms:.1f} ms", "success")
 
     def _on_error(self, error: str):
         self._run_btn.setEnabled(True)
@@ -286,26 +277,27 @@ class SQLEditorPanel(QWidget):
         self._result_label.setText("")
 
     def _save_query(self):
-        from PyQt5.QtWidgets import QInputDialog
+        from PyQt6.QtWidgets import QInputDialog
         name, ok = QInputDialog.getText(self, "Save Query", "Query name:")
         if ok and name:
             config.save_query(name, self._editor.toPlainText())
 
     def _load_query(self):
-        from PyQt5.QtWidgets import QInputDialog
+        from PyQt6.QtWidgets import QInputDialog
         queries = config.get_saved_queries()
         if not queries:
             QMessageBox.information(self, "Info", "No saved queries.")
             return
         names = [q["name"] for q in queries]
-        name, ok = QInputDialog.getItem(self, "Load Query", "Select:", names, 0, False)
+        name, ok = QInputDialog.getItem(
+            self, "Load Query", "Select:", names, 0, False)
         if ok:
             q = next((q for q in queries if q["name"] == name), None)
             if q:
                 self._editor.setPlainText(q["sql"])
 
     def _load_history(self, idx: int):
-        if idx >= 0 and idx < len(self._history):
+        if 0 <= idx < len(self._history):
             self._editor.setPlainText(self._history[idx])
 
     def _export_csv(self):
@@ -317,13 +309,13 @@ class SQLEditorPanel(QWidget):
         rows = self._result_table.rowCount()
         cols = self._result_table.columnCount()
         with open(path, "w", newline="", encoding="utf-8") as f:
-            writer = csv_mod.writer(f)
-            headers = [self._result_table.horizontalHeaderItem(c).text()
-                       for c in range(cols)]
-            writer.writerow(headers)
+            w = csv_mod.writer(f)
+            w.writerow([self._result_table.horizontalHeaderItem(c).text()
+                        for c in range(cols)])
             for r in range(rows):
-                writer.writerow([
-                    self._result_table.item(r, c).text() if self._result_table.item(r, c) else ""
+                w.writerow([
+                    self._result_table.item(r, c).text()
+                    if self._result_table.item(r, c) else ""
                     for c in range(cols)
                 ])
         QMessageBox.information(self, "Done", f"Exported to {path}")

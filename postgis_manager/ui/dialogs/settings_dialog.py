@@ -1,12 +1,11 @@
-"""Settings dialog — language, theme, font, behavior."""
+"""Settings dialog — PyQt6."""
 
-from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QFormLayout, QLabel, QComboBox,
-    QSpinBox, QCheckBox, QPushButton, QDialogButtonBox,
-    QGroupBox, QHBoxLayout,
+from PyQt6.QtWidgets import (
+    QDialog, QVBoxLayout, QFormLayout, QComboBox,
+    QSpinBox, QCheckBox, QDialogButtonBox, QGroupBox,
 )
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFontDatabase
+from PyQt6.QtGui import QFontDatabase, QFont
+from PyQt6.QtWidgets import QApplication
 
 from ...utils import i18n, theme, config
 
@@ -21,7 +20,6 @@ class SettingsDialog(QDialog):
     def _build_ui(self):
         layout = QVBoxLayout(self)
 
-        # ── Appearance ──
         appear_group = QGroupBox("Appearance")
         form = QFormLayout(appear_group)
 
@@ -47,11 +45,10 @@ class SettingsDialog(QDialog):
         form.addRow(i18n.t("settings_font_size"), self._font_size)
 
         self._font_family = QComboBox()
-        db = QFontDatabase()
+        all_families = QFontDatabase.families()
         for fam in ["Segoe UI", "Arial", "Helvetica", "Roboto", "Open Sans",
                     "Noto Sans", "DejaVu Sans", "Verdana", "Tahoma"]:
-            if db.families().__contains__(fam) or True:
-                self._font_family.addItem(fam)
+            self._font_family.addItem(fam)
         current_fam = config.get("font_family", "Segoe UI")
         idx = self._font_family.findText(current_fam)
         if idx >= 0:
@@ -60,7 +57,6 @@ class SettingsDialog(QDialog):
 
         layout.addWidget(appear_group)
 
-        # ── Behavior ──
         behavior_group = QGroupBox("Behavior")
         bform = QFormLayout(behavior_group)
 
@@ -76,8 +72,8 @@ class SettingsDialog(QDialog):
 
         layout.addWidget(behavior_group)
 
-        # ── Buttons ──
-        btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        btns = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         btns.accepted.connect(self._apply)
         btns.rejected.connect(self.reject)
         layout.addWidget(btns)
@@ -91,12 +87,9 @@ class SettingsDialog(QDialog):
         i18n.load(lang)
         theme.set_theme(thm)
 
-        from PyQt5.QtWidgets import QApplication
-        from PyQt5.QtGui import QFont
         app = QApplication.instance()
         if app:
-            f = QFont(family, size)
-            app.setFont(f)
+            app.setFont(QFont(family, size))
             app.setStyleSheet(theme.build_qss())
 
         config.set("language", lang)

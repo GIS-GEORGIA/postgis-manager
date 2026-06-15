@@ -5,18 +5,16 @@ import os
 
 
 def main():
-    # Add project root to path
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if root not in sys.path:
         sys.path.insert(0, root)
 
-    from PyQt5.QtWidgets import QApplication
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtGui import QFont
+    from PyQt6.QtWidgets import QApplication
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtGui import QFont
 
-    # High-DPI support
-    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
-    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+    QApplication.setHighDpiScaleFactorRoundingPolicy(
+        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
 
     app = QApplication(sys.argv)
     app.setApplicationName("PostGIS Manager")
@@ -24,7 +22,6 @@ def main():
     app.setOrganizationDomain("gis-georgia.ge")
     app.setApplicationVersion("0.1.0")
 
-    # Apply initial theme and font (config loads on import)
     from postgis_manager.utils import config, theme, i18n
     i18n.load(config.get("language", "en"))
     theme.set_theme(config.get("theme", "light"))
@@ -37,7 +34,7 @@ def main():
     win = MainWindow(embedded=False, iface=None)
     win.show()
 
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":

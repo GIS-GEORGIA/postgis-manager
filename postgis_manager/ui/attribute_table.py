@@ -1,73 +1,48 @@
-"""Attribute Table Dialog with SQL filter builder, pagination, inline edit."""
+"""Attribute Table Dialog — pagination, SQL filter, inline edit, CSV export."""
 
 from __future__ import annotations
 import csv
-import os
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
-    QPushButton, QLabel, QLineEdit, QTextEdit, QSplitter, QGroupBox,
-    QComboBox, QSpinBox, QFileDialog, QMessageBox, QHeaderView,
-    QAbstractItemView, QStatusBar, QWidget, QSizePolicy, QFrame,
-    QCompleter,
+    QPushButton, QLabel, QTextEdit, QGroupBox, QComboBox,
+    QFileDialog, QMessageBox, QHeaderView, QAbstractItemView,
+    QWidget,
 )
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QStringListModel
-from PyQt5.QtGui import QFont, QColor
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtGui import QFont
 
 from ..db.connection import DBManager
-from ..utils import i18n, theme
+from ..utils import i18n
 
 SQL_TEMPLATES = {
-    "Text": [
-        ("Contains",     "{col} ILIKE '%{val}%'"),
-        ("Starts with",  "{col} ILIKE '{val}%'"),
-        ("Ends with",    "{col} ILIKE '%{val}'"),
-        ("Exact match",  "{col} = '{val}'"),
-        ("In list",      "{col} IN ('val1','val2')"),
-        ("Is NULL",      "{col} IS NULL OR {col} = ''"),
-        ("Not NULL",     "{col} IS NOT NULL AND {col} != ''"),
-    ],
-    "Number": [
-        ("Equals",       "{col} = {val}"),
-        ("Greater than", "{col} > {val}"),
-        ("Less than",    "{col} < {val}"),
-        ("Between",      "{col} BETWEEN {min} AND {max}"),
-        ("In list",      "{col} IN (1, 2, 3)"),
-        ("Is NULL",      "{col} IS NULL"),
-    ],
-    "Date": [
-        ("Exact date",   "{col}::date = '2024-01-01'"),
-        ("Range",        "{col} BETWEEN '2024-01-01' AND '2024-12-31'"),
-        ("Year",         "EXTRACT(YEAR FROM {col}) = 2024"),
-        ("Last N days",  "{col} >= NOW() - INTERVAL '30 days'"),
-    ],
-    "Geometry": [
-        ("Area >",       "ST_Area({geom}) > {val}"),
-        ("Length >",     "ST_Length({geom}) > {val}"),
-        ("Null geom",    "{geom} IS NULL"),
-        ("Valid",        "NOT ST_IsValid({geom})"),
-        ("SRID",         "ST_SRID({geom}) = 4326"),
-    ],
-    "Logic": [
-        ("AND",          "{cond1} AND {cond2}"),
-        ("OR",           "{cond1} OR {cond2}"),
-        ("NOT",          "NOT ({cond})"),
-        ("Group",        "({cond1}) AND ({cond2})"),
-    ],
+    "Text":     [("Contains",    "{col} ILIKE '%{val}%'"),
+                 ("Starts with", "{col} ILIKE '{val}%'"),
+                 ("Is NULL",     "{col} IS NULL"),
+                 ("Not NULL",    "{col} IS NOT NULL")],
+    "Number":   [("Equals",      "{col} = {val}"),
+                 ("> than",      "{col} > {val}"),
+                 ("Between",     "{col} BETWEEN {min} AND {max}"),
+                 ("Is NULL",     "{col} IS NULL")],
+    "Date":     [("Exact",       "{col}::date = '2024-01-01'"),
+                 ("Range",       "{col} BETWEEN '2024-01-01' AND '2024-12-31'"),
+                 ("Last 30d",    "{col} >= NOW() - INTERVAL '30 days'")],
+    "Geometry": [("Area >",      "ST_Area({geom}) > {val}"),
+                 ("Null geom",   "{geom} IS NULL"),
+                 ("Invalid",     "NOT ST_IsValid({geom})")],
+    "Logic":    [("AND",         "{cond1} AND {cond2}"),
+                 ("OR",          "{cond1} OR {cond2}"),
+                 ("NOT",         "NOT ({cond})")],
 }
 
 
 class DataWorker(QThread):
-    done = pyqtSignal(list, list)
+    done  = pyqtSignal(list, list)
     error = pyqtSignal(str)
 
     def __init__(self, db, schema, table, limit, offset, where):
         super().__init__()
-        self.db = db
-        self.schema = schema
-        self.table = table
-        self.limit = limit
-        self.offset = offset
-        self.where = where
+        self.db = db; self.schema = schema; self.table = table
+        self.limit = limit; self.offset = offset; self.where = where
 
     def run(self):
         try:
@@ -89,9 +64,10 @@ class AttributeTableDialog(QDialog):
         self.where_filter = ""
         self.cols: list = []
         self.total_count = 0
-        self._worker: DataWorker | None = None
+        self._worker = None
 
-        self.setWindowTitle(i18n.t("attr_table_title", schema=schema, table=table))
+        self.setWindowTitle(
+            i18n.t("attr_table_title", schema=schema, table=table))
         self.setMinimumSize(1100, 650)
         self.resize(1300, 750)
         self._build_ui()
@@ -103,98 +79,80 @@ class AttributeTableDialog(QDialog):
         layout.setContentsMargins(6, 6, 6, 6)
         layout.setSpacing(4)
 
-        # ── Filter area ──
+        # ── Filter ──
         filter_group = QGroupBox("WHERE filter")
-        fg_layout = QVBoxLayout(filter_group)
+        fg = QVBoxLayout(filter_group)
 
-        # Column chips
         self._col_row = QHBoxLayout()
-        self._col_chips_widget = QWidget()
-        self._col_chips_widget.setLayout(self._col_row)
-        fg_layout.addWidget(QLabel("Insert column:"))
-        fg_layout.addWidget(self._col_chips_widget)
+        col_widget = QWidget()
+        col_widget.setLayout(self._col_row)
+        fg.addWidget(QLabel("Insert column:"))
+        fg.addWidget(col_widget)
 
-        # SQL input
         self._filter_edit = QTextEdit()
-        self._filter_edit.setMaximumHeight(70)
+        self._filter_edit.setMaximumHeight(65)
+        self._filter_edit.setFont(QFont("Courier New", 11))
         self._filter_edit.setPlaceholderText(
             "e.g.  name ILIKE '%tbilisi%' AND population > 50000")
-        self._filter_edit.setFont(QFont("Courier New", 11))
-        fg_layout.addWidget(self._filter_edit)
+        fg.addWidget(self._filter_edit)
 
-        # Template buttons
         tpl_row = QHBoxLayout()
         for cat, templates in SQL_TEMPLATES.items():
-            cat_btn = QPushButton(cat)
-            cat_btn.setProperty("class", "secondary")
-            cat_btn.setFixedHeight(26)
-            menu_items = templates
-            cat_btn.clicked.connect(
-                lambda checked, t=templates, b=cat_btn: self._show_template_menu(b, t)
-            )
-            tpl_row.addWidget(cat_btn)
+            btn = QPushButton(cat)
+            btn.setFixedHeight(24)
+            btn.clicked.connect(
+                lambda _, t=templates, b=btn: self._show_tpl_menu(b, t))
+            tpl_row.addWidget(btn)
         tpl_row.addStretch()
-        fg_layout.addLayout(tpl_row)
+        fg.addLayout(tpl_row)
 
-        # Action buttons
         btn_row = QHBoxLayout()
         self._apply_btn = QPushButton(i18n.t("attr_filter_apply"))
         self._apply_btn.clicked.connect(self._apply_filter)
         btn_row.addWidget(self._apply_btn)
-
         self._clear_btn = QPushButton(i18n.t("attr_filter_clear"))
-        self._clear_btn.setProperty("class", "secondary")
         self._clear_btn.clicked.connect(self._clear_filter)
         btn_row.addWidget(self._clear_btn)
         btn_row.addStretch()
-
-        self._export_csv_btn = QPushButton(i18n.t("attr_export_csv"))
-        self._export_csv_btn.setProperty("class", "secondary")
-        self._export_csv_btn.clicked.connect(self._export_csv)
-        btn_row.addWidget(self._export_csv_btn)
-
-        self._delete_btn = QPushButton(i18n.t("attr_delete_selected"))
-        self._delete_btn.setProperty("class", "danger")
-        self._delete_btn.clicked.connect(self._delete_selected)
-        btn_row.addWidget(self._delete_btn)
-
-        fg_layout.addLayout(btn_row)
+        self._csv_btn = QPushButton(i18n.t("attr_export_csv"))
+        self._csv_btn.clicked.connect(self._export_csv)
+        btn_row.addWidget(self._csv_btn)
+        self._del_btn = QPushButton(i18n.t("attr_delete_selected"))
+        self._del_btn.clicked.connect(self._delete_selected)
+        btn_row.addWidget(self._del_btn)
+        fg.addLayout(btn_row)
         layout.addWidget(filter_group)
 
         # ── Table ──
         self._table = QTableWidget()
         self._table.setAlternatingRowColors(True)
-        self._table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self._table.setEditTriggers(QAbstractItemView.DoubleClicked)
-        self._table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        self._table.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows)
+        self._table.setEditTriggers(
+            QAbstractItemView.EditTrigger.DoubleClicked)
+        self._table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Interactive)
         self._table.horizontalHeader().setStretchLastSection(True)
-        self._table.setContextMenuPolicy(Qt.CustomContextMenu)
         self._table.itemChanged.connect(self._on_cell_changed)
         layout.addWidget(self._table)
 
         # ── Pagination ──
         page_row = QHBoxLayout()
-        self._prev_btn = QPushButton("◀  " + i18n.t("attr_page_prev"))
-        self._prev_btn.setProperty("class", "secondary")
+        self._prev_btn = QPushButton("◀ " + i18n.t("attr_page_prev"))
         self._prev_btn.clicked.connect(self._prev_page)
         page_row.addWidget(self._prev_btn)
-
         self._status_label = QLabel("")
         page_row.addWidget(self._status_label, 1)
-
-        self._next_btn = QPushButton(i18n.t("attr_page_next") + "  ▶")
-        self._next_btn.setProperty("class", "secondary")
+        self._next_btn = QPushButton(i18n.t("attr_page_next") + " ▶")
         self._next_btn.clicked.connect(self._next_page)
         page_row.addWidget(self._next_btn)
-
-        self._page_size_combo = QComboBox()
+        self._page_combo = QComboBox()
         for n in [100, 250, 500, 1000, 2500]:
-            self._page_size_combo.addItem(f"{n} rows", n)
-        self._page_size_combo.setCurrentIndex(3)
-        self._page_size_combo.currentIndexChanged.connect(self._change_page_size)
+            self._page_combo.addItem(f"{n} rows", n)
+        self._page_combo.setCurrentIndex(3)
+        self._page_combo.currentIndexChanged.connect(self._change_page_size)
         page_row.addWidget(QLabel("Per page:"))
-        page_row.addWidget(self._page_size_combo)
-
+        page_row.addWidget(self._page_combo)
         layout.addLayout(page_row)
 
     def _load_count(self):
@@ -209,21 +167,20 @@ class AttributeTableDialog(QDialog):
             return
         self._worker = DataWorker(
             self.db, self.schema, self.table,
-            self.limit, self.offset, self.where_filter
-        )
-        self._worker.done.connect(self._populate_table)
+            self.limit, self.offset, self.where_filter)
+        self._worker.done.connect(self._populate)
         self._worker.error.connect(
             lambda e: QMessageBox.critical(self, "Error", e))
         self._worker.start()
 
-    def _populate_table(self, cols: list, rows: list):
+    def _populate(self, cols: list, rows: list):
         self.cols = cols
         self._table.blockSignals(True)
         self._table.setRowCount(0)
         self._table.setColumnCount(len(cols))
         self._table.setHorizontalHeaderLabels(cols)
 
-        # Column chips
+        # rebuild column chips
         while self._col_row.count():
             w = self._col_row.takeAt(0).widget()
             if w:
@@ -231,38 +188,37 @@ class AttributeTableDialog(QDialog):
         for col in cols:
             chip = QPushButton(col)
             chip.setFixedHeight(22)
-            chip.setProperty("class", "secondary")
-            chip.clicked.connect(lambda _, c=col: self._insert_col(c))
+            chip.clicked.connect(lambda _, c=col: self._insert_text(f'"{c}"'))
             self._col_row.addWidget(chip)
         self._col_row.addStretch()
 
         self._table.setRowCount(len(rows))
-        for r_idx, row in enumerate(rows):
+        for r, row in enumerate(rows):
             ctid = row[0]
-            for c_idx, val in enumerate(row[1:]):
-                item = QTableWidgetItem(str(val) if val is not None else "")
-                item.setData(Qt.UserRole, {"ctid": str(ctid), "col": cols[c_idx]})
-                self._table.setItem(r_idx, c_idx, item)
+            for c, val in enumerate(row[1:]):
+                item = QTableWidgetItem(
+                    str(val) if val is not None else "")
+                item.setData(Qt.ItemDataRole.UserRole,
+                             {"ctid": str(ctid), "col": cols[c]})
+                self._table.setItem(r, c, item)
 
         self._table.blockSignals(False)
-        active = f"  |  🔍 Filter active" if self.where_filter else ""
+        showing = len(rows)
+        filt = "  |  🔍 Filter active" if self.where_filter else ""
+        end = min(self.offset + showing, self.total_count)
         self._status_label.setText(
             f"Total: {self.total_count:,}  |  "
-            f"Showing: {self.offset + 1}–{min(self.offset + len(rows), self.total_count)}"
-            f"{active}"
-        )
+            f"Showing: {self.offset + 1}–{end}{filt}")
         self._prev_btn.setEnabled(self.offset > 0)
-        self._next_btn.setEnabled(self.offset + len(rows) < self.total_count)
+        self._next_btn.setEnabled(self.offset + showing < self.total_count)
 
     def _on_cell_changed(self, item: QTableWidgetItem):
-        data = item.data(Qt.UserRole)
-        if not data:
+        d = item.data(Qt.ItemDataRole.UserRole)
+        if not d:
             return
         try:
             self.db.update_cell(
-                self.schema, self.table,
-                data["ctid"], data["col"], item.text()
-            )
+                self.schema, self.table, d["ctid"], d["col"], item.text())
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
 
@@ -288,22 +244,24 @@ class AttributeTableDialog(QDialog):
         self._load_data()
 
     def _change_page_size(self, _):
-        self.limit = self._page_size_combo.currentData()
+        self.limit = self._page_combo.currentData()
         self.offset = 0
         self._load_data()
 
     def _delete_selected(self):
-        rows = set(i.row() for i in self._table.selectedItems())
+        rows = {i.row() for i in self._table.selectedItems()}
         if not rows:
             return
-        msg = i18n.t("confirm_delete_n", n=len(rows))
-        if QMessageBox.question(self, "Confirm", msg) != QMessageBox.Yes:
+        if QMessageBox.question(
+                self, "Confirm",
+                i18n.t("confirm_delete_n", n=len(rows))) \
+                != QMessageBox.StandardButton.Yes:
             return
         ctids = []
         for r in rows:
             item = self._table.item(r, 0)
             if item:
-                d = item.data(Qt.UserRole)
+                d = item.data(Qt.ItemDataRole.UserRole)
                 if d:
                     ctids.append(d["ctid"])
         try:
@@ -322,26 +280,25 @@ class AttributeTableDialog(QDialog):
             cols, rows = self.db.fetch_rows(
                 self.schema, self.table, 100000, 0, self.where_filter)
             with open(path, "w", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f)
-                writer.writerow(cols)
+                w = csv.writer(f)
+                w.writerow(cols)
                 for row in rows:
-                    writer.writerow(row[1:])
+                    w.writerow(row[1:])
             QMessageBox.information(self, "Done",
                                     f"Exported {len(rows)} rows to {path}")
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
 
-    def _insert_col(self, col: str):
+    def _insert_text(self, text: str):
         cursor = self._filter_edit.textCursor()
-        cursor.insertText(f'"{col}"')
+        cursor.insertText(text)
         self._filter_edit.setFocus()
 
-    def _show_template_menu(self, btn: QPushButton, templates: list):
-        from PyQt5.QtWidgets import QMenu
-        menu = QMenu(self)
+    def _show_tpl_menu(self, btn, templates):
+        menu = __import__("PyQt6.QtWidgets", fromlist=["QMenu"]).QMenu(self)
         for label, sql in templates:
             act = menu.addAction(f"{label}  —  {sql}")
             act.setData(sql)
-        chosen = menu.exec_(btn.mapToGlobal(btn.rect().bottomLeft()))
+        chosen = menu.exec(btn.mapToGlobal(btn.rect().bottomLeft()))
         if chosen:
-            self._insert_col(chosen.data())
+            self._insert_text(chosen.data())

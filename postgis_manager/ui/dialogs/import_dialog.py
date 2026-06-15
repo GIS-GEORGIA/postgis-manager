@@ -1,13 +1,13 @@
-"""Vector import dialog — SHP/GeoJSON/GPKG → PostGIS."""
+"""Vector import dialog — PyQt6."""
 
 from __future__ import annotations
 import os
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QLabel,
-    QLineEdit, QPushButton, QComboBox, QCheckBox, QProgressBar,
+    QLineEdit, QPushButton, QComboBox, QProgressBar,
     QDialogButtonBox, QFileDialog, QMessageBox, QTextEdit,
 )
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import QThread, pyqtSignal
 
 from ...db.connection import DBManager
 from ...utils import i18n
@@ -19,12 +19,8 @@ class ImportWorker(QThread):
 
     def __init__(self, db, path, schema, table, mode, srid, encoding):
         super().__init__()
-        self.db = db
-        self.path = path
-        self.schema = schema
-        self.table = table
-        self.mode = mode
-        self.srid = srid
+        self.db = db; self.path = path; self.schema = schema
+        self.table = table; self.mode = mode; self.srid = srid
         self.encoding = encoding
 
     def run(self):
@@ -33,10 +29,9 @@ class ImportWorker(QThread):
             self.log.emit(f"Reading {os.path.basename(self.path)}...", "info")
             gdf = gpd.read_file(self.path, encoding=self.encoding)
             self.log.emit(f"Loaded {len(gdf)} features", "info")
-            geom_col = "geom"
             count = self.db.import_geodataframe(
                 gdf, self.schema, self.table,
-                geom_col, self.srid,
+                "geom", self.srid,
                 lambda m, l="info": self.log.emit(m, l),
                 mode=self.mode,
             )
@@ -59,7 +54,6 @@ class ImportDialog(QDialog):
         layout = QVBoxLayout(self)
         form = QFormLayout()
 
-        # File
         file_row = QHBoxLayout()
         self._file_edit = QLineEdit()
         file_row.addWidget(self._file_edit)
@@ -99,10 +93,12 @@ class ImportDialog(QDialog):
         self._progress.setVisible(False)
         layout.addWidget(self._progress)
 
-        btns = QDialogButtonBox(Qt.Horizontal)
-        self._import_btn = btns.addButton(i18n.t("import_start"), QDialogButtonBox.AcceptRole)
+        btns = QDialogButtonBox()
+        self._import_btn = btns.addButton(
+            i18n.t("import_start"), QDialogButtonBox.ButtonRole.AcceptRole)
         self._import_btn.clicked.connect(self._run_import)
-        cancel_btn = btns.addButton(i18n.t("import_cancel"), QDialogButtonBox.RejectRole)
+        cancel_btn = btns.addButton(
+            i18n.t("import_cancel"), QDialogButtonBox.ButtonRole.RejectRole)
         cancel_btn.clicked.connect(self.reject)
         layout.addWidget(btns)
 

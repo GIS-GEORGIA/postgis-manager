@@ -1,10 +1,10 @@
-"""About dialog."""
+"""About dialog — PyQt6."""
 
-from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QLabel, QPushButton, QHBoxLayout,
+from PyQt6.QtWidgets import (
+    QDialog, QVBoxLayout, QLabel, QPushButton, QFrame, QTextEdit,
 )
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 
 from ...utils import i18n
 
@@ -18,7 +18,7 @@ class AboutDialog(QDialog):
         layout.setSpacing(10)
 
         title = QLabel("PostGIS Manager")
-        title.setAlignment(Qt.AlignCenter)
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         f = QFont()
         f.setPointSize(20)
         f.setBold(True)
@@ -26,7 +26,7 @@ class AboutDialog(QDialog):
         layout.addWidget(title)
 
         subtitle = QLabel("GIS-GEORGIA / GGTC GIS Team")
-        subtitle.setAlignment(Qt.AlignCenter)
+        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(subtitle)
 
         layout.addWidget(_sep())
@@ -38,40 +38,18 @@ class AboutDialog(QDialog):
                 text = f"{text} {version}"
             lbl = QLabel(text)
             lbl.setWordWrap(True)
-            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(lbl)
 
         layout.addWidget(_sep())
 
         close_btn = QPushButton("Close")
         close_btn.clicked.connect(self.accept)
-        layout.addWidget(close_btn, alignment=Qt.AlignCenter)
-
-
-class CreditsDialog(QDialog):
-    def __init__(self, parent=None, credits_path: str = ""):
-        super().__init__(parent)
-        self.setWindowTitle(i18n.t("action_credits"))
-        self.resize(700, 600)
-        from PyQt5.QtWidgets import QTextEdit, QVBoxLayout
-        layout = QVBoxLayout(self)
-        text_edit = QTextEdit()
-        text_edit.setReadOnly(True)
-        try:
-            with open(credits_path, encoding="utf-8") as f:
-                content = f.read()
-            text_edit.setMarkdown(content)
-        except Exception:
-            text_edit.setPlainText("CREDITS.md not found.")
-        layout.addWidget(text_edit)
-        close_btn = QPushButton("Close")
-        close_btn.clicked.connect(self.accept)
-        layout.addWidget(close_btn)
+        layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
 
 def _sep():
-    from PyQt5.QtWidgets import QFrame
     sep = QFrame()
-    sep.setFrameShape(QFrame.HLine)
-    sep.setFrameShadow(QFrame.Sunken)
+    sep.setFrameShape(QFrame.Shape.HLine)
+    sep.setFrameShadow(QFrame.Shadow.Sunken)
     return sep

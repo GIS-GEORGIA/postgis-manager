@@ -1,11 +1,11 @@
-"""Connection profile dialog."""
+"""Connection profile dialog — PyQt6."""
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QLabel, QLineEdit,
     QPushButton, QCheckBox, QComboBox, QSpinBox, QHBoxLayout,
     QDialogButtonBox, QMessageBox,
 )
-from PyQt5.QtCore import Qt
+from PyQt6.QtCore import Qt
 
 from ...utils import i18n
 
@@ -41,7 +41,7 @@ class ConnectionDialog(QDialog):
         form.addRow(i18n.t("conn_user"), self._user)
 
         self._password = QLineEdit()
-        self._password.setEchoMode(QLineEdit.Password)
+        self._password.setEchoMode(QLineEdit.EchoMode.Password)
         form.addRow(i18n.t("conn_password"), self._password)
 
         self._ssl_combo = QComboBox()
@@ -60,7 +60,6 @@ class ConnectionDialog(QDialog):
 
         layout.addLayout(form)
 
-        # Test button
         test_row = QHBoxLayout()
         test_btn = QPushButton(i18n.t("conn_test"))
         test_btn.clicked.connect(self._test_connection)
@@ -70,9 +69,8 @@ class ConnectionDialog(QDialog):
         test_row.addStretch()
         layout.addLayout(test_row)
 
-        # OK / Cancel
         buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal)
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -104,9 +102,8 @@ class ConnectionDialog(QDialog):
                 timeout=self._timeout.value(),
             )
             info = db.server_info()
-            pg = info.get("pg_version", "?")[:40]
             postgis = info.get("postgis_version") or "N/A"
-            self._test_label.setText(f"✔  PostgreSQL {postgis}")
+            self._test_label.setText(f"✔  PostGIS {postgis}")
             self._test_label.setStyleSheet("color: #2E7D32;")
         except Exception as e:
             self._test_label.setText(f"✖  {str(e)[:60]}")
