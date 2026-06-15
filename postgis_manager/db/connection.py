@@ -575,6 +575,25 @@ class DBManager:
                         (schema, table, log_msg))
         self.conn.commit()
 
+    def pgversion_checkout(self, schema: str, table: str, revision) -> None:
+        with self.conn.cursor() as cur:
+            cur.execute("SELECT pgversion.pgv_checkout(%s, %s, %s)",
+                        (schema, table, revision))
+        self.conn.commit()
+
+    def pgversion_diff(self, schema: str, table: str,
+                       rev_a, rev_b) -> list[dict]:
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("""
+                    SELECT action, row_data
+                    FROM pgversion.pgv_diff(%s, %s, %s, %s)
+                """, (schema, table, rev_a, rev_b))
+                return [{"action": r[0], "row_data": r[1]}
+                        for r in cur.fetchall()]
+        except Exception:
+            return []
+
     def pgversion_log(self, schema: str, table: str) -> list[dict]:
         try:
             with self.conn.cursor() as cur:
@@ -591,35 +610,36 @@ class DBManager:
     # ── PostGIS Geoprocessing ────────────────────────────────────────────────
 
     def geoprocess(self, schema: str, table: str, geom_col: str,
-                   function: str, params: dict,
-                   output_schema: str, output_table: str,
-                   srid: int) -> int:
+                   operation: str, output_schema: str, output_table: str,
+                   distance: float = 100.0, tolerance: float = 1.0) -> str:
         """
-        Run a PostGIS function on a layer and save results.
-        function: 'buffer' | 'simplify' | 'union' | 'convex_hull' | 'centroid'
+        Run a PostGIS operation on a layer and save results to a new table.
+        operation: 'buffer' | 'simplify' | 'convex_hull' | 'centroid'
+        Returns a human-readable result string.
         """
-        param_str = ""
-        if function == "buffer":
-            param_str = f"ST_Buffer(ST_Transform(\"{geom_col}\", {srid}), {params.get('distance', 100)})"
-        elif function == "simplify":
-            param_str = f"ST_Simplify(\"{geom_col}\", {params.get('tolerance', 1.0)})"
-        elif function == "convex_hull":
-            param_str = f"ST_ConvexHull(\"{geom_col}\")"
-        elif function == "centroid":
-            param_str = f"ST_Centroid(\"{geom_col}\")"
+        if operation == "buffer":
+            expr = f'ST_Buffer("{geom_col}"::geography, {distance})::geometry'
+        elif operation == "simplify":
+            expr = f'ST_Simplify("{geom_col}", {tolerance})'
+        elif operation == "convex_hull":
+            expr = f'ST_ConvexHull("{geom_col}")'
+        elif operation == "centroid":
+            expr = f'ST_Centroid("{geom_col}")'
         else:
-            param_str = f"\"{geom_col}\""
+            expr = f'"{geom_col}"'
 
         with self.conn.cursor() as cur:
             cur.execute(f"""
                 CREATE TABLE "{output_schema}"."{output_table}" AS
-                SELECT *, {param_str} AS geom_result
+                SELECT *, {expr} AS geom_result
                 FROM "{schema}"."{table}"
             """)
-            cur.execute(f'SELECT COUNT(*) FROM "{output_schema}"."{output_table}"')
+            cur.execute(
+                f'SELECT COUNT(*) FROM "{output_schema}"."{output_table}"')
             count = cur.fetchone()[0]
         self.conn.commit()
-        return count
+        return (f"{operation} → {output_schema}.{output_table} "
+                f"({count:,} features)")
 
     # ── Linear Referencing / Chainage (pgChainage pattern) ──────────────────
 
@@ -706,9 +726,13 @@ class DBManager:
     }
 
     def run_validation(self, schema: str, table: str,
-                       geom_col: str, srid: int) -> dict[str, list]:
+                       geom_col: str, srid: int,
+                       checks: list[str] | None = None) -> dict[str, list]:
+        run = set(checks) if checks else set(self.VALIDATION_QUERIES)
         results = {}
         for name, sql_tpl in self.VALIDATION_QUERIES.items():
+            if name not in run:
+                continue
             sql = sql_tpl.format(schema=schema, table=table,
                                  geom_col=geom_col, srid=srid)
             try:
@@ -719,3 +743,17 @@ class DBManager:
             except Exception as e:
                 results[name] = [{"error": str(e)}]
         return results
+
+    def fix_invalid_geometries(self, schema: str, table: str,
+                               geom_col: str) -> int:
+        """Apply ST_MakeValid to all invalid geometries in-place."""
+        with self.conn.cursor() as cur:
+            cur.execute(f"""
+                UPDATE "{schema}"."{table}"
+                SET "{geom_col}" = ST_MakeValid("{geom_col}")
+                WHERE NOT ST_IsValid("{geom_col}")
+                  AND "{geom_col}" IS NOT NULL
+            """)
+            count = cur.rowcount
+        self.conn.commit()
+        return count

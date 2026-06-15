@@ -26,6 +26,9 @@ from .panels.geoprocessing import GeoprocessingPanel
 from .panels.log_panel import LogPanel
 from .panels.instance_manager import InstanceManagerPanel
 from .panels.network_scan_panel import NetworkScanPanel
+from .panels.versioning_panel import VersioningPanel
+from .panels.validation_panel import ValidationPanel
+from .panels.query_builder import QueryBuilderPanel
 from .dialogs.connection_dialog import ConnectionDialog
 from .dialogs.settings_dialog import SettingsDialog
 from .dialogs.about_dialog import AboutDialog
@@ -270,6 +273,15 @@ class MainWindow(QMainWindow):
         self.scan_panel.add_connection.connect(self._add_container_connection)
         self._tabs.addTab(self.scan_panel, "Network Scan")
 
+        self.versioning_panel = VersioningPanel(self.db, self)
+        self._tabs.addTab(self.versioning_panel, "Versioning")
+
+        self.validation_panel = ValidationPanel(self.db, self)
+        self._tabs.addTab(self.validation_panel, "Validation")
+
+        self.query_builder = QueryBuilderPanel(self.db, self)
+        self._tabs.addTab(self.query_builder, "Query Builder")
+
         self.log_panel = LogPanel(self)
         v_splitter.addWidget(self.log_panel)
 
@@ -369,6 +381,9 @@ class MainWindow(QMainWindow):
         self.routing_panel.set_active_layer(schema, table)
         self.chainage_panel.set_active_layer(schema, table, geom_col, srid)
         self.geo_panel.set_active_layer(schema, table, geom_col, srid)
+        self.versioning_panel.set_active_layer(schema, table)
+        self.validation_panel.set_active_layer(schema, table, geom_col, srid)
+        self.query_builder.set_active_layer(schema, table)
 
     def _load_layer_in_qgis(self, schema, table, geom_col, srid):
         if not self.iface:
@@ -509,8 +524,11 @@ class MainWindow(QMainWindow):
         self._tabs.setTabText(5, i18n.t("tab_export"))
         self._tabs.setTabText(6, i18n.t("tab_styles"))
         self._tabs.setTabText(7, i18n.t("tab_geoprocessing"))
-        self._tabs.setTabText(8, i18n.t("tab_instances"))
-        self._tabs.setTabText(9, i18n.t("tab_network_scan"))
+        self._tabs.setTabText(8,  i18n.t("tab_instances"))
+        self._tabs.setTabText(9,  i18n.t("tab_network_scan"))
+        self._tabs.setTabText(10, i18n.t("tab_versioning"))
+        self._tabs.setTabText(11, i18n.t("tab_validation"))
+        self._tabs.setTabText(12, i18n.t("tab_query_builder"))
 
     def _open_settings(self):
         SettingsDialog(self).exec()
