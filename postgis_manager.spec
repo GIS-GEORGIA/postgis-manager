@@ -44,7 +44,6 @@ hiddenimports = [
     "PyQt6.QtNetwork",
     # geopandas / fiona drivers
     "fiona.ogrext",
-    "fiona._shim",
     "pyproj.datadir",
     # All UI panels (imported dynamically in main_window)
     "postgis_manager.ui.panels.browser",
@@ -118,8 +117,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=os.path.join("qgis_plugin", "icon.png") if os.path.exists(
-        os.path.join("qgis_plugin", "icon.png")) else None,
+    icon="postgis_manager_icon.ico" if os.path.exists("postgis_manager_icon.ico") else None,
     version_file=None,
 )
 

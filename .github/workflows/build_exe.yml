@@ -20,11 +20,22 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install PyQt6 psycopg2-binary geopandas shapely pyproj fiona
+          pip install PyQt6 psycopg2-binary geopandas shapely pyproj fiona Pillow
           pip install pyinstaller
 
+      - name: Convert icon PNG → ICO
+        run: |
+          python -c "
+from PIL import Image
+img = Image.open('qgis_plugin/icon.png').convert('RGBA')
+sizes = [(16,16),(24,24),(32,32),(48,48),(64,64),(128,128),(256,256)]
+imgs = [img.resize(s, Image.LANCZOS) for s in sizes]
+imgs[0].save('postgis_manager_icon.ico', format='ICO', sizes=sizes, append_images=imgs[1:])
+print('icon.ico created')
+"
+
       - name: Build with PyInstaller
-        run: pyinstaller postgis_manager.spec --noconfirm --clean
+        run: pyinstaller postgis_manager.spec --noconfirm --clean --log-level WARN
 
       - name: Verify output
         run: |
