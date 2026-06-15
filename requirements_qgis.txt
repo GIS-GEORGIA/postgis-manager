@@ -1,0 +1,8 @@
+# PostGIS Manager — QGIS plugin dependencies
+# PyQt5 and pyproj are provided by QGIS — do NOT install separately
+psycopg2-binary>=2.9.0
+geopandas>=0.13.0
+shapely>=2.0.0
+fiona>=1.9.0
+numpy>=1.24.0
+pandas>=2.0.0
