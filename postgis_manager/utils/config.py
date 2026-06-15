@@ -110,4 +110,59 @@ def add_recent_file(path: str) -> None:
     save()
 
 
+# ── Config import / export ───────────────────────────────────────────────────
+
+def export_config(dest_path: str, include_passwords: bool = False) -> None:
+    """Export the full config to a JSON file (optionally strip passwords)."""
+    export_data = dict(_data)
+    if not include_passwords:
+        conns = []
+        for c in export_data.get("connections", []):
+            c2 = dict(c)
+            c2["password"] = ""
+            conns.append(c2)
+        export_data["connections"] = conns
+    os.makedirs(os.path.dirname(os.path.abspath(dest_path)), exist_ok=True)
+    with open(dest_path, "w", encoding="utf-8") as f:
+        json.dump(export_data, f, ensure_ascii=False, indent=2)
+
+
+def import_config(src_path: str, merge: bool = True) -> dict:
+    """
+    Import config from a JSON file.
+    merge=True  → overlay onto current config (connections are merged by name).
+    merge=False → replace everything (except window_geometry).
+    Returns the imported data dict.
+    """
+    with open(src_path, encoding="utf-8") as f:
+        imported: dict = json.load(f)
+
+    if merge:
+        # Merge connections by name
+        existing_names = {c["name"] for c in get_connections()}
+        for c in imported.get("connections", []):
+            if c.get("name") not in existing_names:
+                _data.setdefault("connections", []).append(c)
+        # Merge saved queries by name
+        existing_qnames = {q["name"] for q in get_saved_queries()}
+        for q in imported.get("saved_queries", []):
+            if q.get("name") not in existing_qnames:
+                _data.setdefault("saved_queries", []).append(q)
+        # Merge top-level prefs (skip connection lists already handled)
+        skip = {"connections", "saved_queries", "window_geometry"}
+        for k, v in imported.items():
+            if k not in skip:
+                _data[k] = v
+    else:
+        geo = _data.get("window_geometry")
+        _data.clear()
+        _data.update(_defaults())
+        _data.update(imported)
+        if geo:
+            _data["window_geometry"] = geo
+
+    save()
+    return imported
+
+
 load()

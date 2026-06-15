@@ -24,6 +24,7 @@ from .panels.export_panel import ExportPanel
 from .panels.style_manager import StyleManagerPanel
 from .panels.geoprocessing import GeoprocessingPanel
 from .panels.log_panel import LogPanel
+from .panels.instance_manager import InstanceManagerPanel
 from .dialogs.connection_dialog import ConnectionDialog
 from .dialogs.settings_dialog import SettingsDialog
 from .dialogs.about_dialog import AboutDialog
@@ -116,6 +117,14 @@ class MainWindow(QMainWindow):
         for a in [self._action_new_conn, self._action_connect,
                   self._action_disconnect, self._action_refresh]:
             self._menu_conn.addAction(a)
+
+        self._menu_tools = mb.addMenu("")
+        self._action_export_cfg = QAction(self)
+        self._action_export_cfg.triggered.connect(self._export_config)
+        self._action_import_cfg = QAction(self)
+        self._action_import_cfg.triggered.connect(self._import_config)
+        self._menu_tools.addAction(self._action_export_cfg)
+        self._menu_tools.addAction(self._action_import_cfg)
 
         self._menu_view = mb.addMenu("")
         self._action_settings = QAction(self)
@@ -251,6 +260,10 @@ class MainWindow(QMainWindow):
 
         self.geo_panel = GeoprocessingPanel(self.db, self)
         self._tabs.addTab(self.geo_panel, "Geoprocessing")
+
+        self.instance_panel = InstanceManagerPanel(self)
+        self.instance_panel.add_connection.connect(self._add_container_connection)
+        self._tabs.addTab(self.instance_panel, "Instances")
 
         self.log_panel = LogPanel(self)
         v_splitter.addWidget(self.log_panel)
@@ -408,10 +421,69 @@ class MainWindow(QMainWindow):
     def _on_theme_change(self, name):
         self._apply_theme()
 
+    def _export_config(self):
+        from PyQt6.QtWidgets import QFileDialog, QCheckBox, QDialog, QVBoxLayout, QDialogButtonBox
+        path, _ = QFileDialog.getSaveFileName(
+            self, i18n.t("cfg_export_title"), "postgis_manager_config.json",
+            "JSON (*.json)")
+        if not path:
+            return
+        from PyQt6.QtWidgets import QInputDialog
+        inc_pw, ok = QInputDialog.getItem(
+            self, i18n.t("cfg_export_title"),
+            i18n.t("cfg_include_passwords"),
+            [i18n.t("cfg_no_passwords"), i18n.t("cfg_with_passwords")], 0, False)
+        if not ok:
+            return
+        include_pw = inc_pw == i18n.t("cfg_with_passwords")
+        try:
+            config.export_config(path, include_passwords=include_pw)
+            QMessageBox.information(self, "OK", i18n.t("cfg_export_done", path=path))
+            self.log(i18n.t("cfg_export_done", path=path), "success")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
+
+    def _import_config(self):
+        from PyQt6.QtWidgets import QFileDialog, QInputDialog
+        path, _ = QFileDialog.getOpenFileName(
+            self, i18n.t("cfg_import_title"), "", "JSON (*.json)")
+        if not path:
+            return
+        mode, ok = QInputDialog.getItem(
+            self, i18n.t("cfg_import_title"),
+            i18n.t("cfg_import_mode"),
+            [i18n.t("cfg_merge"), i18n.t("cfg_replace")], 0, False)
+        if not ok:
+            return
+        merge = mode == i18n.t("cfg_merge")
+        try:
+            imported = config.import_config(path, merge=merge)
+            n_conns = len(imported.get("connections", []))
+            self._refresh_conn_combo()
+            if hasattr(self, "instance_panel"):
+                self.instance_panel._load_saved()
+            QMessageBox.information(
+                self, "OK", i18n.t("cfg_import_done", n=n_conns))
+            self.log(i18n.t("cfg_import_done", n=n_conns), "success")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
+
+    def _add_container_connection(self, profile: dict):
+        """Called from InstanceManagerPanel when user clicks 'Add as connection'."""
+        config.save_connection(profile)
+        self._refresh_conn_combo()
+        if hasattr(self, "instance_panel"):
+            self.instance_panel._load_saved()
+        idx = self._conn_combo.findText(profile["name"])
+        if idx >= 0:
+            self._conn_combo.setCurrentIndex(idx)
+        self.log(f"Connection added: {profile['name']}", "success")
+
     def _retranslate(self):
         self.setWindowTitle(i18n.t("app_title"))
         self._menu_file.setTitle(i18n.t("menu_file"))
         self._menu_conn.setTitle(i18n.t("menu_connection"))
+        self._menu_tools.setTitle(i18n.t("menu_tools"))
         self._menu_view.setTitle(i18n.t("menu_view"))
         self._menu_help.setTitle(i18n.t("menu_help"))
         self._action_quit.setText(i18n.t("action_quit"))
@@ -419,6 +491,8 @@ class MainWindow(QMainWindow):
         self._action_connect.setText(i18n.t("action_connect"))
         self._action_disconnect.setText(i18n.t("action_disconnect"))
         self._action_refresh.setText(i18n.t("action_refresh"))
+        self._action_export_cfg.setText(i18n.t("cfg_export_title"))
+        self._action_import_cfg.setText(i18n.t("cfg_import_title"))
         self._action_settings.setText(i18n.t("action_settings"))
         self._action_about.setText(i18n.t("about_title"))
         self._action_credits.setText(i18n.t("action_credits"))
@@ -430,6 +504,7 @@ class MainWindow(QMainWindow):
         self._tabs.setTabText(5, i18n.t("tab_export"))
         self._tabs.setTabText(6, i18n.t("tab_styles"))
         self._tabs.setTabText(7, i18n.t("tab_geoprocessing"))
+        self._tabs.setTabText(8, i18n.t("tab_instances"))
 
     def _open_settings(self):
         SettingsDialog(self).exec()

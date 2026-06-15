@@ -267,5 +267,31 @@
   "status_connecting": "დაკავშირება...",
   "status_loading": "იტვირთება...",
   "status_running": "სრულდება...",
-  "status_done": "დასრულდა"
+  "status_done": "დასრულდა",
+
+  "tab_instances": "ინსტანსები",
+
+  "inst_title": "ინსტანსების მართვა",
+  "inst_runtime": "გაშვების გარემო",
+  "inst_scan": "კონტეინერების სკანირება",
+  "inst_containers": "PostgreSQL კონტეინერები",
+  "inst_saved": "შენახული კავშირები",
+  "inst_type": "ინსტანსის ტიპი",
+  "inst_container_name": "კონტეინერის სახელი",
+  "inst_add_connection": "კავშირად დამატება",
+  "inst_col_name": "სახელი",
+  "inst_col_image": "იმიჯი",
+  "inst_col_status": "სტატუსი",
+  "inst_col_ports": "პორტები",
+
+  "cfg_export_title": "კონფიგურაციის ექსპორტი",
+  "cfg_import_title": "კონფიგურაციის იმპორტი",
+  "cfg_include_passwords": "პაროლების ჩართვა ექსპორტში?",
+  "cfg_no_passwords": "არა (რეკომენდებული)",
+  "cfg_with_passwords": "დიახ, პაროლებით",
+  "cfg_export_done": "კონფიგურაცია ექსპორტირდა: {path}",
+  "cfg_import_done": "{n} კავშირი წარმატებით იმპორტირდა.",
+  "cfg_import_mode": "იმპორტის რეჟიმი:",
+  "cfg_merge": "შერწყმა (ახალი კავშირების დამატება)",
+  "cfg_replace": "ჩანაცვლება (ყველა პარამეტრის გადაწერა)"
 }

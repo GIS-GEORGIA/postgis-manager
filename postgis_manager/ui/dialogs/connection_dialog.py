@@ -28,6 +28,22 @@ class ConnectionDialog(QDialog):
         self._name.setPlaceholderText("My PostGIS DB")
         form.addRow(i18n.t("conn_name"), self._name)
 
+        # Instance type
+        self._inst_combo = QComboBox()
+        self._inst_combo.addItem("🖥  Standalone / Local", "standalone")
+        self._inst_combo.addItem("🐳  Docker container", "docker")
+        self._inst_combo.addItem("🦭  Podman container", "podman")
+        self._inst_combo.currentIndexChanged.connect(self._on_inst_type_change)
+        form.addRow(i18n.t("inst_type"), self._inst_combo)
+
+        # Container name (shown for docker/podman)
+        self._container_name = QLineEdit()
+        self._container_name.setPlaceholderText("my-postgis-container")
+        self._container_lbl = QLabel(i18n.t("inst_container_name"))
+        form.addRow(self._container_lbl, self._container_name)
+        self._container_name.setVisible(False)
+        self._container_lbl.setVisible(False)
+
         self._host = QLineEdit("localhost")
         form.addRow(i18n.t("conn_host"), self._host)
 
@@ -75,8 +91,18 @@ class ConnectionDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
+    def _on_inst_type_change(self):
+        is_container = self._inst_combo.currentData() in ("docker", "podman")
+        self._container_name.setVisible(is_container)
+        self._container_lbl.setVisible(is_container)
+
     def _load_profile(self, p: dict):
         self._name.setText(p.get("name", ""))
+        inst = p.get("instance_type", "standalone")
+        idx = self._inst_combo.findData(inst)
+        if idx >= 0:
+            self._inst_combo.setCurrentIndex(idx)
+        self._container_name.setText(p.get("container_name", ""))
         self._host.setText(p.get("host", "localhost"))
         self._port.setText(str(p.get("port", "5432")))
         self._dbname.setText(p.get("dbname", ""))
@@ -112,13 +138,16 @@ class ConnectionDialog(QDialog):
             db.disconnect()
 
     def get_profile(self) -> dict:
+        inst = self._inst_combo.currentData()
         return {
-            "name": self._name.text().strip() or self._dbname.text().strip(),
-            "host": self._host.text().strip(),
-            "port": self._port.text().strip(),
-            "dbname": self._dbname.text().strip(),
-            "user": self._user.text().strip(),
-            "password": self._password.text() if self._save_pw.isChecked() else "",
-            "ssl_mode": self._ssl_combo.currentText(),
-            "timeout": self._timeout.value(),
+            "name":          self._name.text().strip() or self._dbname.text().strip(),
+            "instance_type": inst,
+            "container_name": self._container_name.text().strip() if inst != "standalone" else "",
+            "host":          self._host.text().strip(),
+            "port":          self._port.text().strip(),
+            "dbname":        self._dbname.text().strip(),
+            "user":          self._user.text().strip(),
+            "password":      self._password.text() if self._save_pw.isChecked() else "",
+            "ssl_mode":      self._ssl_combo.currentText(),
+            "timeout":       self._timeout.value(),
         }

@@ -267,5 +267,31 @@
   "status_connecting": "Connecting...",
   "status_loading": "Loading...",
   "status_running": "Running...",
-  "status_done": "Done"
+  "status_done": "Done",
+
+  "tab_instances": "Instances",
+
+  "inst_title": "Instance Manager",
+  "inst_runtime": "Runtime",
+  "inst_scan": "Scan containers",
+  "inst_containers": "PostgreSQL Containers",
+  "inst_saved": "Saved Connections",
+  "inst_type": "Instance type",
+  "inst_container_name": "Container name",
+  "inst_add_connection": "Add as connection",
+  "inst_col_name": "Name",
+  "inst_col_image": "Image",
+  "inst_col_status": "Status",
+  "inst_col_ports": "Ports",
+
+  "cfg_export_title": "Export Configuration",
+  "cfg_import_title": "Import Configuration",
+  "cfg_include_passwords": "Include passwords in export?",
+  "cfg_no_passwords": "No (recommended)",
+  "cfg_with_passwords": "Yes, include passwords",
+  "cfg_export_done": "Configuration exported to: {path}",
+  "cfg_import_done": "Imported {n} connection(s) successfully.",
+  "cfg_import_mode": "Import mode:",
+  "cfg_merge": "Merge (add new connections)",
+  "cfg_replace": "Replace (overwrite all settings)"
 }
