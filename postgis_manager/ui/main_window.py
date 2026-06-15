@@ -42,7 +42,7 @@ from .dialogs.connection_dialog import ConnectionDialog
 from .dialogs.settings_dialog import SettingsDialog
 from .dialogs.about_dialog import AboutDialog
 
-APP_VERSION = "0.1.0"
+APP_VERSION = "1.0.0"
 
 
 class ConnectWorker(QThread):

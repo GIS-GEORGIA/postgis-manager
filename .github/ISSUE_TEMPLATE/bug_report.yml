@@ -1,0 +1,72 @@
+name: Bug Report
+description: Something is not working correctly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug. Please fill in as much detail as possible.
+
+  - type: input
+    id: version
+    attributes:
+      label: PostGIS Manager version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Running as
+      options:
+        - QGIS Plugin
+        - Standalone desktop app
+    validations:
+      required: true
+
+  - type: input
+    id: qgis_version
+    attributes:
+      label: QGIS version (if plugin)
+      placeholder: "QGIS 3.38 / QGIS 4.0"
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "Windows 11, Ubuntu 24.04, macOS 14..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the bug clearly.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the SQL Editor panel
+        2. Run query "SELECT ..."
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error message / traceback
+      render: text
