@@ -25,6 +25,7 @@ from .panels.style_manager import StyleManagerPanel
 from .panels.geoprocessing import GeoprocessingPanel
 from .panels.log_panel import LogPanel
 from .panels.instance_manager import InstanceManagerPanel
+from .panels.network_scan_panel import NetworkScanPanel
 from .dialogs.connection_dialog import ConnectionDialog
 from .dialogs.settings_dialog import SettingsDialog
 from .dialogs.about_dialog import AboutDialog
@@ -264,6 +265,10 @@ class MainWindow(QMainWindow):
         self.instance_panel = InstanceManagerPanel(self)
         self.instance_panel.add_connection.connect(self._add_container_connection)
         self._tabs.addTab(self.instance_panel, "Instances")
+
+        self.scan_panel = NetworkScanPanel(self)
+        self.scan_panel.add_connection.connect(self._add_container_connection)
+        self._tabs.addTab(self.scan_panel, "Network Scan")
 
         self.log_panel = LogPanel(self)
         v_splitter.addWidget(self.log_panel)
@@ -505,6 +510,7 @@ class MainWindow(QMainWindow):
         self._tabs.setTabText(6, i18n.t("tab_styles"))
         self._tabs.setTabText(7, i18n.t("tab_geoprocessing"))
         self._tabs.setTabText(8, i18n.t("tab_instances"))
+        self._tabs.setTabText(9, i18n.t("tab_network_scan"))
 
     def _open_settings(self):
         SettingsDialog(self).exec()
