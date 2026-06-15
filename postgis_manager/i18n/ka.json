@@ -399,5 +399,39 @@
   "qb_saved": "მოთხოვნა '{name}' შენახულია.",
   "qb_generated_sql": "გენერირებული SQL (რედაქტირებადი)",
   "qb_no_table": "ჯერ აირჩიეთ სქემა და ცხრილი.",
-  "qb_result": "{n} მწკრივი დაბრუნდა {ms} ms-ში"
+  "qb_result": "{n} მწკრივი დაბრუნდა {ms} ms-ში",
+
+  "tab_dashboard": "სტატისტიკა",
+
+  "dash_title": "მონაცემთა ბაზის სტატისტიკა",
+  "dash_db_size": "ბაზის ზომა",
+  "dash_connections": "კავშირები",
+  "dash_cache_hit": "ქეშის მოხვედრა",
+  "dash_extensions": "გაფართოებები",
+  "dash_connection_usage": "კავშირების გამოყენება",
+  "dash_cache_hit_ratio": "ქეშის მოხვედრის პროცენტი",
+  "dash_table_sizes": "უდიდესი ცხრილები (პირველი 20)",
+  "dash_active_queries": "აქტიური მოთხოვნები",
+  "dash_unused_indexes": "გამოუყენებელი ინდექსები",
+  "dash_not_connected": "სტატისტიკის სანახავად დაუკავშირდით ბაზას.",
+  "dash_updated": "სტატისტიკა: {db}",
+
+  "cdb_detect": "3DCityDB-ის ძიება",
+  "cdb_not_found": "3DCityDB სქემა ვერ მოიძებნა. დააჭირეთ 'ძიება'.",
+  "cdb_not_connected": "ჯერ დაუკავშირდით ბაზას.",
+  "cdb_version": "ვერსია",
+  "cdb_unknown": "უცნობი",
+  "cdb_feature_counts": "ობიექტების რაოდენობა ტიპის მიხედვით",
+  "cdb_query": "მოთხოვნა",
+  "cdb_template": "შაბლონი:",
+  "cdb_tpl_all_objects": "ყველა ქალაქის ობიექტი",
+  "cdb_tpl_buildings": "შენობები",
+  "cdb_tpl_lod2": "LoD 2 ზედაპირები",
+  "cdb_tpl_surfaces": "თემატური ზედაპირები",
+  "cdb_tpl_address": "მისამართები",
+  "cdb_tpl_ext_refs": "გარე მიმართვები",
+  "cdb_results": "შედეგები",
+
+  "result_rows": "მწკრივი",
+  "action_run": "გაშვება"
 }

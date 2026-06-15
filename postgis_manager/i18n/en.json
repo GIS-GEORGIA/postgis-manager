@@ -400,5 +400,39 @@
   "qb_saved": "Query '{name}' saved.",
   "qb_generated_sql": "Generated SQL (editable)",
   "qb_no_table": "Select a schema and table first.",
-  "qb_result": "{n} rows returned in {ms} ms"
+  "qb_result": "{n} rows returned in {ms} ms",
+
+  "tab_dashboard": "Dashboard",
+
+  "dash_title": "Database Dashboard",
+  "dash_db_size": "DB Size",
+  "dash_connections": "Connections",
+  "dash_cache_hit": "Cache Hit",
+  "dash_extensions": "Extensions",
+  "dash_connection_usage": "Connection Usage",
+  "dash_cache_hit_ratio": "Cache Hit Ratio",
+  "dash_table_sizes": "Largest Tables (top 20)",
+  "dash_active_queries": "Active Queries",
+  "dash_unused_indexes": "Unused Indexes",
+  "dash_not_connected": "Connect to a database to view statistics.",
+  "dash_updated": "Statistics for: {db}",
+
+  "cdb_detect": "Detect 3DCityDB",
+  "cdb_not_found": "No 3DCityDB schema detected. Click 'Detect' to search.",
+  "cdb_not_connected": "Connect to a database first.",
+  "cdb_version": "Version",
+  "cdb_unknown": "unknown",
+  "cdb_feature_counts": "Feature Counts by Type",
+  "cdb_query": "Query",
+  "cdb_template": "Template:",
+  "cdb_tpl_all_objects": "All City Objects",
+  "cdb_tpl_buildings": "Buildings",
+  "cdb_tpl_lod2": "LoD 2 Surfaces",
+  "cdb_tpl_surfaces": "Thematic Surfaces",
+  "cdb_tpl_address": "Addresses",
+  "cdb_tpl_ext_refs": "External References",
+  "cdb_results": "Results",
+
+  "result_rows": "row(s)",
+  "action_run": "Run"
 }

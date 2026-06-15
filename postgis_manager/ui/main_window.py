@@ -29,6 +29,8 @@ from .panels.network_scan_panel import NetworkScanPanel
 from .panels.versioning_panel import VersioningPanel
 from .panels.validation_panel import ValidationPanel
 from .panels.query_builder import QueryBuilderPanel
+from .panels.citydb_panel import CityDBPanel
+from .panels.db_dashboard import DBDashboardPanel
 from .dialogs.connection_dialog import ConnectionDialog
 from .dialogs.settings_dialog import SettingsDialog
 from .dialogs.about_dialog import AboutDialog
@@ -282,6 +284,12 @@ class MainWindow(QMainWindow):
         self.query_builder = QueryBuilderPanel(self.db, self)
         self._tabs.addTab(self.query_builder, "Query Builder")
 
+        self.citydb_panel = CityDBPanel(self.db, self)
+        self._tabs.addTab(self.citydb_panel, "3DCityDB")
+
+        self.dashboard_panel = DBDashboardPanel(self.db, self)
+        self._tabs.addTab(self.dashboard_panel, "Dashboard")
+
         self.log_panel = LogPanel(self)
         v_splitter.addWidget(self.log_panel)
 
@@ -529,6 +537,8 @@ class MainWindow(QMainWindow):
         self._tabs.setTabText(10, i18n.t("tab_versioning"))
         self._tabs.setTabText(11, i18n.t("tab_validation"))
         self._tabs.setTabText(12, i18n.t("tab_query_builder"))
+        self._tabs.setTabText(13, i18n.t("tab_3dcitydb"))
+        self._tabs.setTabText(14, i18n.t("tab_dashboard"))
 
     def _open_settings(self):
         SettingsDialog(self).exec()
