@@ -1,0 +1,59 @@
+name: Build Windows EXE
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build-exe:
+    name: Windows standalone (.exe)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install PyQt6 psycopg2-binary geopandas shapely pyproj fiona
+          pip install pyinstaller
+
+      - name: Build with PyInstaller
+        run: pyinstaller postgis_manager.spec --noconfirm --clean
+
+      - name: Verify output
+        run: |
+          $exe = "dist\PostGIS Manager\PostGIS Manager.exe"
+          if (Test-Path $exe) {
+            $size = [math]::Round((Get-Item $exe).Length / 1MB, 1)
+            Write-Host "EXE built OK — $size MB"
+          } else {
+            Write-Error "EXE not found at $exe"
+            exit 1
+          }
+
+      - name: Create ZIP archive
+        run: |
+          Compress-Archive -Path "dist\PostGIS Manager\*" `
+            -DestinationPath "PostGIS_Manager_Windows_x64.zip"
+          $size = [math]::Round((Get-Item PostGIS_Manager_Windows_x64.zip).Length / 1MB, 1)
+          Write-Host "Archive: PostGIS_Manager_Windows_x64.zip ($size MB)"
+
+      - name: Upload to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: PostGIS_Manager_Windows_x64.zip
+
+      - name: Upload as artifact (manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: PostGIS_Manager_Windows_x64
+          path: PostGIS_Manager_Windows_x64.zip
+          retention-days: 14

@@ -20,7 +20,7 @@ def main():
     app.setApplicationName("PostGIS Manager")
     app.setOrganizationName("GIS-GEORGIA")
     app.setOrganizationDomain("gis-georgia.ge")
-    app.setApplicationVersion("0.1.0")
+    app.setApplicationVersion("1.0.0")
 
     from postgis_manager.utils import config, theme, i18n
     i18n.load(config.get("language", "en"))
