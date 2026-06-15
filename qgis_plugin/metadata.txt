@@ -2,7 +2,7 @@
 name=PostGIS Manager
 qgisMinimumVersion=3.34
 description=Comprehensive PostGIS database manager — vector/raster import, attribute editing, topology, pgRouting, style manager, versioning, geoprocessing, 3DCityDB, network scanner, Docker/Podman instance manager and more.
-version=0.1.0
+version=1.0.0
 author=GIS GEORGIA | Giorgi Kapanadze
 email=kapan.gio777@gmail.com
 about=PostGIS Manager is a hybrid QGIS plugin and standalone application for managing PostGIS spatial databases.
@@ -32,7 +32,7 @@ about=PostGIS Manager is a hybrid QGIS plugin and standalone application for man
 
 tracker=https://github.com/GIS-GEORGIA/postgis-manager/issues
 repository=https://github.com/GIS-GEORGIA/postgis-manager
-homepage=https://github.com/GIS-GEORGIA/postgis-manager
+homepage=https://pg.qgis.ge
 tags=postgis,postgresql,database,geometry,raster,routing,pgrouting,topology,geoprocessing,import,export,geopackage,3dcitydb,versioning,validation,docker
 icon=icon.png
 experimental=False
@@ -41,4 +41,5 @@ supportsQt6=True
 hasProcessingProvider=no
 server=False
 changelog=
+    1.0.0 - First stable release: 21-panel suite, sidebar navigation, pytest test suite, website pg.qgis.ge
     0.1.0 - Initial release: full PostGIS management suite targeting QGIS 3.34+ / Qt 6

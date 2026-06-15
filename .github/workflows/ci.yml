@@ -32,6 +32,26 @@ jobs:
         run: |
           python -m compileall postgis_manager/ standalone/ qgis_plugin/ -q
 
+  tests:
+    name: Pytest (headless PyQt6)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install system libs
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libgl1 libglib2.0-0 libdbus-1-3 \
+                                   libegl1 libxkbcommon0 libxcb-cursor0
+      - name: Install Python dependencies
+        run: pip install PyQt6 psycopg2-binary pytest pytest-qt
+      - name: Run tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: pytest tests/ -v --tb=short
+
   import-test:
     name: Import test (headless PyQt6)
     runs-on: ubuntu-latest
