@@ -28,6 +28,7 @@
   "nav_grp_monitor": "მონიტორი",
 
   "tab_browser": "ბრაუზერი",
+  "tab_map_viewer": "რუკის მაჩვენებელი",
   "tab_sql": "SQL რედაქტორი",
   "tab_query_builder": "მოთხოვნის აგებლი",
   "tab_topology": "ტოპოლოგია",
@@ -41,6 +42,14 @@
   "tab_3dcitydb": "3DCityDB",
   "tab_tools": "ხელსაწყოები",
   "tab_log": "ლოგი",
+
+  "mv_select_layer": "აირჩიეთ ლეიერი...",
+  "mv_layer": "ლეიერი",
+  "mv_load": "რუკაზე ჩვენება",
+  "mv_layers_found": "{n} გეომეტრიის ლეიერი ნაპოვნია",
+  "mv_loading": "გეომეტრიები იტვირთება...",
+  "mv_loaded": "{n} ობიექტი ჩაიტვირთა",
+  "mv_saved": "შენახულია: {col} = … (id={pk})",
 
   "conn_host": "ჰოსტი:",
   "conn_port": "პორტი:",

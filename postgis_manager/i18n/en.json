@@ -28,6 +28,7 @@
   "nav_grp_monitor": "Monitor",
 
   "tab_browser": "Browser",
+  "tab_map_viewer": "Map Viewer",
   "tab_sql": "SQL Editor",
   "tab_query_builder": "Query Builder",
   "tab_topology": "Topology",
@@ -41,6 +42,14 @@
   "tab_3dcitydb": "3DCityDB",
   "tab_tools": "Tools",
   "tab_log": "Log",
+
+  "mv_select_layer": "Select a layer...",
+  "mv_layer": "Layer",
+  "mv_load": "Load on map",
+  "mv_layers_found": "{n} geometry layers found",
+  "mv_loading": "Loading geometries...",
+  "mv_loaded": "{n} features loaded",
+  "mv_saved": "Saved: {col} = … (id={pk})",
 
   "conn_host": "Host:",
   "conn_port": "Port:",

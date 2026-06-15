@@ -37,6 +37,7 @@ from .panels.backup_panel import BackupRestorePanel
 from .panels.schema_role_manager import SchemaRolePanel
 from .panels.matview_panel import MatViewPanel
 from .panels.raster_tools import RasterToolsPanel
+from .panels.map_viewer import MapViewerPanel
 from .sidebar_nav import NavSidebar
 from .dialogs.connection_dialog import ConnectionDialog
 from .dialogs.settings_dialog import SettingsDialog
@@ -279,6 +280,9 @@ class MainWindow(QMainWindow):
         # ── Data ──────────────────────────────────────────────────────────────
         self._nav.add_group(i18n.t("nav_grp_data"))
 
+        self.map_viewer = MapViewerPanel(self.db, self)
+        _add(self.map_viewer, "🗺", "tab_map_viewer")
+
         self.sql_editor = SQLEditorPanel(self.db, self)
         _add(self.sql_editor, "⌨", "tab_sql")
 
@@ -471,6 +475,7 @@ class MainWindow(QMainWindow):
         self.geo_panel.set_active_layer(schema, table, geom_col, srid)
         self.versioning_panel.set_active_layer(schema, table)
         self.validation_panel.set_active_layer(schema, table, geom_col, srid)
+        self.map_viewer.set_active_layer(schema, table, geom_col)
         self.query_builder.set_active_layer(schema, table)
 
     def _load_layer_in_qgis(self, schema, table, geom_col, srid):
