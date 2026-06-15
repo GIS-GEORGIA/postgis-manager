@@ -232,7 +232,7 @@ class CityDBPanel(QWidget):
         self._card_srs    = _card("CRS", "—")
         for c in [self._card_total, self._card_geoms,
                   self._card_appear, self._card_srs]:
-            cards.addWidget(c)
+            cards.addWidget(c[0])
         ll.addLayout(cards)
 
         ll.addWidget(QLabel(f"<b>{i18n.t('cdb_feature_counts')}</b>"))
