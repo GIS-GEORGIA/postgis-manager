@@ -99,11 +99,21 @@ The same `MainWindow` runs both inside QGIS (floating window, with `iface` for l
 
 ## Installation
 
-### Standalone (Windows / Linux / macOS)
+### Standalone — Windows (one-time setup)
+
+```bat
+git clone https://github.com/GIS-GEORGIA/postgis-manager.git
+cd postgis-manager
+install.bat        ← creates .venv and installs dependencies
+run.bat            ← launch the app (every time)
+```
+
+### Standalone — Linux / macOS
 
 ```bash
 git clone https://github.com/GIS-GEORGIA/postgis-manager.git
 cd postgis-manager
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python run.py
 ```
