@@ -223,4 +223,4 @@ compatibility throughout this project.
 ---
 
 *This file is maintained as part of PostGIS Manager — https://github.com/GIS-GEORGIA/postgis-manager*
-*© 2024 GIS-GEORGIA / GGTC GIS Team — GPL-2+ License*
+*© 2024 GIS GEORGIA | Giorgi Kapanadze — GPL-2+ License*

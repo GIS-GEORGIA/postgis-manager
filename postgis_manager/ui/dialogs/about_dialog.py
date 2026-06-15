@@ -25,7 +25,7 @@ class AboutDialog(QDialog):
         title.setFont(f)
         layout.addWidget(title)
 
-        subtitle = QLabel("GIS-GEORGIA / GGTC GIS Team")
+        subtitle = QLabel("GIS GEORGIA | Giorgi Kapanadze")
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(subtitle)
 

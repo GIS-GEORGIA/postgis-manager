@@ -1,6 +1,6 @@
 {
   "app_title": "PostGIS Manager",
-  "app_subtitle": "GIS-GEORGIA / GGTC GIS Team",
+  "app_subtitle": "GIS GEORGIA | Giorgi Kapanadze",
 
   "menu_file": "File",
   "menu_connection": "Connection",
@@ -247,7 +247,7 @@
   "about_description": "PostGIS Manager is a hybrid QGIS plugin and standalone application for managing PostGIS databases. It provides a comprehensive set of tools for data import/export, attribute editing, topology, routing, and more.",
   "about_license": "License: GNU General Public License v2+",
   "about_github": "Source: https://github.com/GIS-GEORGIA/postgis-manager",
-  "about_team": "Developed by: GIS-GEORGIA / GGTC GIS Team",
+  "about_team": "Developed by: GIS GEORGIA | Giorgi Kapanadze",
 
   "log_connected": "Connected to {dbname} on {host}:{port}",
   "log_disconnected": "Disconnected",

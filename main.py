@@ -1,6 +1,6 @@
 """
 PostGIS Manager - GUI Application
-ავტორი: Kapo / GGTC GIS Team
+ავტორი: GIS GEORGIA | Giorgi Kapanadze
 """
 
 import customtkinter as ctk
@@ -19,7 +19,7 @@ from typing import Optional
 # ─────────────────────────────────────────────
 #  Constants & Defaults
 # ─────────────────────────────────────────────
-APP_TITLE  = "PostGIS Manager — GGTC"
+APP_TITLE  = "PostGIS Manager — GIS GEORGIA"
 ICON_DB    = "🗄️"
 ICON_LAYER = "⬡"
 ICON_SCHEMA= "📂"

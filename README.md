@@ -2,7 +2,7 @@
 
 **PostGIS Manager** is a powerful, open-source hybrid **QGIS plugin** and **standalone desktop application** for managing PostGIS spatial databases. Available in **English** and **Georgian (ქართული)** with **Light** and **Dark** themes.
 
-> Developed by [GIS-GEORGIA](https://github.com/GIS-GEORGIA) / GGTC GIS Team  
+> Developed by [GIS GEORGIA](https://github.com/GIS-GEORGIA) | Giorgi Kapanadze  
 > License: GNU GPL v2+
 
 ---
@@ -172,4 +172,4 @@ Issues and feature requests: [GitHub Issues](https://github.com/GIS-GEORGIA/post
 
 GNU General Public License v2 or later — see [LICENSE](LICENSE)
 
-© 2024 GIS-GEORGIA / GGTC GIS Team
+© 2024 GIS GEORGIA | Giorgi Kapanadze

@@ -1,6 +1,6 @@
 {
   "app_title": "PostGIS მენეჯერი",
-  "app_subtitle": "GIS-GEORGIA / GGTC GIS გუნდი",
+  "app_subtitle": "GIS GEORGIA | გიორგი კაპანაძე",
 
   "menu_file": "ფაილი",
   "menu_connection": "კავშირი",
@@ -247,7 +247,7 @@
   "about_description": "PostGIS Manager არის ჰიბრიდული QGIS ფლაგინი და დამოუკიდებელი პროგრამა PostGIS მონაცემთა ბაზების სამართავად. პროგრამა გთავაზობთ ვექტორული/რასტრული მონაცემების იმპორტ-ექსპორტს, ატრიბუტების რედაქტირებას, ტოპოლოგიას, მარშრუტიზაციას და სხვა.",
   "about_license": "ლიცენზია: GNU General Public License v2+",
   "about_github": "კოდი: https://github.com/GIS-GEORGIA/postgis-manager",
-  "about_team": "შეიქმნა: GIS-GEORGIA / GGTC GIS Team",
+  "about_team": "შეიქმნა: GIS GEORGIA | გიორგი კაპანაძე",
 
   "log_connected": "დაუკავშირდა {dbname}-ს — {host}:{port}",
   "log_disconnected": "კავშირი გაწყვეტილია",
