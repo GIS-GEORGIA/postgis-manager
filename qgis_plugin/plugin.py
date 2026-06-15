@@ -13,6 +13,14 @@ class PostGISManagerPlugin:
         self.iface = iface
         self._window = None
         self._action = None
+        self._provider = None
+        self.initProcessing()
+
+    def initProcessing(self):
+        from .processing_provider import PostGISManagerProvider
+        self._provider = PostGISManagerProvider()
+        from qgis.core import QgsApplication
+        QgsApplication.processingRegistry().addProvider(self._provider)
 
     def initGui(self):
         icon_path = os.path.join(os.path.dirname(__file__), "icon.png")
@@ -33,6 +41,9 @@ class PostGISManagerPlugin:
         self.iface.removeToolBarIcon(self._action)
         if self._window:
             self._window.close()
+        if self._provider:
+            from qgis.core import QgsApplication
+            QgsApplication.processingRegistry().removeProvider(self._provider)
         del self._action
 
     def _toggle_manager(self, checked: bool):

@@ -34,6 +34,9 @@ from .panels.db_dashboard import DBDashboardPanel
 from .panels.table_designer import TableDesignerPanel
 from .panels.function_browser import FunctionBrowserPanel
 from .panels.backup_panel import BackupRestorePanel
+from .panels.schema_role_manager import SchemaRolePanel
+from .panels.matview_panel import MatViewPanel
+from .panels.raster_tools import RasterToolsPanel
 from .dialogs.connection_dialog import ConnectionDialog
 from .dialogs.settings_dialog import SettingsDialog
 from .dialogs.about_dialog import AboutDialog
@@ -303,6 +306,15 @@ class MainWindow(QMainWindow):
         self.backup_panel = BackupRestorePanel(self.db, self)
         self._tabs.addTab(self.backup_panel, "Backup")
 
+        self.schema_role_panel = SchemaRolePanel(self.db, self)
+        self._tabs.addTab(self.schema_role_panel, "Schema/Roles")
+
+        self.matview_panel = MatViewPanel(self.db, self)
+        self._tabs.addTab(self.matview_panel, "Mat. Views")
+
+        self.raster_tools = RasterToolsPanel(self.db, self)
+        self._tabs.addTab(self.raster_tools, "Raster Tools")
+
         self.log_panel = LogPanel(self)
         v_splitter.addWidget(self.log_panel)
 
@@ -555,6 +567,9 @@ class MainWindow(QMainWindow):
         self._tabs.setTabText(15, i18n.t("tab_table_designer"))
         self._tabs.setTabText(16, i18n.t("tab_function_browser"))
         self._tabs.setTabText(17, i18n.t("tab_backup"))
+        self._tabs.setTabText(18, i18n.t("tab_schema_roles"))
+        self._tabs.setTabText(19, i18n.t("tab_matviews"))
+        self._tabs.setTabText(20, i18n.t("tab_raster_tools"))
 
     def _open_settings(self):
         SettingsDialog(self).exec()
