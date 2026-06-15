@@ -22,3 +22,9 @@ Thumbs.db
 .vscode/
 *.swp
 ~$*
+*.spec
+*.ico
+*.exe
+PostGIS_Manager_*.zip
+.pytest_cache/
+.ruff_cache/
