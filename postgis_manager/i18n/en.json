@@ -19,6 +19,14 @@
   "action_about": "About",
   "action_credits": "Credits & Attributions",
 
+  "nav_grp_data": "Data",
+  "nav_grp_import": "Import / Export",
+  "nav_grp_analysis": "Spatial Analysis",
+  "nav_grp_design": "Database Design",
+  "nav_grp_advanced": "Advanced",
+  "nav_grp_connect": "Connectivity",
+  "nav_grp_monitor": "Monitor",
+
   "tab_browser": "Browser",
   "tab_sql": "SQL Editor",
   "tab_query_builder": "Query Builder",

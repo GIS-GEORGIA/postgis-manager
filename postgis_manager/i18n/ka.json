@@ -19,6 +19,14 @@
   "action_about": "პროგრამის შესახებ",
   "action_credits": "ავტორები და მადლობა",
 
+  "nav_grp_data": "მონაცემები",
+  "nav_grp_import": "იმპ. / ექსპ.",
+  "nav_grp_analysis": "სივრცული ანალიზი",
+  "nav_grp_design": "BD დიზაინი",
+  "nav_grp_advanced": "დამატებითი",
+  "nav_grp_connect": "კავშირები",
+  "nav_grp_monitor": "მონიტორი",
+
   "tab_browser": "ბრაუზერი",
   "tab_sql": "SQL რედაქტორი",
   "tab_query_builder": "მოთხოვნის აგებლი",

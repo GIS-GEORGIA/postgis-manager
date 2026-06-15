@@ -369,6 +369,37 @@ QGroupBox::title {{
     background-color: {co['bg']};
 }}
 
+/* ── Sidebar Navigation ── */
+QWidget#NavSidebar {{
+    background-color: {co['bg_sidebar']};
+}}
+QPushButton#NavItem {{
+    text-align: left;
+    border: none;
+    border-radius: 5px;
+    padding: 2px 6px;
+    color: {co['fg_secondary']};
+    background: transparent;
+    font-size: 11px;
+    min-height: 30px;
+    font-weight: normal;
+}}
+QPushButton#NavItem:hover {{
+    background-color: {co['selection_bg']};
+    color: {co['selection_fg']};
+}}
+QPushButton#NavItem:checked {{
+    background-color: {co['accent']};
+    color: {co['accent_text']};
+    font-weight: bold;
+}}
+QLabel#NavGroupLabel {{
+    color: {co['fg_dim']};
+    font-size: 9px;
+    font-weight: bold;
+    background: transparent;
+}}
+
 /* ── Check Box / Radio ── */
 QCheckBox, QRadioButton {{
     spacing: 6px;

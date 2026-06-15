@@ -18,66 +18,59 @@
 - Tree view: schemas → vector layers / rasters / views
 - Color-coded geometry types (Point, Line, Polygon…)
 - Right-click context menu: attribute table, import, QGIS load, delete
-- Full schema bulk-load into QGIS (schema importer pattern)
+- Full schema bulk-load into QGIS
 
 ### 📊 Attribute Table
-- Pagination (100–2500 rows per page)
-- Inline cell editing with DB commit
-- Multi-row delete
-- **SQL Filter Builder** — templates for text/number/date/geometry/logic
-- CSV export
+- Pagination (100–2500 rows per page), inline cell editing with DB commit
+- Multi-row delete, SQL Filter Builder, CSV export
 
 ### 🖊 SQL Editor
-- Syntax highlighting (SQL keywords + PostGIS functions)
-- Query history & saved queries
+- Syntax highlighting, query history & saved queries
 - Template toolbar (SELECT *, COUNT, Extent, Validate…)
-- Results table with CSV export
-- F5 shortcut to run
+- Results table with CSV export, F5 shortcut to run
 
-### 📥 Vector Import
-- **Shapefile**, GeoJSON, GeoPackage, KML, GML
-- Auto CRS detection & reprojection
-- Append / Replace / Create table modes
-- Row-level savepoints (bad rows skipped, rest continue)
+### 📥 Import / Export
+- **Vector:** Shapefile, GeoJSON, GeoPackage, KML, GML — auto CRS detection, append/replace/create modes
+- **Raster:** `raster2pgsql` wrapper with tile size, SRID, overview and constraint options
+- **Export:** GeoPackage, Shapefile, GeoJSON, CSV with target SRID reprojection
 
-### 🖼 Raster Import
-- `raster2pgsql` wrapper with tile size, SRID, overview options
-- Insert / Append / Delete+Insert modes
-- Constraints and band index creation
-
-### 🛣 pgRouting Panel
-- **Dijkstra** shortest path
-- **Driving Distance** / Isochrone
+### 🛣 pgRouting
+- Dijkstra shortest path, Driving Distance / Isochrone
 - Result table with load-to-QGIS button
 
-### 🕸 Topology Editor
-- List existing topologies
-- Create topology with SRID and precision
-- **Validate topology** — error table with ID pairs
+### 🔗 Topology Editor
+- Create topologies, validate and inspect topology errors
 
 ### 📏 Linear Referencing / Chainage
-- Generate point features along lines at fixed intervals
-- M-value assignment
-- Configurable start offset
+- Point features along lines at fixed intervals, M-value assignment
 
-### 📦 Export (DB → Files)
-- Multi-layer export: **GeoPackage, Shapefile, GeoJSON, CSV**
-- Target SRID reprojection
-- Batch schema export
+### 🎨 Style Manager
+- Save/load QML styles to `public.layer_styles` — compatible with QGIS native style storage
 
-### 🎨 DB Style Manager
-- Save/load QML styles to `public.layer_styles` table
-- Compatible with QGIS native style storage
-- Default style flag
+### ⚙ Geoprocessing & Validation
+- Server-side Buffer, Simplify, Convex Hull, Centroid, Union
+- Geometry validation: invalid, null, duplicate, self-intersecting, wrong SRID
 
-### ⚙ Geoprocessing
-- Server-side PostGIS operations: **Buffer, Simplify, Convex Hull, Centroid, Union**
-- **Geometry Validation** suite — invalid, null, duplicate, self-intersecting, wrong SRID
+### 🛠 Database Design
+- **Table Designer** — create/alter tables, manage columns, indexes, maintenance
+- **Schema & Role Manager** — schemas, roles, GRANT/REVOKE with GUI
+- **Function Browser** — browse, view source, and execute functions
+- **Materialized Views** — create, refresh (including CONCURRENTLY), drop, preview
 
-### 📜 Version Control (pgVersion)
-- Row-level commit/checkout/diff
-- Branch support
-- Full history log
+### 🗺 Raster Tools
+- Statistics, histogram, map algebra (NDVI, threshold, custom), reproject
+
+### 📊 DB Dashboard
+- Live server metrics: connections, cache hit ratio, transaction rate, active queries, table sizes, unused indexes
+
+### 💾 Backup / Restore
+- `pg_dump` / `pg_restore` / `psql` wrappers with format selection and live progress
+
+### 🕑 Versioning
+- Row-level commit/checkout/diff via pgVersion, branch support
+
+### 🖥 Instance & Network Management
+- Docker/Podman instance launcher, LAN network scanner for PostgreSQL discovery
 
 ---
 
@@ -86,19 +79,21 @@
 ```
 postgis_manager/        ← Core package (no QGIS dependency)
   db/                   ← DBManager, queries, PostGIS helpers
-  ui/                   ← PyQt5 UI panels and dialogs
+  ui/                   ← PyQt6 panels, dialogs, sidebar navigation
   i18n/                 ← en.json, ka.json (English, Georgian)
   utils/                ← theme, config, i18n engine
 
-qgis_plugin/            ← Thin QGIS plugin wrapper
+qgis_plugin/            ← Thin QGIS 4.x / Qt6 plugin wrapper
   plugin.py             ← classFactory, initGui, unload
-  metadata.txt          ← QGIS plugin registry metadata
+  processing_provider.py ← QGIS Processing algorithms
+  algorithms/           ← 6 processing algorithms
+  metadata.txt          ← supportsQt6=True, qgisMinimumVersion=3.34
 
 standalone/             ← Standalone launcher
   app.py                ← QApplication + MainWindow
 ```
 
-The same `MainWindow` runs both in QGIS (floating window, with `iface` for layer loading) and standalone (its own `QApplication`).
+The same `MainWindow` runs both inside QGIS (floating window, with `iface` for layer loading) and standalone (its own `QApplication`). The UI uses a **sidebar navigation + stacked panel** layout — pgAdmin/DBeaver style — instead of flat tabs.
 
 ---
 
@@ -113,14 +108,15 @@ pip install -r requirements.txt
 python run.py
 ```
 
-### QGIS Plugin
+### QGIS Plugin (QGIS 3.34+ / QGIS 4.x)
 
-1. Clone or download this repository
-2. Copy the entire folder into your QGIS plugins directory:
-   - **Windows:** `%APPDATA%\QGIS\QGIS3\profiles\default\python\plugins\`
-   - **Linux:** `~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/`
-3. In QGIS: **Plugins → Manage and Install Plugins → Installed** → enable **PostGIS Manager**
-4. A toolbar button and menu entry appear: **Plugins → PostGIS Manager**
+```bash
+python make_plugin_zip.py          # builds postgis_manager_plugin.zip
+```
+
+Then in QGIS: **Plugins → Manage and Install Plugins → Install from ZIP** → select the file.
+
+Or manually: copy the `postgis_manager/` folder into your QGIS plugins directory and enable via Plugin Manager.
 
 ---
 
@@ -128,7 +124,7 @@ python run.py
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| PyQt5 | ≥5.15 | GUI (provided by QGIS in plugin mode) |
+| PyQt6 | ≥6.4 | GUI (provided by QGIS 4.x in plugin mode) |
 | psycopg2-binary | ≥2.9 | PostgreSQL adapter |
 | geopandas | ≥0.13 | Geospatial data I/O |
 | shapely | ≥2.0 | Geometry operations |
@@ -146,25 +142,30 @@ For raster import: **`raster2pgsql`** must be in PATH (part of PostGIS client to
 | `en` | English | ✔ Complete |
 | `ka` | ქართული (Georgian) | ✔ Complete |
 
-Switch language in: **Toolbar → Lang** dropdown or **Settings dialog**.
+Switch at runtime via the **Lang** dropdown in the toolbar or the **Settings** dialog.
 
 ---
 
-## Credits & Attributions
+## Third-Party Acknowledgements
 
-This project integrates ideas and patterns from **21 open-source QGIS plugins and PostGIS tools**.  
-See [CREDITS.md](CREDITS.md) for the full list with repository links, authors, and licenses.
+This project was built with inspiration and reference code from a number of open-source QGIS plugins and PostGIS tools — some of which were used as starting points or structural references during development.
+
+We are grateful to every author of those projects. **If any rights-holder finds an issue with how their code is represented here, please open an issue or contact us — we will promptly address it, up to and including removing the relevant code.**
+
+See [CREDITS.md](CREDITS.md) for the full list of referenced projects with repository links, authors, and licenses.
 
 ---
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/my-feature`)
-3. Commit your changes
-4. Push and open a Pull Request
+We would be very happy to have collaborators on this project. Whether it is a bug fix, a new feature, a translation, or documentation — every contribution is welcome.
 
-Issues and feature requests: [GitHub Issues](https://github.com/GIS-GEORGIA/postgis-manager/issues)
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Commit your changes
+4. Open a Pull Request
+
+Bug reports and feature requests: [GitHub Issues](https://github.com/GIS-GEORGIA/postgis-manager/issues)
 
 ---
 
@@ -172,4 +173,4 @@ Issues and feature requests: [GitHub Issues](https://github.com/GIS-GEORGIA/post
 
 GNU General Public License v2 or later — see [LICENSE](LICENSE)
 
-© 2024 GIS GEORGIA | Giorgi Kapanadze
+© 2026 GIS GEORGIA | Giorgi Kapanadze

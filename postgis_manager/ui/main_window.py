@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
     QStatusBar, QToolBar, QMenuBar, QMenu, QApplication,
     QLabel, QComboBox, QSizePolicy, QMessageBox, QDialog,
-    QTabWidget,
+    QStackedWidget, QFrame,
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize
 from PyQt6.QtGui import QFont, QIcon, QAction
@@ -37,6 +37,7 @@ from .panels.backup_panel import BackupRestorePanel
 from .panels.schema_role_manager import SchemaRolePanel
 from .panels.matview_panel import MatViewPanel
 from .panels.raster_tools import RasterToolsPanel
+from .sidebar_nav import NavSidebar
 from .dialogs.connection_dialog import ConnectionDialog
 from .dialogs.settings_dialog import SettingsDialog
 from .dialogs.about_dialog import AboutDialog
@@ -232,11 +233,13 @@ class MainWindow(QMainWindow):
         self._main_splitter = QSplitter(Qt.Orientation.Horizontal)
         layout.addWidget(self._main_splitter)
 
+        # ── Left: layer browser ───────────────────────────────────────────────
         self.browser = LayerBrowserPanel(self.db, self)
         self.browser.layer_selected.connect(self._on_layer_selected)
         self.browser.load_in_qgis.connect(self._load_layer_in_qgis)
         self._main_splitter.addWidget(self.browser)
 
+        # ── Right: sidebar + stacked content + log ────────────────────────────
         right_widget = QWidget()
         right_layout = QVBoxLayout(right_widget)
         right_layout.setContentsMargins(0, 0, 0, 0)
@@ -245,82 +248,134 @@ class MainWindow(QMainWindow):
         v_splitter = QSplitter(Qt.Orientation.Vertical)
         right_layout.addWidget(v_splitter)
 
-        self._tabs = QTabWidget()
-        self._tabs.setTabPosition(QTabWidget.TabPosition.North)
-        v_splitter.addWidget(self._tabs)
+        # Content area = sidebar nav + stacked panels side by side
+        content_widget = QWidget()
+        content_layout = QHBoxLayout(content_widget)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(0)
+
+        self._nav = NavSidebar()
+        self._nav.page_requested.connect(self._show_page)
+        # thin separator line between sidebar and content
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.VLine)
+        sep.setFixedWidth(1)
+        content_layout.addWidget(self._nav)
+        content_layout.addWidget(sep)
+
+        self._stack = QStackedWidget()
+        content_layout.addWidget(self._stack, 1)
+
+        v_splitter.addWidget(content_widget)
+
+        # ── Build panels and register in sidebar ──────────────────────────────
+        self._nav_labels: list[tuple] = []  # (btn, i18n_key)
+
+        def _add(panel, icon, key):
+            idx = self._stack.addWidget(panel)
+            btn = self._nav.add_item(icon, i18n.t(key), idx)
+            self._nav_labels.append((btn, key))
+
+        # ── Data ──────────────────────────────────────────────────────────────
+        self._nav.add_group(i18n.t("nav_grp_data"))
 
         self.sql_editor = SQLEditorPanel(self.db, self)
-        self._tabs.addTab(self.sql_editor, "SQL Editor")
-
-        self.raster_panel = RasterImportPanel(self.db, self)
-        self._tabs.addTab(self.raster_panel, "Raster Import")
-
-        self.routing_panel = pgRoutingPanel(self.db, self)
-        self._tabs.addTab(self.routing_panel, "pgRouting")
-
-        self.topology_panel = TopologyPanel(self.db, self)
-        self._tabs.addTab(self.topology_panel, "Topology")
-
-        self.chainage_panel = ChainagePanel(self.db, self)
-        self._tabs.addTab(self.chainage_panel, "Chainage")
-
-        self.export_panel = ExportPanel(self.db, self)
-        self._tabs.addTab(self.export_panel, "Export")
-
-        self.style_panel = StyleManagerPanel(self.db, self)
-        self._tabs.addTab(self.style_panel, "Styles")
-
-        self.geo_panel = GeoprocessingPanel(self.db, self)
-        self._tabs.addTab(self.geo_panel, "Geoprocessing")
-
-        self.instance_panel = InstanceManagerPanel(self)
-        self.instance_panel.add_connection.connect(self._add_container_connection)
-        self._tabs.addTab(self.instance_panel, "Instances")
-
-        self.scan_panel = NetworkScanPanel(self)
-        self.scan_panel.add_connection.connect(self._add_container_connection)
-        self._tabs.addTab(self.scan_panel, "Network Scan")
-
-        self.versioning_panel = VersioningPanel(self.db, self)
-        self._tabs.addTab(self.versioning_panel, "Versioning")
-
-        self.validation_panel = ValidationPanel(self.db, self)
-        self._tabs.addTab(self.validation_panel, "Validation")
+        _add(self.sql_editor, "⌨", "tab_sql")
 
         self.query_builder = QueryBuilderPanel(self.db, self)
-        self._tabs.addTab(self.query_builder, "Query Builder")
+        _add(self.query_builder, "🔍", "tab_query_builder")
 
-        self.citydb_panel = CityDBPanel(self.db, self)
-        self._tabs.addTab(self.citydb_panel, "3DCityDB")
+        # ── Import / Export ───────────────────────────────────────────────────
+        self._nav.add_group(i18n.t("nav_grp_import"))
 
-        self.dashboard_panel = DBDashboardPanel(self.db, self)
-        self._tabs.addTab(self.dashboard_panel, "Dashboard")
+        self.raster_panel = RasterImportPanel(self.db, self)
+        _add(self.raster_panel, "📥", "tab_raster")
+
+        self.export_panel = ExportPanel(self.db, self)
+        _add(self.export_panel, "📤", "tab_export")
+
+        self.backup_panel = BackupRestorePanel(self.db, self)
+        _add(self.backup_panel, "💾", "tab_backup")
+
+        # ── Spatial Analysis ──────────────────────────────────────────────────
+        self._nav.add_group(i18n.t("nav_grp_analysis"))
+
+        self.routing_panel = pgRoutingPanel(self.db, self)
+        _add(self.routing_panel, "🛣", "tab_routing")
+
+        self.topology_panel = TopologyPanel(self.db, self)
+        _add(self.topology_panel, "🔗", "tab_topology")
+
+        self.chainage_panel = ChainagePanel(self.db, self)
+        _add(self.chainage_panel, "📏", "tab_chainage")
+
+        self.geo_panel = GeoprocessingPanel(self.db, self)
+        _add(self.geo_panel, "⚙", "tab_geoprocessing")
+
+        self.validation_panel = ValidationPanel(self.db, self)
+        _add(self.validation_panel, "✅", "tab_validation")
+
+        # ── Database Design ───────────────────────────────────────────────────
+        self._nav.add_group(i18n.t("nav_grp_design"))
 
         self.table_designer = TableDesignerPanel(self.db, self)
         self.table_designer.layer_changed.connect(self._refresh)
-        self._tabs.addTab(self.table_designer, "Table Designer")
-
-        self.func_browser = FunctionBrowserPanel(self.db, self)
-        self._tabs.addTab(self.func_browser, "Functions")
-
-        self.backup_panel = BackupRestorePanel(self.db, self)
-        self._tabs.addTab(self.backup_panel, "Backup")
+        _add(self.table_designer, "🛠", "tab_table_designer")
 
         self.schema_role_panel = SchemaRolePanel(self.db, self)
-        self._tabs.addTab(self.schema_role_panel, "Schema/Roles")
+        _add(self.schema_role_panel, "🔐", "tab_schema_roles")
+
+        self.func_browser = FunctionBrowserPanel(self.db, self)
+        _add(self.func_browser, "ƒ", "tab_function_browser")
 
         self.matview_panel = MatViewPanel(self.db, self)
-        self._tabs.addTab(self.matview_panel, "Mat. Views")
+        _add(self.matview_panel, "📋", "tab_matviews")
+
+        # ── Raster / Advanced ─────────────────────────────────────────────────
+        self._nav.add_group(i18n.t("nav_grp_advanced"))
 
         self.raster_tools = RasterToolsPanel(self.db, self)
-        self._tabs.addTab(self.raster_tools, "Raster Tools")
+        _add(self.raster_tools, "🗺", "tab_raster_tools")
 
+        self.style_panel = StyleManagerPanel(self.db, self)
+        _add(self.style_panel, "🎨", "tab_styles")
+
+        self.versioning_panel = VersioningPanel(self.db, self)
+        _add(self.versioning_panel, "🕑", "tab_versioning")
+
+        self.citydb_panel = CityDBPanel(self.db, self)
+        _add(self.citydb_panel, "🏙", "tab_3dcitydb")
+
+        # ── Connectivity ──────────────────────────────────────────────────────
+        self._nav.add_group(i18n.t("nav_grp_connect"))
+
+        self.instance_panel = InstanceManagerPanel(self)
+        self.instance_panel.add_connection.connect(self._add_container_connection)
+        _add(self.instance_panel, "🖥", "tab_instances")
+
+        self.scan_panel = NetworkScanPanel(self)
+        self.scan_panel.add_connection.connect(self._add_container_connection)
+        _add(self.scan_panel, "🌐", "tab_network_scan")
+
+        # ── Monitor ───────────────────────────────────────────────────────────
+        self._nav.add_group(i18n.t("nav_grp_monitor"))
+
+        self.dashboard_panel = DBDashboardPanel(self.db, self)
+        _add(self.dashboard_panel, "📊", "tab_dashboard")
+
+        # ── Log at bottom ─────────────────────────────────────────────────────
         self.log_panel = LogPanel(self)
         v_splitter.addWidget(self.log_panel)
 
-        v_splitter.setSizes([600, 200])
+        v_splitter.setSizes([620, 180])
         self._main_splitter.addWidget(right_widget)
-        self._main_splitter.setSizes([300, 1100])
+        self._main_splitter.setSizes([260, 1140])
+
+        # Activate first page
+        self._nav.select_page(0)
+
+    def _show_page(self, idx: int):
+        self._stack.setCurrentIndex(idx)
 
     def _build_statusbar(self):
         sb = QStatusBar()
@@ -549,27 +604,11 @@ class MainWindow(QMainWindow):
         self._action_settings.setText(i18n.t("action_settings"))
         self._action_about.setText(i18n.t("about_title"))
         self._action_credits.setText(i18n.t("action_credits"))
-        self._tabs.setTabText(0, i18n.t("tab_sql"))
-        self._tabs.setTabText(1, i18n.t("tab_raster"))
-        self._tabs.setTabText(2, i18n.t("tab_routing"))
-        self._tabs.setTabText(3, i18n.t("tab_topology"))
-        self._tabs.setTabText(4, i18n.t("tab_chainage"))
-        self._tabs.setTabText(5, i18n.t("tab_export"))
-        self._tabs.setTabText(6, i18n.t("tab_styles"))
-        self._tabs.setTabText(7, i18n.t("tab_geoprocessing"))
-        self._tabs.setTabText(8,  i18n.t("tab_instances"))
-        self._tabs.setTabText(9,  i18n.t("tab_network_scan"))
-        self._tabs.setTabText(10, i18n.t("tab_versioning"))
-        self._tabs.setTabText(11, i18n.t("tab_validation"))
-        self._tabs.setTabText(12, i18n.t("tab_query_builder"))
-        self._tabs.setTabText(13, i18n.t("tab_3dcitydb"))
-        self._tabs.setTabText(14, i18n.t("tab_dashboard"))
-        self._tabs.setTabText(15, i18n.t("tab_table_designer"))
-        self._tabs.setTabText(16, i18n.t("tab_function_browser"))
-        self._tabs.setTabText(17, i18n.t("tab_backup"))
-        self._tabs.setTabText(18, i18n.t("tab_schema_roles"))
-        self._tabs.setTabText(19, i18n.t("tab_matviews"))
-        self._tabs.setTabText(20, i18n.t("tab_raster_tools"))
+        # Update sidebar nav button labels
+        for btn, key in self._nav_labels:
+            icon_text = btn.text().split("  ", 1)
+            icon = icon_text[1].split("  ", 1)[0] if "  " in icon_text[1] else ""
+            btn.setText(f"  {icon}  {i18n.t(key)}")
 
     def _open_settings(self):
         SettingsDialog(self).exec()

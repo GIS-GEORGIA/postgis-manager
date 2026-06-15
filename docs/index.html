@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PostGIS Manager — GIS GEORGIA</title>
+  <meta name="description" content="Open-source hybrid QGIS plugin and standalone desktop application for managing PostGIS spatial databases." />
+  <meta property="og:title" content="PostGIS Manager" />
+  <meta property="og:description" content="QGIS plugin &amp; standalone app for PostGIS database management. English &amp; Georgian. Light &amp; Dark themes." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Tokens ─────────────────────────────────────────────────────── */
+    :root {
+      --c-bg:          #F5F7FA;
+      --c-surface:     #FFFFFF;
+      --c-surface2:    #F0F2F6;
+      --c-border:      #DDE1E8;
+      --c-text:        #111827;
+      --c-text2:       #4B5563;
+      --c-text3:       #9CA3AF;
+      --c-accent:      #1565C0;
+      --c-accent-h:    #0D47A1;
+      --c-accent-t:    #FFFFFF;
+      --c-green:       #1B5E20;
+      --c-green-bg:    #E8F5E9;
+      --c-amber:       #E65100;
+      --c-amber-bg:    #FFF3E0;
+      --c-code-bg:     #EEF2FF;
+      --c-code-text:   #1565C0;
+      --c-nav-blur:    rgba(245,247,250,0.88);
+      --c-hero-grad:   linear-gradient(135deg, #E3EFFE 0%, #F5F7FA 60%);
+      --shadow-sm:     0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md:     0 4px 16px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.04);
+      --shadow-lg:     0 12px 36px rgba(0,0,0,.10), 0 4px 12px rgba(0,0,0,.05);
+      --r:             12px;
+      --r-sm:          8px;
+      --transition:    .22s ease;
+    }
+    [data-theme="dark"] {
+      --c-bg:          #0E1117;
+      --c-surface:     #161B22;
+      --c-surface2:    #1C2230;
+      --c-border:      #2D3748;
+      --c-text:        #E2E8F0;
+      --c-text2:       #94A3B8;
+      --c-text3:       #4B5568;
+      --c-accent:      #4D9FFF;
+      --c-accent-h:    #3B8EEE;
+      --c-accent-t:    #0A1628;
+      --c-green:       #4ADE80;
+      --c-green-bg:    #052E16;
+      --c-amber:       #FBB040;
+      --c-amber-bg:    #1C1200;
+      --c-code-bg:     #1A2740;
+      --c-code-text:   #7CB9FF;
+      --c-nav-blur:    rgba(14,17,23,0.92);
+      --c-hero-grad:   linear-gradient(135deg, #0D1F3C 0%, #0E1117 60%);
+      --shadow-sm:     0 1px 3px rgba(0,0,0,.3);
+      --shadow-md:     0 4px 16px rgba(0,0,0,.4);
+      --shadow-lg:     0 12px 36px rgba(0,0,0,.5);
+    }
+
+    /* ── Reset ──────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      background: var(--c-bg);
+      color: var(--c-text);
+      transition: background var(--transition), color var(--transition);
+    }
+    a { color: var(--c-accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img { max-width: 100%; display: block; }
+
+    /* ── Nav ────────────────────────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--c-nav-blur);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--c-border);
+      padding: 0 2rem;
+      transition: background var(--transition);
+    }
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--c-text);
+      text-decoration: none;
+    }
+    .nav-logo-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: var(--c-accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--c-accent-t);
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: -.5px;
+      flex-shrink: 0;
+    }
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+      margin-left: auto;
+    }
+    .nav-links a {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--c-text2);
+      text-decoration: none;
+      transition: color var(--transition);
+    }
+    .nav-links a:hover { color: var(--c-accent); }
+    .nav-controls { display: flex; gap: 8px; align-items: center; }
+    .ctrl-btn {
+      height: 34px;
+      padding: 0 12px;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--c-border);
+      background: var(--c-surface);
+      color: var(--c-text2);
+      font-size: 13px;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition), border-color var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .ctrl-btn:hover { background: var(--c-surface2); color: var(--c-text); border-color: var(--c-accent); }
+    .ctrl-btn.active { background: var(--c-accent); color: var(--c-accent-t); border-color: var(--c-accent); }
+
+    /* ── Hero ───────────────────────────────────────────────────────── */
+    .hero {
+      background: var(--c-hero-grad);
+      padding: 100px 2rem 80px;
+      text-align: center;
+      border-bottom: 1px solid var(--c-border);
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: 999px;
+      padding: 4px 14px;
+      font-size: 13px;
+      color: var(--c-text2);
+      margin-bottom: 1.5rem;
+    }
+    .hero-badge span { color: var(--c-accent); font-weight: 600; }
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.2rem);
+      font-weight: 700;
+      line-height: 1.15;
+      color: var(--c-text);
+      max-width: 700px;
+      margin: 0 auto .8rem;
+      letter-spacing: -.02em;
+    }
+    .hero h1 em { font-style: normal; color: var(--c-accent); }
+    .hero-sub {
+      font-size: 1.1rem;
+      color: var(--c-text2);
+      max-width: 560px;
+      margin: 0 auto 2rem;
+    }
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--c-accent);
+      color: var(--c-accent-t);
+      padding: 12px 24px;
+      border-radius: var(--r-sm);
+      font-weight: 600;
+      font-size: 15px;
+      transition: background var(--transition), transform .12s;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn-primary:hover { background: var(--c-accent-h); transform: translateY(-1px); text-decoration: none; }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--c-surface);
+      color: var(--c-text);
+      padding: 12px 24px;
+      border-radius: var(--r-sm);
+      font-weight: 600;
+      font-size: 15px;
+      border: 1px solid var(--c-border);
+      cursor: pointer;
+      text-decoration: none;
+      transition: background var(--transition), transform .12s;
+    }
+    .btn-secondary:hover { background: var(--c-surface2); transform: translateY(-1px); text-decoration: none; }
+    .hero-tags {
+      margin-top: 2.5rem;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      color: var(--c-text2);
+      font-weight: 500;
+    }
+    .tag .dot { width: 7px; height: 7px; border-radius: 50%; }
+    .dot-blue  { background: #1565C0; }
+    .dot-green { background: #2E7D32; }
+    .dot-amber { background: #E65100; }
+
+    /* ── Section wrapper ────────────────────────────────────────────── */
+    section { padding: 80px 2rem; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--c-accent);
+      margin-bottom: .5rem;
+    }
+    .section-title {
+      font-size: clamp(1.6rem, 3vw, 2rem);
+      font-weight: 700;
+      color: var(--c-text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+    }
+    .section-sub {
+      margin-top: .5rem;
+      color: var(--c-text2);
+      font-size: 1rem;
+      max-width: 540px;
+    }
+    .section-header { margin-bottom: 3rem; }
+
+    /* ── Feature grid ───────────────────────────────────────────────── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+    .feat-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--r);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow var(--transition), transform var(--transition), border-color var(--transition);
+    }
+    .feat-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+      border-color: var(--c-accent);
+    }
+    .feat-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: var(--c-code-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 1rem;
+    }
+    .feat-card h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--c-text);
+      margin-bottom: .4rem;
+    }
+    .feat-card p {
+      font-size: 14px;
+      color: var(--c-text2);
+      line-height: 1.6;
+    }
+
+    /* ── Architecture ───────────────────────────────────────────────── */
+    .arch-section { background: var(--c-surface2); border-top: 1px solid var(--c-border); border-bottom: 1px solid var(--c-border); }
+    .arch-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+    @media (max-width: 700px) { .arch-grid { grid-template-columns: 1fr; } }
+    .arch-tree {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--r);
+      padding: 1.25rem 1.5rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+      color: var(--c-text2);
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+    .arch-tree .dir { color: var(--c-accent); font-weight: 600; }
+    .arch-tree .comment { color: var(--c-text3); }
+    .arch-desc { display: flex; flex-direction: column; gap: 1rem; }
+    .arch-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .arch-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--c-accent);
+      color: var(--c-accent-t);
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .arch-item-text h4 { font-size: 14px; font-weight: 600; color: var(--c-text); margin-bottom: .2rem; }
+    .arch-item-text p  { font-size: 13px; color: var(--c-text2); line-height: 1.5; }
+
+    /* ── Install ────────────────────────────────────────────────────── */
+    .install-tabs { display: flex; gap: 8px; margin-bottom: 1.5rem; }
+    .tab-btn {
+      padding: 8px 18px;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--c-border);
+      background: var(--c-surface);
+      color: var(--c-text2);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition);
+    }
+    .tab-btn.active { background: var(--c-accent); color: var(--c-accent-t); border-color: var(--c-accent); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .code-block {
+      background: #0D1117;
+      color: #E2E8F0;
+      border-radius: var(--r);
+      padding: 1.25rem 1.5rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 13.5px;
+      line-height: 1.8;
+      overflow-x: auto;
+      position: relative;
+    }
+    .code-block .kw { color: #FF7B72; }
+    .code-block .str { color: #A5D6FF; }
+    .code-block .cmt { color: #8B949E; }
+    .code-block .cmd { color: #79C0FF; }
+    .install-steps { display: flex; flex-direction: column; gap: 1.25rem; margin-top: 1.5rem; }
+    .install-step {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-sm);
+      padding: 1rem 1.25rem;
+    }
+    .step-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--c-code-bg);
+      color: var(--c-accent);
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .install-step p { font-size: 14px; color: var(--c-text2); margin-top: 0; }
+    .install-step strong { color: var(--c-text); font-size: 14px; display: block; margin-bottom: 2px; }
+    code {
+      font-family: 'Fira Code', monospace;
+      font-size: 12.5px;
+      background: var(--c-code-bg);
+      color: var(--c-code-text);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* ── Requirements ───────────────────────────────────────────────── */
+    .req-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .req-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-sm);
+      padding: 1rem 1.25rem;
+    }
+    .req-name { font-size: 14px; font-weight: 600; color: var(--c-text); }
+    .req-ver  { font-size: 12px; color: var(--c-accent); font-family: 'Fira Code', monospace; margin-top: 2px; }
+    .req-desc { font-size: 12px; color: var(--c-text2); margin-top: 4px; }
+
+    /* ── Credits & Contributing ─────────────────────────────────────── */
+    .notice-card {
+      background: var(--c-amber-bg);
+      border: 1px solid var(--c-border);
+      border-left: 4px solid var(--c-amber);
+      border-radius: var(--r-sm);
+      padding: 1.25rem 1.5rem;
+      font-size: 14.5px;
+      color: var(--c-text);
+      line-height: 1.7;
+    }
+    .notice-card strong { color: var(--c-amber); }
+    .contrib-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    .contrib-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--r);
+      padding: 1.25rem;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .contrib-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+    .contrib-card h4 { font-size: 14px; font-weight: 600; color: var(--c-text); margin-bottom: 4px; }
+    .contrib-card p  { font-size: 13px; color: var(--c-text2); }
+
+    /* ── Lang grid ──────────────────────────────────────────────────── */
+    .lang-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      max-width: 480px;
+      margin-top: 1.5rem;
+    }
+    .lang-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-sm);
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .lang-flag { font-size: 26px; }
+    .lang-card h4 { font-size: 14px; font-weight: 600; color: var(--c-text); }
+    .lang-card p  { font-size: 12px; color: var(--c-text3); }
+    .badge-complete {
+      display: inline-block;
+      background: var(--c-green-bg);
+      color: var(--c-green);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 4px;
+    }
+
+    /* ── Footer ─────────────────────────────────────────────────────── */
+    footer {
+      background: var(--c-surface);
+      border-top: 1px solid var(--c-border);
+      padding: 3rem 2rem 2rem;
+    }
+    .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 3rem;
+    }
+    @media (max-width: 700px) { .footer-inner { grid-template-columns: 1fr; } .nav-links { display: none; } }
+    .footer-brand h3 { font-size: 18px; font-weight: 700; color: var(--c-text); margin-bottom: .5rem; }
+    .footer-brand p  { font-size: 14px; color: var(--c-text2); line-height: 1.6; }
+    .footer-col h4   { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--c-text3); margin-bottom: 1rem; }
+    .footer-links    { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .footer-links a  { font-size: 14px; color: var(--c-text2); text-decoration: none; transition: color var(--transition); }
+    .footer-links a:hover { color: var(--c-accent); }
+    .footer-bottom {
+      max-width: 1100px;
+      margin: 2rem auto 0;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--c-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 13px;
+      color: var(--c-text3);
+    }
+    .footer-bottom a { color: var(--c-text3); }
+    .footer-bottom a:hover { color: var(--c-accent); }
+    .gh-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--c-surface2);
+      border: 1px solid var(--c-border);
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 13px;
+      color: var(--c-text);
+      text-decoration: none;
+      transition: background var(--transition);
+    }
+    .gh-btn:hover { background: var(--c-border); text-decoration: none; }
+
+    /* ── Divider ────────────────────────────────────────────────────── */
+    .divider { border: none; border-top: 1px solid var(--c-border); }
+
+    /* ── Scroll reveal ──────────────────────────────────────────────── */
+    .reveal { opacity: 0; transform: translateY(20px); transition: opacity .55s ease, transform .55s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+  </style>
+</head>
+<body>
+
+<!-- ── Navigation ───────────────────────────────────────────────────── -->
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="#">
+      <div class="nav-logo-icon">PG</div>
+      <span>PostGIS Manager</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features"  data-i18n="nav_features">Features</a></li>
+      <li><a href="#install"   data-i18n="nav_install">Install</a></li>
+      <li><a href="#arch"      data-i18n="nav_arch">Architecture</a></li>
+      <li><a href="#credits"   data-i18n="nav_credits">Credits</a></li>
+      <li><a href="#contrib"   data-i18n="nav_contrib">Contributing</a></li>
+    </ul>
+    <div class="nav-controls">
+      <button class="ctrl-btn" id="btn-lang-en" onclick="setLang('en')">🇬🇧 EN</button>
+      <button class="ctrl-btn" id="btn-lang-ka" onclick="setLang('ka')">🇬🇪 ქა</button>
+      <button class="ctrl-btn" id="btn-theme"   onclick="toggleTheme()">🌙</button>
+      <a class="ctrl-btn" href="https://github.com/GIS-GEORGIA/postgis-manager" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.49.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.56 9.56 0 0112 6.8c.85.004 1.7.115 2.5.337 1.9-1.29 2.74-1.02 2.74-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10.01 10.01 0 0022 12c0-5.52-4.48-10-10-10z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Hero ─────────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-badge">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    <span>GIS GEORGIA</span> · Open Source · GNU GPL v2+
+  </div>
+  <h1 data-i18n="hero_title">Manage <em>PostGIS</em> like a pro</h1>
+  <p class="hero-sub" data-i18n="hero_sub">A powerful hybrid QGIS 4 plugin and standalone desktop application for spatial database management — in English and Georgian.</p>
+  <div class="hero-actions">
+    <a class="btn-primary" href="https://github.com/GIS-GEORGIA/postgis-manager/releases" target="_blank" rel="noopener" data-i18n="hero_download">
+      ⬇ Download
+    </a>
+    <a class="btn-secondary" href="https://github.com/GIS-GEORGIA/postgis-manager" target="_blank" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.49.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.56 9.56 0 0112 6.8c.85.004 1.7.115 2.5.337 1.9-1.29 2.74-1.02 2.74-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10.01 10.01 0 0022 12c0-5.52-4.48-10-10-10z"/></svg>
+      <span data-i18n="hero_view_gh">View on GitHub</span>
+    </a>
+  </div>
+  <div class="hero-tags">
+    <span class="tag"><span class="dot dot-blue"></span> PyQt6 / Qt6</span>
+    <span class="tag"><span class="dot dot-blue"></span> QGIS 3.34+ / 4.x</span>
+    <span class="tag"><span class="dot dot-green"></span> PostGIS</span>
+    <span class="tag"><span class="dot dot-green"></span> pgRouting</span>
+    <span class="tag"><span class="dot dot-amber"></span> English</span>
+    <span class="tag"><span class="dot dot-amber"></span> ქართული</span>
+    <span class="tag"><span class="dot dot-blue"></span> Light / Dark</span>
+  </div>
+</section>
+
+<!-- ── Features ─────────────────────────────────────────────────────── -->
+<section id="features">
+  <div class="container">
+    <div class="section-header reveal">
+      <p class="section-label" data-i18n="feat_label">Features</p>
+      <h2 class="section-title" data-i18n="feat_title">Everything in one place</h2>
+      <p class="section-sub" data-i18n="feat_sub">A complete suite for spatial database management — from raw SQL to raster analysis.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card reveal">
+        <div class="feat-icon">🔌</div>
+        <h3 data-i18n="f1_title">Connection Manager</h3>
+        <p data-i18n="f1_desc">Multiple named connection profiles with SSL, timeout and auto-save. Detects PostGIS, pgRouting, Topology and Raster versions on connect.</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">⌨</div>
+        <h3 data-i18n="f2_title">SQL Editor</h3>
+        <p data-i18n="f2_desc">Syntax highlighting for SQL and PostGIS functions, persistent query history, templates toolbar, result table with CSV export, F5 shortcut.</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">📥</div>
+        <h3 data-i18n="f3_title">Vector & Raster Import</h3>
+        <p data-i18n="f3_desc">Import Shapefile, GeoJSON, GeoPackage, KML. Raster via raster2pgsql with tile size, SRID, overview and constraint options.</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">🛣</div>
+        <h3 data-i18n="f4_title">pgRouting</h3>
+        <p data-i18n="f4_desc">Dijkstra shortest path, Driving Distance and Isochrone analysis. Results table with one-click load into QGIS canvas.</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">🛠</div>
+        <h3 data-i18n="f5_title">Table & Schema Designer</h3>
+        <p data-i18n="f5_desc">Visual table creator with column types, constraints, indexes. Schema and Role manager with GRANT/REVOKE GUI. Materialized view lifecycle.</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">⚙</div>
+        <h3 data-i18n="f6_title">Geoprocessing & Validation</h3>
+        <p data-i18n="f6_desc">Server-side Buffer, Simplify, Convex Hull, Union. Geometry validation: invalid, null, duplicate, self-intersecting, wrong SRID.</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">🗺</div>
+        <h3 data-i18n="f7_title">Raster Tools</h3>
+        <p data-i18n="f7_desc">Statistics, histogram, map algebra (NDVI, threshold, custom expressions), focal analysis and reproject via PostGIS raster functions.</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">📊</div>
+        <h3 data-i18n="f8_title">DB Dashboard</h3>
+        <p data-i18n="f8_desc">Live server metrics: connection count, cache hit ratio, transaction rate, active queries, table sizes, unused indexes. Auto-refreshes on open.</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">💾</div>
+        <h3 data-i18n="f9_title">Backup & Restore</h3>
+        <p data-i18n="f9_desc">GUI wrapper for pg_dump, pg_restore and psql. Custom format, directory, plain SQL and tar formats. Live streaming progress output.</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">🔗</div>
+        <h3 data-i18n="f10_title">Topology Editor</h3>
+        <p data-i18n="f10_desc">Create PostGIS topologies with configurable SRID and precision. Validate and browse topology errors with geometry pair display.</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">🖥</div>
+        <h3 data-i18n="f11_title">Instance & Network Manager</h3>
+        <p data-i18n="f11_desc">Launch and manage Docker/Podman PostGIS containers. Scan LAN subnets for running PostgreSQL servers and add them as connections.</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">🕑</div>
+        <h3 data-i18n="f12_title">Versioning</h3>
+        <p data-i18n="f12_desc">Row-level version control via pgVersion. Commit, checkout, diff and branch support with full history log.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Architecture ──────────────────────────────────────────────────── -->
+<section id="arch" class="arch-section">
+  <div class="container">
+    <div class="section-header reveal">
+      <p class="section-label" data-i18n="arch_label">Architecture</p>
+      <h2 class="section-title" data-i18n="arch_title">Hybrid plugin + standalone</h2>
+      <p class="section-sub" data-i18n="arch_sub">The same codebase runs inside QGIS and as an independent desktop app. Zero duplication.</p>
+    </div>
+    <div class="arch-grid">
+      <div class="arch-tree reveal">
+<span class="dir">postgis_manager/</span>  <span class="comment">← core (no QGIS dep)</span>
+  <span class="dir">db/</span>             <span class="comment">← DBManager, queries</span>
+  <span class="dir">ui/</span>             <span class="comment">← PyQt6 panels & dialogs</span>
+    sidebar_nav.py   <span class="comment">← grouped nav widget</span>
+    main_window.py   <span class="comment">← shared MainWindow</span>
+  <span class="dir">i18n/</span>           <span class="comment">← en.json / ka.json</span>
+  <span class="dir">utils/</span>          <span class="comment">← theme, config, i18n</span>
+
+<span class="dir">qgis_plugin/</span>     <span class="comment">← thin QGIS 4 wrapper</span>
+  plugin.py         <span class="comment">← classFactory / initGui</span>
+  processing_provider.py
+  <span class="dir">algorithms/</span>     <span class="comment">← 6 processing algos</span>
+  metadata.txt      <span class="comment">← supportsQt6=True</span>
+
+<span class="dir">standalone/</span>      <span class="comment">← desktop launcher</span>
+  app.py            <span class="comment">← QApplication entry</span>
+      </div>
+      <div class="arch-desc reveal">
+        <div class="arch-item">
+          <div class="arch-num">1</div>
+          <div class="arch-item-text">
+            <h4 data-i18n="arch1_title">Core package</h4>
+            <p data-i18n="arch1_desc">Pure Python + PyQt6 — no QGIS imports. Runs anywhere with psycopg2 installed. All DB logic, UI panels and theming live here.</p>
+          </div>
+        </div>
+        <div class="arch-item">
+          <div class="arch-num">2</div>
+          <div class="arch-item-text">
+            <h4 data-i18n="arch2_title">QGIS plugin wrapper</h4>
+            <p data-i18n="arch2_desc">Thin adapter using <code>qgis.PyQt</code> shim. Adds a toolbar button, QGIS Processing provider with 6 algorithms, and layer loading via <code>iface</code>.</p>
+          </div>
+        </div>
+        <div class="arch-item">
+          <div class="arch-num">3</div>
+          <div class="arch-item-text">
+            <h4 data-i18n="arch3_title">Sidebar navigation</h4>
+            <p data-i18n="arch3_desc">21 panels grouped into 7 categories in a sidebar+stacked layout — pgAdmin/DBeaver style. No more overloaded tab bar.</p>
+          </div>
+        </div>
+        <div class="arch-item">
+          <div class="arch-num">4</div>
+          <div class="arch-item-text">
+            <h4 data-i18n="arch4_title">Runtime i18n & theming</h4>
+            <p data-i18n="arch4_desc">Language and theme switch instantly without restart. All strings from JSON files; QSS theme engine with full light/dark token set.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Install ───────────────────────────────────────────────────────── -->
+<section id="install">
+  <div class="container">
+    <div class="section-header reveal">
+      <p class="section-label" data-i18n="inst_label">Installation</p>
+      <h2 class="section-title" data-i18n="inst_title">Get started in minutes</h2>
+    </div>
+    <div class="reveal">
+      <div class="install-tabs">
+        <button class="tab-btn active" onclick="showTab('qgis')"   data-i18n="tab_qgis">QGIS Plugin</button>
+        <button class="tab-btn"        onclick="showTab('standalone')" data-i18n="tab_standalone">Standalone App</button>
+      </div>
+
+      <div class="tab-panel active" id="tab-qgis">
+        <div class="install-steps">
+          <div class="install-step">
+            <div class="step-num">1</div>
+            <div>
+              <strong data-i18n="qgis_step1_title">Build the plugin ZIP</strong>
+              <div class="code-block" style="margin-top:.6rem;">
+                <span class="cmd">python</span> make_plugin_zip.py
+              </div>
+            </div>
+          </div>
+          <div class="install-step">
+            <div class="step-num">2</div>
+            <div>
+              <strong data-i18n="qgis_step2_title">Install from ZIP in QGIS</strong>
+              <p data-i18n="qgis_step2_desc">In QGIS: <strong>Plugins → Manage and Install Plugins → Install from ZIP</strong> → select <code>postgis_manager_plugin.zip</code></p>
+            </div>
+          </div>
+          <div class="install-step">
+            <div class="step-num">3</div>
+            <div>
+              <strong data-i18n="qgis_step3_title">Enable & launch</strong>
+              <p data-i18n="qgis_step3_desc">Enable <strong>PostGIS Manager</strong> in the plugin list. A toolbar button and <strong>Plugins → PostGIS Manager</strong> menu entry appear.</p>
+            </div>
+          </div>
+          <div class="install-step">
+            <div class="step-num">4</div>
+            <div>
+              <strong data-i18n="qgis_step4_title">Requirements</strong>
+              <p data-i18n="qgis_step4_desc">QGIS 3.34 LTR or QGIS 4.x (Qt6). <code>psycopg2-binary</code> must be available in your Python environment.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-standalone">
+        <div class="code-block" style="margin-top:.5rem;">
+<span class="cmt"># Clone the repository</span>
+<span class="cmd">git</span> clone https://github.com/GIS-GEORGIA/postgis-manager.git
+<span class="cmd">cd</span> postgis-manager
+
+<span class="cmt"># Create virtual environment</span>
+<span class="cmd">python</span> -m venv .venv
+<span class="cmd">source</span> .venv/bin/activate   <span class="cmt"># Windows: .venv\Scripts\activate</span>
+
+<span class="cmt"># Install dependencies</span>
+<span class="cmd">pip</span> install -r requirements.txt
+
+<span class="cmt"># Launch</span>
+<span class="cmd">python</span> run.py
+        </div>
+        <div class="install-steps" style="margin-top:1.25rem;">
+          <div class="install-step">
+            <div class="step-num">📦</div>
+            <div>
+              <strong data-i18n="sa_req_title">Requirements</strong>
+              <p data-i18n="sa_req_desc">Python 3.10+, PyQt6 ≥ 6.4, psycopg2-binary ≥ 2.9. For raster import: <code>raster2pgsql</code> must be in PATH (PostGIS client tools).</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="req-grid" style="margin-top:3rem;">
+      <div class="req-card reveal">
+        <div class="req-name">PyQt6</div>
+        <div class="req-ver">≥ 6.4</div>
+        <div class="req-desc" data-i18n="req_pyqt">GUI framework (provided by QGIS 4.x in plugin mode)</div>
+      </div>
+      <div class="req-card reveal">
+        <div class="req-name">psycopg2-binary</div>
+        <div class="req-ver">≥ 2.9</div>
+        <div class="req-desc" data-i18n="req_psyco">PostgreSQL / PostGIS database adapter</div>
+      </div>
+      <div class="req-card reveal">
+        <div class="req-name">geopandas</div>
+        <div class="req-ver">≥ 0.13</div>
+        <div class="req-desc" data-i18n="req_gpd">Geospatial data I/O</div>
+      </div>
+      <div class="req-card reveal">
+        <div class="req-name">shapely</div>
+        <div class="req-ver">≥ 2.0</div>
+        <div class="req-desc" data-i18n="req_shapely">Geometry operations</div>
+      </div>
+      <div class="req-card reveal">
+        <div class="req-name">pyproj</div>
+        <div class="req-ver">≥ 3.5</div>
+        <div class="req-desc" data-i18n="req_pyproj">CRS / projection transformations</div>
+      </div>
+      <div class="req-card reveal">
+        <div class="req-name">fiona</div>
+        <div class="req-ver">≥ 1.9</div>
+        <div class="req-desc" data-i18n="req_fiona">Vector file I/O</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Languages ─────────────────────────────────────────────────────── -->
+<section style="padding:0 2rem 80px;">
+  <div class="container reveal">
+    <p class="section-label" data-i18n="lang_label">Languages</p>
+    <h2 class="section-title" data-i18n="lang_title">Full runtime language switching</h2>
+    <p class="section-sub" style="margin-top:.5rem;" data-i18n="lang_sub">Switch language from the toolbar dropdown or Settings dialog — no restart required.</p>
+    <div class="lang-grid">
+      <div class="lang-card">
+        <div class="lang-flag">🇬🇧</div>
+        <div>
+          <h4>English</h4>
+          <div class="badge-complete" data-i18n="lang_complete">✔ Complete</div>
+        </div>
+      </div>
+      <div class="lang-card">
+        <div class="lang-flag">🇬🇪</div>
+        <div>
+          <h4>ქართული</h4>
+          <div class="badge-complete" data-i18n="lang_complete">✔ Complete</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Credits ───────────────────────────────────────────────────────── -->
+<section id="credits" style="background:var(--c-surface2); border-top:1px solid var(--c-border); border-bottom:1px solid var(--c-border);">
+  <div class="container">
+    <div class="section-header reveal">
+      <p class="section-label" data-i18n="cred_label">Credits</p>
+      <h2 class="section-title" data-i18n="cred_title">Standing on the shoulders of the community</h2>
+    </div>
+    <div class="notice-card reveal">
+      <strong data-i18n="cred_notice_head">Third-party acknowledgements</strong><br/>
+      <span data-i18n="cred_notice_body">This project was built with inspiration and reference code from a number of open-source QGIS plugins and PostGIS tools — some of which were used as starting points or structural references during development. We are grateful to every author. If any rights-holder finds an issue with how their code is represented here, please open a GitHub issue or contact us — we will promptly address it, up to and including removing the relevant code.</span>
+    </div>
+    <p style="margin-top:1.5rem; font-size:14px; color:var(--c-text2);">
+      <span data-i18n="cred_see">See</span>
+      <a href="https://github.com/GIS-GEORGIA/postgis-manager/blob/main/CREDITS.md" target="_blank" rel="noopener">CREDITS.md</a>
+      <span data-i18n="cred_full">for the full list of referenced projects, authors and licenses.</span>
+    </p>
+  </div>
+</section>
+
+<!-- ── Contributing ──────────────────────────────────────────────────── -->
+<section id="contrib">
+  <div class="container">
+    <div class="section-header reveal">
+      <p class="section-label" data-i18n="contrib_label">Contributing</p>
+      <h2 class="section-title" data-i18n="contrib_title">We would love your help</h2>
+      <p class="section-sub" data-i18n="contrib_sub">Whether it is a bug fix, a new panel, a translation improvement or just documentation — every contribution is welcome.</p>
+    </div>
+    <div class="contrib-grid">
+      <div class="contrib-card reveal">
+        <div class="contrib-icon">🐛</div>
+        <div>
+          <h4 data-i18n="cont1_title">Bug reports</h4>
+          <p data-i18n="cont1_desc">Found something broken? Open an issue on GitHub with steps to reproduce and your OS / QGIS version.</p>
+        </div>
+      </div>
+      <div class="contrib-card reveal">
+        <div class="contrib-icon">✨</div>
+        <div>
+          <h4 data-i18n="cont2_title">Feature requests</h4>
+          <p data-i18n="cont2_desc">Have an idea for a new panel or workflow? Open a GitHub issue with your use-case and we will discuss it.</p>
+        </div>
+      </div>
+      <div class="contrib-card reveal">
+        <div class="contrib-icon">🌐</div>
+        <div>
+          <h4 data-i18n="cont3_title">Translations</h4>
+          <p data-i18n="cont3_desc">Add a new language by creating <code>i18n/xx.json</code> based on <code>en.json</code> and opening a pull request.</p>
+        </div>
+      </div>
+      <div class="contrib-card reveal">
+        <div class="contrib-icon">🔧</div>
+        <div>
+          <h4 data-i18n="cont4_title">Code contributions</h4>
+          <p data-i18n="cont4_desc">Fork → branch → PR. CI runs ruff lint, syntax check and headless PyQt6 import test automatically.</p>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:2.5rem; text-align:center;" class="reveal">
+      <a class="btn-primary" href="https://github.com/GIS-GEORGIA/postgis-manager/issues/new" target="_blank" rel="noopener" data-i18n="contrib_open_issue">
+        Open an Issue on GitHub
+      </a>
+      <span style="display:inline-block; width:12px;"></span>
+      <a class="btn-secondary" href="https://github.com/GIS-GEORGIA/postgis-manager/fork" target="_blank" rel="noopener" data-i18n="contrib_fork">
+        Fork the Repository
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ───────────────────────────────────────────────────────── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <h3>PostGIS Manager</h3>
+      <p data-i18n="footer_desc">Open-source hybrid QGIS plugin and standalone desktop application for PostGIS spatial database management.</p>
+      <p style="margin-top:.75rem; font-size:13px; color:var(--c-text3);">
+        <span data-i18n="footer_by">Developed by</span>
+        <a href="https://github.com/GIS-GEORGIA" target="_blank" rel="noopener">GIS GEORGIA</a> · Giorgi Kapanadze
+      </p>
+    </div>
+    <div class="footer-col">
+      <h4 data-i18n="footer_links">Links</h4>
+      <ul class="footer-links">
+        <li><a href="https://github.com/GIS-GEORGIA/postgis-manager" target="_blank" rel="noopener" data-i18n="footer_gh">GitHub Repository</a></li>
+        <li><a href="https://github.com/GIS-GEORGIA/postgis-manager/releases" target="_blank" rel="noopener" data-i18n="footer_releases">Releases</a></li>
+        <li><a href="https://github.com/GIS-GEORGIA/postgis-manager/issues" target="_blank" rel="noopener" data-i18n="footer_issues">Issues</a></li>
+        <li><a href="https://github.com/GIS-GEORGIA/postgis-manager/blob/main/CREDITS.md" target="_blank" rel="noopener">CREDITS.md</a></li>
+        <li><a href="https://github.com/GIS-GEORGIA/postgis-manager/blob/main/LICENSE" target="_blank" rel="noopener">LICENSE</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4 data-i18n="footer_docs">Documentation</h4>
+      <ul class="footer-links">
+        <li><a href="#features"  data-i18n="nav_features">Features</a></li>
+        <li><a href="#install"   data-i18n="nav_install">Install</a></li>
+        <li><a href="#arch"      data-i18n="nav_arch">Architecture</a></li>
+        <li><a href="#credits"   data-i18n="nav_credits">Credits</a></li>
+        <li><a href="#contrib"   data-i18n="nav_contrib">Contributing</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 GIS GEORGIA | Giorgi Kapanadze · GNU GPL v2+</span>
+    <a class="gh-btn" href="https://github.com/GIS-GEORGIA/postgis-manager" target="_blank" rel="noopener">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.49.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.56 9.56 0 0112 6.8c.85.004 1.7.115 2.5.337 1.9-1.29 2.74-1.02 2.74-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10.01 10.01 0 0022 12c0-5.52-4.48-10-10-10z"/></svg>
+      GIS-GEORGIA / postgis-manager
+    </a>
+  </div>
+</footer>
+
+<script>
+/* ── i18n ────────────────────────────────────────────────────────── */
+const T = {
+  en: {
+    nav_features:"Features", nav_install:"Install", nav_arch:"Architecture",
+    nav_credits:"Credits", nav_contrib:"Contributing",
+    hero_title:"Manage <em>PostGIS</em> like a pro",
+    hero_sub:"A powerful hybrid QGIS 4 plugin and standalone desktop application for spatial database management — in English and Georgian.",
+    hero_download:"⬇ Download", hero_view_gh:"View on GitHub",
+    feat_label:"Features", feat_title:"Everything in one place",
+    feat_sub:"A complete suite for spatial database management — from raw SQL to raster analysis.",
+    f1_title:"Connection Manager",
+    f1_desc:"Multiple named connection profiles with SSL, timeout and auto-save. Detects PostGIS, pgRouting, Topology and Raster versions on connect.",
+    f2_title:"SQL Editor",
+    f2_desc:"Syntax highlighting for SQL and PostGIS functions, persistent query history, templates toolbar, result table with CSV export, F5 shortcut.",
+    f3_title:"Vector & Raster Import",
+    f3_desc:"Import Shapefile, GeoJSON, GeoPackage, KML. Raster via raster2pgsql with tile size, SRID, overview and constraint options.",
+    f4_title:"pgRouting",
+    f4_desc:"Dijkstra shortest path, Driving Distance and Isochrone analysis. Results table with one-click load into QGIS canvas.",
+    f5_title:"Table & Schema Designer",
+    f5_desc:"Visual table creator with column types, constraints, indexes. Schema and Role manager with GRANT/REVOKE GUI. Materialized view lifecycle.",
+    f6_title:"Geoprocessing & Validation",
+    f6_desc:"Server-side Buffer, Simplify, Convex Hull, Union. Geometry validation: invalid, null, duplicate, self-intersecting, wrong SRID.",
+    f7_title:"Raster Tools",
+    f7_desc:"Statistics, histogram, map algebra (NDVI, threshold, custom expressions), focal analysis and reproject via PostGIS raster functions.",
+    f8_title:"DB Dashboard",
+    f8_desc:"Live server metrics: connection count, cache hit ratio, transaction rate, active queries, table sizes, unused indexes. Auto-refreshes on open.",
+    f9_title:"Backup & Restore",
+    f9_desc:"GUI wrapper for pg_dump, pg_restore and psql. Custom format, directory, plain SQL and tar formats. Live streaming progress output.",
+    f10_title:"Topology Editor",
+    f10_desc:"Create PostGIS topologies with configurable SRID and precision. Validate and browse topology errors with geometry pair display.",
+    f11_title:"Instance & Network Manager",
+    f11_desc:"Launch and manage Docker/Podman PostGIS containers. Scan LAN subnets for running PostgreSQL servers and add them as connections.",
+    f12_title:"Versioning",
+    f12_desc:"Row-level version control via pgVersion. Commit, checkout, diff and branch support with full history log.",
+    arch_label:"Architecture", arch_title:"Hybrid plugin + standalone",
+    arch_sub:"The same codebase runs inside QGIS and as an independent desktop app. Zero duplication.",
+    arch1_title:"Core package",
+    arch1_desc:"Pure Python + PyQt6 — no QGIS imports. Runs anywhere with psycopg2 installed. All DB logic, UI panels and theming live here.",
+    arch2_title:"QGIS plugin wrapper",
+    arch2_desc:"Thin adapter using qgis.PyQt shim. Adds a toolbar button, QGIS Processing provider with 6 algorithms, and layer loading via iface.",
+    arch3_title:"Sidebar navigation",
+    arch3_desc:"21 panels grouped into 7 categories in a sidebar+stacked layout — pgAdmin/DBeaver style. No more overloaded tab bar.",
+    arch4_title:"Runtime i18n & theming",
+    arch4_desc:"Language and theme switch instantly without restart. All strings from JSON files; QSS theme engine with full light/dark token set.",
+    inst_label:"Installation", inst_title:"Get started in minutes",
+    tab_qgis:"QGIS Plugin", tab_standalone:"Standalone App",
+    qgis_step1_title:"Build the plugin ZIP",
+    qgis_step2_title:"Install from ZIP in QGIS",
+    qgis_step2_desc:"In QGIS: Plugins → Manage and Install Plugins → Install from ZIP → select postgis_manager_plugin.zip",
+    qgis_step3_title:"Enable & launch",
+    qgis_step3_desc:"Enable PostGIS Manager in the plugin list. A toolbar button and Plugins → PostGIS Manager menu entry appear.",
+    qgis_step4_title:"Requirements",
+    qgis_step4_desc:"QGIS 3.34 LTR or QGIS 4.x (Qt6). psycopg2-binary must be available in your Python environment.",
+    sa_req_title:"Requirements",
+    sa_req_desc:"Python 3.10+, PyQt6 ≥ 6.4, psycopg2-binary ≥ 2.9. For raster import: raster2pgsql must be in PATH (PostGIS client tools).",
+    req_pyqt:"GUI framework (provided by QGIS 4.x in plugin mode)",
+    req_psyco:"PostgreSQL / PostGIS database adapter",
+    req_gpd:"Geospatial data I/O", req_shapely:"Geometry operations",
+    req_pyproj:"CRS / projection transformations", req_fiona:"Vector file I/O",
+    lang_label:"Languages", lang_title:"Full runtime language switching",
+    lang_sub:"Switch language from the toolbar dropdown or Settings dialog — no restart required.",
+    lang_complete:"✔ Complete",
+    cred_label:"Credits", cred_title:"Standing on the shoulders of the community",
+    cred_notice_head:"Third-party acknowledgements",
+    cred_notice_body:"This project was built with inspiration and reference code from a number of open-source QGIS plugins and PostGIS tools — some of which were used as starting points or structural references during development. We are grateful to every author. If any rights-holder finds an issue with how their code is represented here, please open a GitHub issue or contact us — we will promptly address it, up to and including removing the relevant code.",
+    cred_see:"See", cred_full:"for the full list of referenced projects, authors and licenses.",
+    contrib_label:"Contributing", contrib_title:"We would love your help",
+    contrib_sub:"Whether it is a bug fix, a new panel, a translation improvement or just documentation — every contribution is welcome.",
+    cont1_title:"Bug reports", cont1_desc:"Found something broken? Open an issue on GitHub with steps to reproduce and your OS / QGIS version.",
+    cont2_title:"Feature requests", cont2_desc:"Have an idea for a new panel or workflow? Open a GitHub issue with your use-case and we will discuss it.",
+    cont3_title:"Translations", cont3_desc:"Add a new language by creating i18n/xx.json based on en.json and opening a pull request.",
+    cont4_title:"Code contributions", cont4_desc:"Fork → branch → PR. CI runs ruff lint, syntax check and headless PyQt6 import test automatically.",
+    contrib_open_issue:"Open an Issue on GitHub", contrib_fork:"Fork the Repository",
+    footer_desc:"Open-source hybrid QGIS plugin and standalone desktop application for PostGIS spatial database management.",
+    footer_by:"Developed by", footer_links:"Links", footer_docs:"Documentation",
+    footer_gh:"GitHub Repository", footer_releases:"Releases", footer_issues:"Issues",
+  },
+  ka: {
+    nav_features:"ფუნქციები", nav_install:"ინსტალაცია", nav_arch:"არქიტექტურა",
+    nav_credits:"ავტორები", nav_contrib:"კონტრიბუცია",
+    hero_title:"მართე <em>PostGIS</em> პროფესიონალურად",
+    hero_sub:"მძლავრი ჰიბრიდული QGIS 4 პლაგინი და დამოუკიდებელი დესკტოპ აპლიკაცია სივრცული მონაცემთა ბაზების მართვისთვის — ქართულ და ინგლისურ ენებზე.",
+    hero_download:"⬇ გადმოწერა", hero_view_gh:"GitHub-ზე ნახვა",
+    feat_label:"ფუნქციები", feat_title:"ყველაფერი ერთ ადგილას",
+    feat_sub:"სივრცული მონაცემთა ბაზების მართვის სრული ნაკრები — SQL-დან რასტრული ანალიზამდე.",
+    f1_title:"კავშირების მენეჯერი",
+    f1_desc:"მრავალი სახელდებული კავშირის პროფილი SSL, timeout და ავტო-შენახვით. PostGIS, pgRouting, Topology და Raster ვერსიების ავტო-დეტექცია.",
+    f2_title:"SQL რედაქტორი",
+    f2_desc:"SQL და PostGIS ფუნქციების სინტაქსის მონიშვნა, მოთხოვნების ისტორია, შაბლონების პანელი, შედეგების ცხრილი CSV ექსპორტით, F5 მალსახმობი.",
+    f3_title:"ვექტორის და რასტრის იმპორტი",
+    f3_desc:"Shapefile, GeoJSON, GeoPackage, KML-ის იმპორტი. რასტრი raster2pgsql-ით — tile ზომა, SRID, overview და constraint პარამეტრებით.",
+    f4_title:"pgRouting",
+    f4_desc:"Dijkstra-ს უმოკლესი მარშრუტი, Driving Distance და Isochrone ანალიზი. შედეგების ცხრილი QGIS-ში ჩატვირთვის ღილაკით.",
+    f5_title:"ცხრილის და სქემის დიზაინერი",
+    f5_desc:"ვიზუალური ცხრილის შემქმნელი სვეტის ტიპებით, შეზღუდვებით, ინდექსებით. სქემებისა და როლების მენეჯერი GRANT/REVOKE GUI-ით.",
+    f6_title:"გეოდამუშავება და ვალიდაცია",
+    f6_desc:"სერვერული Buffer, Simplify, Convex Hull, Union. გეომეტრიის ვალიდაცია: invalid, null, duplicate, self-intersecting, wrong SRID.",
+    f7_title:"რასტრული ხელსაწყოები",
+    f7_desc:"სტატისტიკა, ჰისტოგრამა, map algebra (NDVI, threshold, custom), focal ანალიზი და reprojection PostGIS raster ფუნქციებით.",
+    f8_title:"DB Dashboard",
+    f8_desc:"ლაივ სერვერის მეტრიკა: კავშირების რაოდენობა, cache hit ratio, ტრანზაქციების სიჩქარე, აქტიური მოთხოვნები, ცხრილების ზომები.",
+    f9_title:"Backup და Restore",
+    f9_desc:"pg_dump, pg_restore და psql-ის GUI wrapper. Custom, Directory, Plain SQL და Tar ფორმატები. ლაივ პროგრეს ლოგი.",
+    f10_title:"ტოპოლოგიის რედაქტორი",
+    f10_desc:"PostGIS ტოპოლოგიების შექმნა კონფიგურირებადი SRID-ით და სიზუსტით. ტოპოლოგიის შეცდომების ვალიდაცია და ნახვა.",
+    f11_title:"ინსტანციების და ქსელის მენეჯერი",
+    f11_desc:"Docker/Podman PostGIS კონტეინერების გაშვება და მართვა. LAN სუბნეტების სკანირება PostgreSQL სერვერების აღმოსაჩენად.",
+    f12_title:"ვერსიონირება",
+    f12_desc:"მწკრივის დონის ვერსიის კონტროლი pgVersion-ით. Commit, checkout, diff და ბრენჩების მხარდაჭერა სრული ისტორიის ლოგით.",
+    arch_label:"არქიტექტურა", arch_title:"ჰიბრიდული პლაგინი + standalone",
+    arch_sub:"იგივე კოდი მუშაობს QGIS-ში და დამოუკიდებელ დესკტოპ აპლიკაციად. ნულოვანი დუბლიკაცია.",
+    arch1_title:"Core პაკეტი",
+    arch1_desc:"სუფთა Python + PyQt6 — QGIS-ის იმპორტები არ არის. მუშაობს ნებისმიერ გარემოში psycopg2-ით. ყველა DB ლოგიკა, UI პანელები და თემები.",
+    arch2_title:"QGIS პლაგინის wrapper",
+    arch2_desc:"თხელი ადაპტერი qgis.PyQt shim-ით. ამატებს toolbar ღილაკს, QGIS Processing provider-ს 6 ალგორითმით და ლეიერის ჩატვირთვას iface-ით.",
+    arch3_title:"Sidebar ნავიგაცია",
+    arch3_desc:"21 პანელი 7 კატეგორიად დაჯგუფებული sidebar+stacked layout-ში — pgAdmin/DBeaver სტილი. გადატვირთული tab ბარი გაქრა.",
+    arch4_title:"Runtime i18n და თემები",
+    arch4_desc:"ენა და თემა გადაირთვება მყისიერად, გადატვირთვის გარეშე. ყველა ტექსტი JSON ფაილებიდან; QSS თემების ძრავა სრული Light/Dark ტოკენების ნაკრებით.",
+    inst_label:"ინსტალაცია", inst_title:"დაიწყე წუთებში",
+    tab_qgis:"QGIS პლაგინი", tab_standalone:"Standalone აპლიკაცია",
+    qgis_step1_title:"Plugin ZIP-ის გენერაცია",
+    qgis_step2_title:"ZIP-ის ინსტალაცია QGIS-ში",
+    qgis_step2_desc:"QGIS-ში: Plugins → Manage and Install Plugins → Install from ZIP → აირჩიე postgis_manager_plugin.zip",
+    qgis_step3_title:"ჩართვა და გაშვება",
+    qgis_step3_desc:"ჩართე PostGIS Manager პლაგინების სიაში. Toolbar ღილაკი და Plugins → PostGIS Manager მენიუ გამოჩნდება.",
+    qgis_step4_title:"მოთხოვნები",
+    qgis_step4_desc:"QGIS 3.34 LTR ან QGIS 4.x (Qt6). psycopg2-binary უნდა იყოს ხელმისაწვდომი Python გარემოში.",
+    sa_req_title:"მოთხოვნები",
+    sa_req_desc:"Python 3.10+, PyQt6 ≥ 6.4, psycopg2-binary ≥ 2.9. რასტრის იმპორტისთვის: raster2pgsql PATH-ში (PostGIS client tools).",
+    req_pyqt:"GUI ფრეიმვორქი (QGIS 4.x-ში ჩაშენებული პლაგინ რეჟიმში)",
+    req_psyco:"PostgreSQL / PostGIS მონაცემთა ბაზის ადაპტერი",
+    req_gpd:"სივრცული მონაცემების I/O", req_shapely:"გეომეტრიის ოპერაციები",
+    req_pyproj:"CRS / პროექციის ტრანსფორმაციები", req_fiona:"ვექტორული ფაილების I/O",
+    lang_label:"ენები", lang_title:"Runtime ენის გადართვა",
+    lang_sub:"ენა გადაირთვება Toolbar-ის dropdown-იდან ან Settings dialog-იდან — გადატვირთვის გარეშე.",
+    lang_complete:"✔ სრული",
+    cred_label:"ავტორები", cred_title:"კომიუნიტის მიღწევების საფუძველზე",
+    cred_notice_head:"მესამე მხარის მადლიერება",
+    cred_notice_body:"ეს პროექტი შეიქმნა ღია კოდის QGIS პლაგინებისა და PostGIS ხელსაწყოების ინსპირაციით და საცნობარო კოდით — ზოგიერთი გამოყენებული იყო საწყის წერტილად ან სტრუქტურულ საცნობაროდ. ვუხდით მადლობას ყველა ავტორს. თუ რომელიმე უფლებათა მფლობელს სახელდება ამ კოდში რაიმე გართულება, გთხოვთ GitHub issue-ს გახსნა ან ჩვენთან დაკავშირება — ოპერატიულად მოვაგვარებთ, კოდის ამოღების ჩათვლით.",
+    cred_see:"იხ.", cred_full:"პროექტების, ავტორების და ლიცენზიების სრული სია.",
+    contrib_label:"კონტრიბუცია", contrib_title:"მოხარული ვიქნებით შენი დახმარებით",
+    contrib_sub:"Bug-ის გამოსწორება, ახალი პანელი, თარგმანის გაუმჯობესება ან დოკუმენტაცია — ნებისმიერი კონტრიბუცია სასურველია.",
+    cont1_title:"Bug-ის შეტყობინება", cont1_desc:"რამე გატეხილია? გახსენი Issue GitHub-ზე გამეორების ნაბიჯებით და OS / QGIS ვერსიით.",
+    cont2_title:"ახალი ფუნქციის მოთხოვნა", cont2_desc:"ახალი პანელის ან სამუშაო პროცესის იდეა გაქვს? გახსენი GitHub Issue შენი use-case-ით.",
+    cont3_title:"თარგმანები", cont3_desc:"ახალი ენის დასამატებლად შექმენი i18n/xx.json en.json-ის საფუძველზე და გახსენი pull request.",
+    cont4_title:"კოდის კონტრიბუცია", cont4_desc:"Fork → ბრენჩი → PR. CI ავტომატურად ამოწმებს ruff lint, syntax check და headless PyQt6 import test.",
+    contrib_open_issue:"GitHub-ზე Issue-ს გახსნა", contrib_fork:"Repository-ის Forking",
+    footer_desc:"ღია კოდის ჰიბრიდული QGIS პლაგინი და standalone დესკტოპ აპლიკაცია PostGIS სივრცული მონაცემთა ბაზების მართვისთვის.",
+    footer_by:"შეიქმნა", footer_links:"ბმულები", footer_docs:"დოკუმენტაცია",
+    footer_gh:"GitHub Repository", footer_releases:"Releases", footer_issues:"Issues",
+  }
+};
+
+let currentLang = localStorage.getItem('lang') || 'en';
+let currentTheme = localStorage.getItem('theme') || 'light';
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('lang', lang);
+  document.documentElement.setAttribute('data-lang', lang);
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (T[lang] && T[lang][key]) {
+      el.innerHTML = T[lang][key];
+    }
+  });
+  document.getElementById('btn-lang-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-lang-ka').classList.toggle('active', lang === 'ka');
+  document.documentElement.lang = lang;
+}
+
+function toggleTheme() {
+  currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+  localStorage.setItem('theme', currentTheme);
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  document.getElementById('btn-theme').textContent = currentTheme === 'dark' ? '☀' : '🌙';
+}
+
+function showTab(id) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+/* ── Scroll reveal ──────────────────────────────────────────── */
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+/* ── Init ───────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  document.getElementById('btn-theme').textContent = currentTheme === 'dark' ? '☀' : '🌙';
+  setLang(currentLang);
+});
+</script>
+</body>
+</html>
