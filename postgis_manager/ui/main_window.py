@@ -31,6 +31,9 @@ from .panels.validation_panel import ValidationPanel
 from .panels.query_builder import QueryBuilderPanel
 from .panels.citydb_panel import CityDBPanel
 from .panels.db_dashboard import DBDashboardPanel
+from .panels.table_designer import TableDesignerPanel
+from .panels.function_browser import FunctionBrowserPanel
+from .panels.backup_panel import BackupRestorePanel
 from .dialogs.connection_dialog import ConnectionDialog
 from .dialogs.settings_dialog import SettingsDialog
 from .dialogs.about_dialog import AboutDialog
@@ -290,6 +293,16 @@ class MainWindow(QMainWindow):
         self.dashboard_panel = DBDashboardPanel(self.db, self)
         self._tabs.addTab(self.dashboard_panel, "Dashboard")
 
+        self.table_designer = TableDesignerPanel(self.db, self)
+        self.table_designer.layer_changed.connect(self._refresh)
+        self._tabs.addTab(self.table_designer, "Table Designer")
+
+        self.func_browser = FunctionBrowserPanel(self.db, self)
+        self._tabs.addTab(self.func_browser, "Functions")
+
+        self.backup_panel = BackupRestorePanel(self.db, self)
+        self._tabs.addTab(self.backup_panel, "Backup")
+
         self.log_panel = LogPanel(self)
         v_splitter.addWidget(self.log_panel)
 
@@ -539,6 +552,9 @@ class MainWindow(QMainWindow):
         self._tabs.setTabText(12, i18n.t("tab_query_builder"))
         self._tabs.setTabText(13, i18n.t("tab_3dcitydb"))
         self._tabs.setTabText(14, i18n.t("tab_dashboard"))
+        self._tabs.setTabText(15, i18n.t("tab_table_designer"))
+        self._tabs.setTabText(16, i18n.t("tab_function_browser"))
+        self._tabs.setTabText(17, i18n.t("tab_backup"))
 
     def _open_settings(self):
         SettingsDialog(self).exec()

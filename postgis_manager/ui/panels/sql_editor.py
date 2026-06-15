@@ -107,11 +107,14 @@ class SQLEditorPanel(QWidget):
     def __init__(self, db: DBManager, parent=None):
         super().__init__(parent)
         self.db = db
-        self._history: list[str] = []
+        self._history: list[str] = list(config.get("sql_history", []))
         self._worker: QueryWorker | None = None
         self._active_schema = ""
         self._active_table = ""
         self._build_ui()
+        # Populate history combo from saved history
+        for entry in self._history:
+            self._history_combo.addItem(entry[:60].replace("\n", " "))
 
     def _build_ui(self):
         layout = QVBoxLayout(self)
@@ -227,8 +230,11 @@ class SQLEditorPanel(QWidget):
         self._run_btn.setEnabled(False)
         self._stop_btn.setEnabled(True)
         self._result_label.setText("Running...")
-        self._history.insert(0, sql)
-        self._history_combo.insertItem(0, sql[:60].replace("\n", " "))
+        if not self._history or self._history[0] != sql:
+            self._history.insert(0, sql)
+            self._history = self._history[:50]
+            self._history_combo.insertItem(0, sql[:60].replace("\n", " "))
+            config.set("sql_history", self._history)
         self._worker = QueryWorker(self.db, sql)
         self._worker.done.connect(self._on_result)
         self._worker.error.connect(self._on_error)
