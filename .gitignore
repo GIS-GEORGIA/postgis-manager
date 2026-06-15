@@ -26,5 +26,6 @@ Thumbs.db
 *.ico
 *.exe
 PostGIS_Manager_*.zip
+postgis_manager_plugin.zip
 .pytest_cache/
 .ruff_cache/
