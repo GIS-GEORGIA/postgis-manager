@@ -108,14 +108,14 @@ install.bat        ← creates .venv and installs dependencies
 run.bat            ← launch the app (every time)
 ```
 
-### Standalone — Linux / macOS
+### Standalone — Linux / macOS (one-time setup)
 
 ```bash
 git clone https://github.com/GIS-GEORGIA/postgis-manager.git
 cd postgis-manager
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python run.py
+chmod +x install.sh run.sh
+./install.sh       # creates .venv and installs dependencies
+./run.sh           # launch the app (every time)
 ```
 
 ### QGIS Plugin (QGIS 3.34+ / QGIS 4.x)
