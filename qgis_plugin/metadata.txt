@@ -1,45 +1,71 @@
 [general]
 name=PostGIS Manager
 qgisMinimumVersion=3.34
-description=Comprehensive PostGIS database manager — vector/raster import, attribute editing, topology, pgRouting, style manager, versioning, geoprocessing, 3DCityDB, network scanner, Docker/Podman instance manager and more.
+qgisMaximumVersion=4.99
+description=Comprehensive PostGIS spatial database manager — SQL editor, raster/vector import, pgRouting, topology, table designer, schema/role manager, backup/restore, dashboard and more.
 version=1.0.0
 author=GIS GEORGIA | Giorgi Kapanadze
 email=kapan.gio777@gmail.com
-about=PostGIS Manager is a hybrid QGIS plugin and standalone application for managing PostGIS spatial databases.
 
-    Features:
-    • Multi-connection profiles (standalone, Docker, Podman containers)
-    • Layer browser with schema/table/raster/view tree
-    • Attribute table editor with SQL filter builder
-    • SQL Editor with syntax highlighting, history and templates
-    • Visual Query Builder (no SQL required)
-    • Vector and raster import (GeoPackage, Shapefile, GeoJSON, GeoTIFF)
-    • GeoPackage / Shapefile / GeoJSON export
-    • PostGIS Topology editor
-    • pgRouting (Dijkstra, A*, Driving Distance/Isochrones)
-    • Linear referencing and chainage generation
-    • DB Style Manager (save/load/delete QGIS styles in PostGIS)
-    • Row-level versioning with pgVersion
-    • Geometry validation and ST_MakeValid repair
-    • Server-side geoprocessing (Buffer, Simplify, Convex Hull, Centroid)
-    • 3DCityDB integration (detect schema, feature counts, SQL templates)
-    • DB Dashboard (table sizes, cache hit ratio, connection stats)
-    • Local network scanner for PostgreSQL/PostGIS instances
-    • Docker/Podman container management and auto-connection
-    • Config import/export
-    • Georgian (ქართული) and English UI with runtime language switching
-    • Light and Dark themes
+about=PostGIS Manager is a hybrid QGIS 4 plugin and standalone desktop application for managing PostGIS spatial databases. All 21 panels are accessible from a clean sidebar navigation (pgAdmin/DBeaver style). Fully bilingual: English and Georgian (ქართული) with runtime switching. Light and Dark themes.
+
+    PANELS & FEATURES
+    ─────────────────
+    • SQL Editor — syntax highlighting, persistent history, templates, CSV export
+    • Query Builder — visual filter builder, no SQL required
+    • Vector Import — Shapefile, GeoJSON, GeoPackage, KML; auto-CRS, append/replace
+    • Raster Import — raster2pgsql wrapper with tile, SRID, overview options
+    • Export — GeoPackage, Shapefile, GeoJSON, CSV with target SRID reprojection
+    • Backup / Restore — pg_dump / pg_restore / psql GUI with live progress log
+    • pgRouting — Dijkstra shortest path, Driving Distance, Isochrone
+    • Topology — create, validate and browse PostGIS topology errors
+    • Chainage — linear referencing, point-along-line, M-value assignment
+    • Geoprocessing — server-side Buffer, Simplify, Convex Hull, Centroid, Union
+    • Validation — invalid, null, duplicate, self-intersecting, wrong SRID
+    • Table Designer — create/alter tables, column types, constraints, indexes
+    • Schema / Role Manager — schemas, roles, GRANT/REVOKE GUI
+    • Function Browser — browse, view source, execute DB functions
+    • Materialized Views — create, REFRESH CONCURRENTLY, drop, preview
+    • Raster Tools — statistics, histogram, map algebra (NDVI/threshold/custom), reproject
+    • Style Manager — save/load QML styles to layer_styles table (QGIS-compatible)
+    • Versioning — pgVersion row-level commit, checkout, diff, branch
+    • 3DCityDB — auto-detect schema, feature counts by category, 6 SQL templates
+    • Instances — Docker/Podman PostGIS container launcher and manager
+    • Network Scan — LAN subnet scanner for PostgreSQL/PostGIS discovery
+    • DB Dashboard — live pg_stat_* metrics: connections, cache hit, active queries
+
+    QGIS PROCESSING PROVIDER
+    ────────────────────────
+    Adds 6 algorithms to QGIS Processing Toolbox:
+    Import Vector, Export Layer, Validate Geometry, Geoprocess, Fix Invalid Geometry, Network Scan
+
+    REQUIREMENTS
+    ────────────
+    psycopg2-binary (pip install psycopg2-binary)
+    For raster import: raster2pgsql in PATH (PostGIS client tools)
 
 tracker=https://github.com/GIS-GEORGIA/postgis-manager/issues
 repository=https://github.com/GIS-GEORGIA/postgis-manager
 homepage=https://pg.qgis.ge
-tags=postgis,postgresql,database,geometry,raster,routing,pgrouting,topology,geoprocessing,import,export,geopackage,3dcitydb,versioning,validation,docker
+
+tags=postgis,postgresql,database,spatial,geometry,raster,routing,pgrouting,topology,geoprocessing,import,export,geopackage,shapefile,geojson,3dcitydb,versioning,validation,docker,backup,restore,sql,dashboard,schema,roles,materialized views,table designer,function browser,chainage,linear referencing,style manager,bilingual,georgian
+
 icon=icon.png
 experimental=False
 deprecated=False
 supportsQt6=True
-hasProcessingProvider=no
+hasProcessingProvider=True
 server=False
+
 changelog=
-    1.0.0 - First stable release: 21-panel suite, sidebar navigation, pytest test suite, website pg.qgis.ge
-    0.1.0 - Initial release: full PostGIS management suite targeting QGIS 3.34+ / Qt 6
+    1.0.0 (2026-06-15)
+    - First stable release
+    - 21 panels in sidebar navigation (pgAdmin/DBeaver style)
+    - 38 automated tests (pytest, headless PyQt6)
+    - QGIS Processing Provider with 6 algorithms
+    - Website: pg.qgis.ge
+    - Full English + Georgian (ქართული) translations
+    - Light and Dark themes
+
+    0.1.0 (2026-05-01)
+    - Initial release targeting QGIS 3.34+ / Qt6
