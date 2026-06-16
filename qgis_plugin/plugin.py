@@ -1,9 +1,35 @@
 """PostGIS Manager QGIS Plugin — targets QGIS 4.x / Qt 6."""
 
 import os
-from qgis.PyQt.QtWidgets import QAction
+import sys
+from qgis.PyQt.QtWidgets import QAction, QMessageBox
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import Qt
+
+
+def _ensure_postgis_manager_on_path():
+    """Add the directory that contains the postgis_manager package to sys.path.
+
+    Search order:
+    1. plugin_dir itself  — ZIP install: qgis_plugin folder IS the plugin root
+       and postgis_manager/ is nested inside it.
+    2. parent of plugin_dir — dev install where both qgis_plugin/ and
+       postgis_manager/ sit side-by-side inside the QGIS plugins folder.
+    3. grandparent        — repo checkout: .../repo/qgis_plugin/ with
+       .../repo/postgis_manager/ next to it.
+    """
+    plugin_dir = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        plugin_dir,
+        os.path.dirname(plugin_dir),
+        os.path.dirname(os.path.dirname(plugin_dir)),
+    ]
+    for candidate in candidates:
+        if os.path.isdir(os.path.join(candidate, "postgis_manager")):
+            if candidate not in sys.path:
+                sys.path.insert(0, candidate)
+            return True
+    return False
 
 
 class PostGISManagerPlugin:
@@ -55,11 +81,17 @@ class PostGISManagerPlugin:
 
     def _open_manager(self):
         if self._window is None:
-            # Make the core package importable from inside QGIS
-            plugin_dir = os.path.dirname(os.path.abspath(__file__))
-            import sys
-            if plugin_dir not in sys.path:
-                sys.path.insert(0, plugin_dir)
+            if not _ensure_postgis_manager_on_path():
+                QMessageBox.critical(
+                    self.iface.mainWindow(),
+                    "PostGIS Manager — Import Error",
+                    "Cannot find the <b>postgis_manager</b> package.<br><br>"
+                    "Please install the plugin from the ZIP file built by "
+                    "<code>python make_plugin_zip.py</code>, which bundles the "
+                    "core package inside the plugin folder.",
+                )
+                self._action.setChecked(False)
+                return
 
             from postgis_manager.ui.main_window import MainWindow
             self._window = MainWindow(
