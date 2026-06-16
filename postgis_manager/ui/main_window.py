@@ -38,6 +38,7 @@ from .panels.schema_role_manager import SchemaRolePanel
 from .panels.matview_panel import MatViewPanel
 from .panels.raster_tools import RasterToolsPanel
 from .panels.map_viewer import MapViewerPanel
+from .panels.qgis_bridge_panel import QGISBridgePanel
 from .sidebar_nav import NavSidebar
 from .dialogs.connection_dialog import ConnectionDialog
 from .dialogs.settings_dialog import SettingsDialog
@@ -357,6 +358,10 @@ class MainWindow(QMainWindow):
         # ── Connectivity ──────────────────────────────────────────────────────
         self._nav.add_group(i18n.t("nav_grp_connect"))
 
+        self.qgis_bridge = QGISBridgePanel(self.db, iface=self.iface, parent=self)
+        self.qgis_bridge.connect_to.connect(self._connect_from_bridge)
+        _add(self.qgis_bridge, "🔗", "tab_qgis_bridge")
+
         self.instance_panel = InstanceManagerPanel(self)
         self.instance_panel.add_connection.connect(self._add_container_connection)
         _add(self.instance_panel, "🖥", "tab_instances")
@@ -606,6 +611,15 @@ class MainWindow(QMainWindow):
         if idx >= 0:
             self._conn_combo.setCurrentIndex(idx)
         self.log(f"Connection added: {profile['name']}", "success")
+
+    def _connect_from_bridge(self, profile: dict):
+        """Triggered by QGISBridgePanel — save + immediately connect."""
+        config.save_connection(profile)
+        self._refresh_conn_combo()
+        idx = self._conn_combo.findText(profile["name"])
+        if idx >= 0:
+            self._conn_combo.setCurrentIndex(idx)
+        self._connect_selected()
 
     def _retranslate(self):
         self.setWindowTitle(i18n.t("app_title"))
