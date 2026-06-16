@@ -498,17 +498,34 @@ class MainWindow(QMainWindow):
             self.log(f"pgRouting {info['pgrouting_version']} available", "info")
         if info.get("topology"):
             self.log("PostGIS Topology extension available", "info")
-        self.browser.refresh()
-        self.security_panel.set_connection(dict(self.db.params))
-        self.audit_panel.set_connection(dict(self.db.params))
-        self.geodata_panel.set_connection(dict(self.db.params))
-        self.spatial_analysis_panel.set_connection(dict(self.db.params))
-        self.sql_editor.refresh_completions()
-        self.automation_panel.set_connection(dict(self.db.params))
-        self.monitor_panel.set_connection(dict(self.db.params))
-        self.developer_panel.set_connection(dict(self.db.params))
-        self.ai_panel.set_connection(dict(self.db.params))
-        self.pointcloud_panel.set_connection(dict(self.db.params))
+        params = dict(self.db.params)
+
+        try:
+            self.browser.refresh()
+        except Exception as e:
+            self.log(f"Browser refresh warning: {e}", "warn")
+
+        set_conn_panels = [
+            self.security_panel,
+            self.audit_panel,
+            self.geodata_panel,
+            self.spatial_analysis_panel,
+            self.automation_panel,
+            self.monitor_panel,
+            self.developer_panel,
+            self.ai_panel,
+            self.pointcloud_panel,
+        ]
+        for panel in set_conn_panels:
+            try:
+                panel.set_connection(params)
+            except Exception as e:
+                self.log(f"Panel init warning ({type(panel).__name__}): {e}", "warn")
+
+        try:
+            self.sql_editor.refresh_completions()
+        except Exception as e:
+            self.log(f"Completions warning: {e}", "warn")
 
     def _on_connect_error(self, error: str):
         self._set_conn_status("disconnected")

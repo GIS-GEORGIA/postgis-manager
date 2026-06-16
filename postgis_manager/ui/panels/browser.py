@@ -106,8 +106,9 @@ class LayerBrowserPanel(QWidget):
         self._refresh_btn.setEnabled(False)
         self._refresh_btn.setText("⏳")
         self._worker = RefreshWorker(self.db)
-        self._worker.done.connect(self._populate)
-        self._worker.error.connect(self._on_refresh_error)
+        self._worker.done.connect(self._populate, Qt.ConnectionType.QueuedConnection)
+        self._worker.error.connect(self._on_refresh_error, Qt.ConnectionType.QueuedConnection)
+        self._worker.finished.connect(self._worker.deleteLater)
         self._worker.start()
 
     def clear(self):

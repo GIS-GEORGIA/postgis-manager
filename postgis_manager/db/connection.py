@@ -108,15 +108,20 @@ class DBManager:
             return [r[0] for r in cur.fetchall()]
 
     def get_geometry_layers(self, schema: str) -> list[tuple]:
-        """Returns (name, geom_col, geom_type, srid) for vector layers."""
-        with self.conn.cursor() as cur:
-            cur.execute("""
-                SELECT f_table_name, f_geometry_column, type, srid
-                FROM geometry_columns
-                WHERE f_table_schema = %s
-                ORDER BY f_table_name
-            """, (schema,))
-            return cur.fetchall()
+        """Returns (name, geom_col, geom_type, srid) for vector layers.
+        Returns empty list if PostGIS is not installed."""
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("""
+                    SELECT f_table_name, f_geometry_column, type, srid
+                    FROM geometry_columns
+                    WHERE f_table_schema = %s
+                    ORDER BY f_table_name
+                """, (schema,))
+                return cur.fetchall()
+        except Exception:
+            self.conn.rollback()
+            return []
 
     def get_raster_layers(self, schema: str) -> list[tuple]:
         """Returns (name, r_raster_column, srid, scale_x, scale_y) for raster tables."""
