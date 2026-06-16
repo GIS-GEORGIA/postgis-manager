@@ -477,6 +477,7 @@ class MainWindow(QMainWindow):
         self.audit_panel.set_connection(dict(self.db.params))
         self.geodata_panel.set_connection(dict(self.db.params))
         self.spatial_analysis_panel.set_connection(dict(self.db.params))
+        self.sql_editor.refresh_completions()
 
     def _on_connect_error(self, error: str):
         self._set_conn_status("disconnected")

@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
     QPushButton, QLabel, QTextEdit, QGroupBox, QComboBox,
     QFileDialog, QMessageBox, QHeaderView, QAbstractItemView,
-    QWidget,
+    QWidget, QLineEdit, QTabWidget, QSplitter,
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QFont
@@ -123,6 +123,29 @@ class AttributeTableDialog(QDialog):
         fg.addLayout(btn_row)
         layout.addWidget(filter_group)
 
+        # ── Batch Edit ──
+        batch_group = QGroupBox("Batch Edit")
+        bg = QHBoxLayout(batch_group)
+        bg.addWidget(QLabel("Column:"))
+        self._batch_col = QComboBox()
+        self._batch_col.setMinimumWidth(140)
+        bg.addWidget(self._batch_col)
+        bg.addWidget(QLabel("New value:"))
+        self._batch_val = QLineEdit()
+        self._batch_val.setPlaceholderText("value or SQL expression")
+        bg.addWidget(self._batch_val, 1)
+        self._batch_sel_btn = QPushButton("Apply to selected rows")
+        self._batch_sel_btn.setToolTip(
+            "UPDATE … WHERE ctid = ANY(selected)")
+        self._batch_sel_btn.clicked.connect(self._batch_update_selected)
+        bg.addWidget(self._batch_sel_btn)
+        self._batch_all_btn = QPushButton("Apply to all filtered rows")
+        self._batch_all_btn.setToolTip(
+            "UPDATE … WHERE <current filter>")
+        self._batch_all_btn.clicked.connect(self._batch_update_all)
+        bg.addWidget(self._batch_all_btn)
+        layout.addWidget(batch_group)
+
         # ── Table ──
         self._table = QTableWidget()
         self._table.setAlternatingRowColors(True)
@@ -203,6 +226,9 @@ class AttributeTableDialog(QDialog):
                 self._table.setItem(r, c, item)
 
         self._table.blockSignals(False)
+        # update batch-edit column combo
+        self._batch_col.clear()
+        self._batch_col.addItems(cols)
         showing = len(rows)
         filt = "  |  🔍 Filter active" if self.where_filter else ""
         end = min(self.offset + showing, self.total_count)
@@ -268,6 +294,83 @@ class AttributeTableDialog(QDialog):
             self.db.delete_rows(self.schema, self.table, ctids)
             self._load_count()
             self._load_data()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
+
+    def _batch_update_selected(self):
+        col = self._batch_col.currentText()
+        val = self._batch_val.text().strip()
+        if not col or not val:
+            QMessageBox.warning(self, "Batch Edit", "Choose column and enter value.")
+            return
+        selected_rows = sorted({i.row() for i in self._table.selectedItems()})
+        if not selected_rows:
+            QMessageBox.warning(self, "Batch Edit", "Select at least one row first.")
+            return
+        ctids = []
+        for r in selected_rows:
+            item = self._table.item(r, 0)
+            if item:
+                d = item.data(Qt.ItemDataRole.UserRole)
+                if d:
+                    ctids.append(d["ctid"])
+        if not ctids:
+            return
+        confirm = QMessageBox.question(
+            self, "Confirm Batch Update",
+            f"Update column '{col}' = {val}\nfor {len(ctids)} row(s)?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No)
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            import psycopg2
+            conn = psycopg2.connect(**self.db.params)
+            cur = conn.cursor()
+            ctid_list = ", ".join(f"'{c}'::tid" for c in ctids)
+            sql = (f'UPDATE "{self.schema}"."{self.table}" '
+                   f'SET "{col}" = {val} '
+                   f'WHERE ctid IN ({ctid_list})')
+            cur.execute(sql)
+            conn.commit()
+            cur.close(); conn.close()
+            self._load_data()
+            QMessageBox.information(
+                self, "Done", f"Updated {len(ctids)} row(s).")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
+
+    def _batch_update_all(self):
+        col = self._batch_col.currentText()
+        val = self._batch_val.text().strip()
+        if not col or not val:
+            QMessageBox.warning(self, "Batch Edit", "Choose column and enter value.")
+            return
+        where = f"WHERE {self.where_filter}" if self.where_filter else ""
+        n_est = self.total_count
+        confirm = QMessageBox.question(
+            self, "Confirm Batch Update",
+            f"Update column '{col}' = {val}\n"
+            f"for ALL ~{n_est:,} filtered row(s)?\n\n"
+            f"This cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No)
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            import psycopg2
+            conn = psycopg2.connect(**self.db.params)
+            cur = conn.cursor()
+            sql = (f'UPDATE "{self.schema}"."{self.table}" '
+                   f'SET "{col}" = {val} {where}')
+            cur.execute(sql)
+            affected = cur.rowcount
+            conn.commit()
+            cur.close(); conn.close()
+            self._load_count()
+            self._load_data()
+            QMessageBox.information(
+                self, "Done", f"Updated {affected} row(s).")
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
 

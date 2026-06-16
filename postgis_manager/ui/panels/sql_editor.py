@@ -1,21 +1,26 @@
-"""SQL Editor panel — PyQt6, syntax highlighting, history, result table."""
+"""SQL Editor panel — syntax highlighting, autocomplete, EXPLAIN, history."""
 
 from __future__ import annotations
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
-    QTextEdit, QTableWidget, QTableWidgetItem, QPushButton,
+    QTableWidget, QTableWidgetItem, QPushButton,
     QLabel, QComboBox, QFileDialog, QMessageBox, QHeaderView,
-    QAbstractItemView,
+    QAbstractItemView, QCompleter, QPlainTextEdit,
 )
 from PyQt6.QtGui import (
     QFont, QSyntaxHighlighter, QTextCharFormat, QColor,
-    QKeySequence, QShortcut,
+    QKeySequence, QShortcut, QTextCursor,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QRegularExpression
+from PyQt6.QtCore import (
+    Qt, QThread, pyqtSignal, QRegularExpression,
+    QStringListModel, QRect,
+)
 
 from ...db.connection import DBManager
 from ...utils import i18n, config
 
+
+# ── Syntax highlighter ─────────────────────────────────────────────────────
 
 class SQLHighlighter(QSyntaxHighlighter):
     KEYWORDS = (
@@ -24,7 +29,8 @@ class SQLHighlighter(QSyntaxHighlighter):
         "INSERT INTO VALUES UPDATE SET DELETE CREATE TABLE INDEX VIEW DROP "
         "ALTER ADD COLUMN SCHEMA DATABASE WITH UNION ALL DISTINCT CASE WHEN "
         "THEN ELSE END EXISTS RETURNING TRUNCATE CASCADE VACUUM ANALYZE "
-        "EXPLAIN BEGIN COMMIT ROLLBACK SAVEPOINT RELEASE TRUE FALSE"
+        "EXPLAIN BEGIN COMMIT ROLLBACK SAVEPOINT RELEASE TRUE FALSE LATERAL "
+        "CROSS NATURAL USING OVER PARTITION WINDOW FILTER RECURSIVE"
     ).split()
 
     POSTGIS = (
@@ -37,7 +43,10 @@ class SQLHighlighter(QSyntaxHighlighter):
         "ST_NPoints ST_GeometryN ST_ExteriorRing geometry_columns "
         "ST_LineInterpolatePoint ST_MakeLine ST_MakePoint "
         "postgis_version postgis_lib_version pgr_dijkstra "
-        "pgr_drivingDistance pgr_version ST_SnapToGrid ST_Collect"
+        "pgr_drivingDistance pgr_version ST_SnapToGrid ST_Collect "
+        "ST_GeoHash ST_AsEWKT ST_AsEWKB ST_GeomFromEWKT ST_Force2D "
+        "ST_FlipCoordinates ST_GeneratePoints ST_VoronoiPolygons "
+        "ST_ClosestPoint ST_ShortestLine ST_LongestLine ST_Expand"
     ).split()
 
     def __init__(self, doc):
@@ -86,6 +95,87 @@ class SQLHighlighter(QSyntaxHighlighter):
                 self.setFormat(m.capturedStart(), m.capturedLength(), fmt)
 
 
+# ── SQL Editor widget with autocomplete ────────────────────────────────────
+
+class SQLEditor(QPlainTextEdit):
+    """QPlainTextEdit with Ctrl+Space autocomplete popup."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFont(QFont("Courier New", 12))
+        self.setPlaceholderText("-- Enter SQL here  (F5 to run, Ctrl+Space to autocomplete)")
+        self._completer: QCompleter | None = None
+        self._setup_completer([])
+
+    def _setup_completer(self, words: list[str]):
+        if self._completer:
+            self._completer.setParent(None)
+        all_words = sorted(set(
+            SQLHighlighter.KEYWORDS + SQLHighlighter.POSTGIS + words
+        ), key=str.lower)
+        self._completer = QCompleter(all_words, self)
+        self._completer.setWidget(self)
+        self._completer.setCompletionMode(
+            QCompleter.CompletionMode.PopupCompletion)
+        self._completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self._completer.activated.connect(self._insert_completion)
+
+    def set_completions(self, words: list[str]):
+        self._setup_completer(words)
+
+    def _insert_completion(self, text: str):
+        cur = self.textCursor()
+        extra = len(text) - len(self._completer.completionPrefix())
+        cur.movePosition(QTextCursor.MoveOperation.Left)
+        cur.movePosition(QTextCursor.MoveOperation.EndOfWord)
+        cur.insertText(text[-extra:])
+        self.setTextCursor(cur)
+
+    def _word_under_cursor(self) -> str:
+        cur = self.textCursor()
+        cur.select(QTextCursor.SelectionType.WordUnderCursor)
+        return cur.selectedText()
+
+    def keyPressEvent(self, event):
+        popup = self._completer.popup()
+        if popup.isVisible():
+            if event.key() in (
+                Qt.Key.Key_Enter, Qt.Key.Key_Return,
+                Qt.Key.Key_Escape, Qt.Key.Key_Tab,
+                Qt.Key.Key_Backtab,
+            ):
+                event.ignore()
+                return
+        # Ctrl+Space → trigger manually
+        if (event.key() == Qt.Key.Key_Space and
+                event.modifiers() == Qt.KeyboardModifier.ControlModifier):
+            self._trigger_complete()
+            return
+        super().keyPressEvent(event)
+        # Auto-trigger after typing ≥2 chars
+        if event.text() and event.text().isalnum():
+            self._trigger_complete()
+        else:
+            self._completer.popup().hide()
+
+    def _trigger_complete(self):
+        prefix = self._word_under_cursor()
+        if len(prefix) < 2:
+            self._completer.popup().hide()
+            return
+        if prefix != self._completer.completionPrefix():
+            self._completer.setCompletionPrefix(prefix)
+            self._completer.popup().setCurrentIndex(
+                self._completer.completionModel().index(0, 0))
+        cur_rect: QRect = self.cursorRect()
+        cur_rect.setWidth(
+            self._completer.popup().sizeHintForColumn(0)
+            + self._completer.popup().verticalScrollBar().sizeHint().width())
+        self._completer.complete(cur_rect)
+
+
+# ── Workers ────────────────────────────────────────────────────────────────
+
 class QueryWorker(QThread):
     done  = pyqtSignal(object, object, float)
     error = pyqtSignal(str)
@@ -103,16 +193,59 @@ class QueryWorker(QThread):
             self.error.emit(str(e))
 
 
+class CompletionLoader(QThread):
+    """Load schema/table/column/function names for autocomplete."""
+    done = pyqtSignal(list)
+
+    def __init__(self, db: DBManager):
+        super().__init__()
+        self.db = db
+
+    def run(self):
+        words: list[str] = []
+        try:
+            import psycopg2
+            conn = psycopg2.connect(**self.db.params)
+            cur = conn.cursor()
+            # schemas
+            cur.execute("SELECT schema_name FROM information_schema.schemata")
+            words += [r[0] for r in cur.fetchall()]
+            # tables + columns
+            cur.execute("""
+                SELECT table_schema, table_name, column_name
+                FROM information_schema.columns
+                WHERE table_schema NOT IN ('pg_catalog','information_schema')
+                LIMIT 5000
+            """)
+            for schema, table, col in cur.fetchall():
+                words += [table, f'"{schema}"."{table}"', col]
+            # pg functions (public + postgis)
+            cur.execute("""
+                SELECT routine_name
+                FROM information_schema.routines
+                WHERE routine_schema IN ('public','postgis')
+                LIMIT 1000
+            """)
+            words += [r[0] for r in cur.fetchall()]
+            cur.close()
+            conn.close()
+        except Exception:
+            pass
+        self.done.emit(list(set(words)))
+
+
+# ── Main panel ─────────────────────────────────────────────────────────────
+
 class SQLEditorPanel(QWidget):
     def __init__(self, db: DBManager, parent=None):
         super().__init__(parent)
         self.db = db
         self._history: list[str] = list(config.get("sql_history", []))
         self._worker: QueryWorker | None = None
+        self._comp_loader: CompletionLoader | None = None
         self._active_schema = ""
         self._active_table = ""
         self._build_ui()
-        # Populate history combo from saved history
         for entry in self._history:
             self._history_combo.addItem(entry[:60].replace("\n", " "))
 
@@ -120,7 +253,7 @@ class SQLEditorPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(6, 6, 6, 6)
 
-        # Toolbar
+        # ── Toolbar ──────────────────────────────────────────────────────
         toolbar = QHBoxLayout()
         self._run_btn = QPushButton(i18n.t("sql_run"))
         self._run_btn.clicked.connect(self._run_query)
@@ -130,6 +263,11 @@ class SQLEditorPanel(QWidget):
         self._stop_btn.setEnabled(False)
         self._stop_btn.clicked.connect(self._stop_query)
         toolbar.addWidget(self._stop_btn)
+
+        self._explain_btn = QPushButton("⚡ EXPLAIN")
+        self._explain_btn.setToolTip("Run EXPLAIN ANALYZE and show visual plan")
+        self._explain_btn.clicked.connect(self._run_explain)
+        toolbar.addWidget(self._explain_btn)
 
         self._clear_btn = QPushButton(i18n.t("sql_clear"))
         self._clear_btn.clicked.connect(self._clear)
@@ -152,6 +290,7 @@ class SQLEditorPanel(QWidget):
         toolbar.addWidget(self._history_combo)
         layout.addLayout(toolbar)
 
+        # ── Splitter: editor | results ────────────────────────────────────
         splitter = QSplitter(Qt.Orientation.Vertical)
         layout.addWidget(splitter)
 
@@ -162,11 +301,11 @@ class SQLEditorPanel(QWidget):
 
         tpl_row = QHBoxLayout()
         for name, sql in [
-            ("SELECT *", 'SELECT * FROM "{schema}"."{table}" LIMIT 100;'),
-            ("COUNT",    'SELECT COUNT(*) FROM "{schema}"."{table}";'),
-            ("Extent",   'SELECT ST_Extent(geom) FROM "{schema}"."{table}";'),
-            ("Validate", 'SELECT ctid, ST_IsValidReason(geom) FROM "{schema}"."{table}" WHERE NOT ST_IsValid(geom);'),
-            ("Columns",  "SELECT column_name, udt_name FROM information_schema.columns WHERE table_schema='{schema}' AND table_name='{table}';"),
+            ("SELECT *",  'SELECT * FROM "{schema}"."{table}" LIMIT 100;'),
+            ("COUNT",     'SELECT COUNT(*) FROM "{schema}"."{table}";'),
+            ("Extent",    'SELECT ST_Extent(geom) FROM "{schema}"."{table}";'),
+            ("Validate",  'SELECT ctid, ST_IsValidReason(geom) FROM "{schema}"."{table}" WHERE NOT ST_IsValid(geom);'),
+            ("Columns",   "SELECT column_name, udt_name FROM information_schema.columns WHERE table_schema='{schema}' AND table_name='{table}';"),
         ]:
             btn = QPushButton(name)
             btn.setFixedHeight(24)
@@ -175,17 +314,15 @@ class SQLEditorPanel(QWidget):
         tpl_row.addStretch()
         ed_layout.addLayout(tpl_row)
 
-        self._editor = QTextEdit()
-        self._editor.setFont(QFont("Courier New", 12))
-        self._editor.setPlaceholderText("-- Enter SQL here  (F5 to run)")
+        self._editor = SQLEditor()
         self._highlighter = SQLHighlighter(self._editor.document())
         ed_layout.addWidget(self._editor)
         splitter.addWidget(editor_widget)
 
-        # Results
+        # Results tab
         result_widget = QWidget()
         res_layout = QVBoxLayout(result_widget)
-        res_layout.setContentsMargins(0, 0, 0, 0)
+        res_layout.setContentsMargins(0, 4, 0, 0)
 
         self._result_label = QLabel("")
         res_layout.addWidget(self._result_label)
@@ -210,6 +347,20 @@ class SQLEditorPanel(QWidget):
         splitter.setSizes([300, 300])
 
         QShortcut(QKeySequence("F5"), self, self._run_query)
+        QShortcut(QKeySequence("F6"), self, self._run_explain)
+
+    # ── Autocomplete ──────────────────────────────────────────────────────
+
+    def refresh_completions(self):
+        if not self.db.is_connected():
+            return
+        if self._comp_loader and self._comp_loader.isRunning():
+            return
+        self._comp_loader = CompletionLoader(self.db)
+        self._comp_loader.done.connect(self._editor.set_completions)
+        self._comp_loader.start()
+
+    # ── Layer context ─────────────────────────────────────────────────────
 
     def set_active_layer(self, schema: str, table: str):
         self._active_schema = schema
@@ -219,6 +370,8 @@ class SQLEditorPanel(QWidget):
         sql = sql.replace("{schema}", self._active_schema or "public")
         sql = sql.replace("{table}", self._active_table or "layer_name")
         self._editor.setPlainText(sql)
+
+    # ── Query execution ───────────────────────────────────────────────────
 
     def _run_query(self):
         if not self.db.is_connected():
@@ -281,6 +434,20 @@ class SQLEditorPanel(QWidget):
         self._result_table.setRowCount(0)
         self._result_table.setColumnCount(0)
         self._result_label.setText("")
+
+    # ── EXPLAIN ───────────────────────────────────────────────────────────
+
+    def _run_explain(self):
+        if not self.db.is_connected():
+            QMessageBox.warning(self, "Error", i18n.t("err_not_connected"))
+            return
+        sql = self._editor.toPlainText().strip()
+        if not sql:
+            return
+        from ..dialogs.explain_dialog import ExplainDialog
+        ExplainDialog(self.db, sql, self).exec()
+
+    # ── Save / load ───────────────────────────────────────────────────────
 
     def _save_query(self):
         from PyQt6.QtWidgets import QInputDialog
