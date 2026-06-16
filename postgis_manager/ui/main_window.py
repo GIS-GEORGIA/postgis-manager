@@ -47,6 +47,9 @@ from .panels.spatial_analysis_panel import SpatialAnalysisPanel
 from .panels.automation_panel import AutomationPanel
 from .panels.monitor_panel import MonitorPanel
 from .panels.developer_panel import DeveloperPanel
+from .panels.ai_panel import AIPanel
+from .panels.api_tester_panel import APITesterPanel
+from .panels.pointcloud_panel import PointCloudPanel
 from .sidebar_nav import NavSidebar
 from .dialogs.connection_dialog import ConnectionDialog
 from .dialogs.settings_dialog import SettingsDialog
@@ -415,6 +418,22 @@ class MainWindow(QMainWindow):
         self.developer_panel = DeveloperPanel(parent=self)
         _add(self.developer_panel, "💻", "tab_developer")
 
+        self.ai_panel = AIPanel(parent=self)
+        self.ai_panel.sql_ready.connect(
+            lambda sql: (self._show_page(
+                self._stack.indexOf(self.sql_editor)),
+                self.sql_editor._editor.setPlainText(sql)))
+        _add(self.ai_panel, "🤖", "tab_ai_assistant")
+
+        # ── Advanced / Extra ──────────────────────────────────────────────────
+        self._nav.add_group(i18n.t("nav_grp_extra"))
+
+        self.api_tester = APITesterPanel(parent=self)
+        _add(self.api_tester, "🌐", "tab_api_tester")
+
+        self.pointcloud_panel = PointCloudPanel(parent=self)
+        _add(self.pointcloud_panel, "☁", "tab_pointcloud")
+
         # ── Log at bottom ─────────────────────────────────────────────────────
         self.log_panel = LogPanel(self)
         v_splitter.addWidget(self.log_panel)
@@ -499,6 +518,8 @@ class MainWindow(QMainWindow):
         self.automation_panel.set_connection(dict(self.db.params))
         self.monitor_panel.set_connection(dict(self.db.params))
         self.developer_panel.set_connection(dict(self.db.params))
+        self.ai_panel.set_connection(dict(self.db.params))
+        self.pointcloud_panel.set_connection(dict(self.db.params))
 
     def _on_connect_error(self, error: str):
         self._set_conn_status("disconnected")

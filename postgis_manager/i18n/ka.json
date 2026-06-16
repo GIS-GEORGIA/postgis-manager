@@ -28,6 +28,7 @@
   "nav_grp_monitor": "მონიტორი",
   "nav_grp_automation": "ავტომატიზაცია",
   "nav_grp_developer": "დეველოპერი",
+  "nav_grp_extra": "დამატებები",
 
   "tab_browser": "ბრაუზერი",
   "tab_map_viewer": "რუკის მაჩვენებელი",
@@ -53,6 +54,9 @@
   "tab_automation": "ავტომატიზაცია",
   "tab_monitor": "ლაივ მონიტორი",
   "tab_developer": "დეველოპერი",
+  "tab_ai_assistant": "AI ასისტენტი",
+  "tab_api_tester": "REST / OGC API",
+  "tab_pointcloud": "პოინტ ქლაუდი",
 
   "qb_connections": "კავშირები",
   "qb_project_layers": "პროექტის შრეები",

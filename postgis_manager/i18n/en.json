@@ -28,6 +28,7 @@
   "nav_grp_monitor": "Monitor",
   "nav_grp_automation": "Automation",
   "nav_grp_developer": "Developer",
+  "nav_grp_extra": "Extra",
 
   "tab_browser": "Browser",
   "tab_map_viewer": "Map Viewer",
@@ -53,6 +54,9 @@
   "tab_automation": "Automation",
   "tab_monitor": "Live Monitor",
   "tab_developer": "Developer Tools",
+  "tab_ai_assistant": "AI Assistant",
+  "tab_api_tester": "REST / OGC API",
+  "tab_pointcloud": "Point Cloud",
 
   "qb_connections": "Connections",
   "qb_project_layers": "Project Layers",
