@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QTableWidget, QTableWidgetItem, QTabWidget, QLineEdit,
     QComboBox, QTextEdit, QGroupBox, QFormLayout, QSplitter,
     QProgressBar, QCheckBox, QMessageBox, QFileDialog, QScrollArea,
-    QSizePolicy, QFrame,
+    QSizePolicy, QFrame, QInputDialog,
 )
 
 from ...utils.pg_engine import (
@@ -250,6 +250,44 @@ class DBSetupPanel(QWidget):
         self._svc_output = QLabel("")
         ctrl_lay.addWidget(self._svc_output)
         lay.addWidget(ctrl_box)
+
+        # pg_hba.conf quick access
+        hba_box = QGroupBox("pg_hba.conf  —  Client Authentication Config")
+        hba_lay = QVBoxLayout(hba_box)
+
+        path_row = QHBoxLayout()
+        self._hba_path = QLineEdit()
+        self._hba_path.setPlaceholderText("Select an instance above — path fills automatically")
+        self._hba_path.setReadOnly(False)
+        path_row.addWidget(self._hba_path, 1)
+
+        btn_browse = QPushButton("Browse…")
+        btn_browse.setFixedWidth(80)
+        btn_browse.clicked.connect(self._browse_hba)
+        path_row.addWidget(btn_browse)
+        hba_lay.addLayout(path_row)
+
+        hint = QLabel(
+            "Add a line like:  <code>host&nbsp;&nbsp;all&nbsp;&nbsp;all&nbsp;&nbsp;"
+            "192.168.0.0/24&nbsp;&nbsp;md5</code>  to allow remote connections.")
+        hint.setStyleSheet("color: gray; font-size: 11px;")
+        hint.setWordWrap(True)
+        hba_lay.addWidget(hint)
+
+        btn_row = QHBoxLayout()
+        btn_open   = QPushButton("Open in Editor")
+        btn_view   = QPushButton("View Contents")
+        btn_reload = QPushButton("Reload Config (pg_reload_conf)")
+        btn_add    = QPushButton("Add Allow Rule…")
+        btn_open.clicked.connect(self._open_hba)
+        btn_view.clicked.connect(self._view_hba)
+        btn_reload.clicked.connect(self._reload_hba_sql)
+        btn_add.clicked.connect(self._add_hba_rule)
+        for b in (btn_open, btn_view, btn_reload, btn_add):
+            btn_row.addWidget(b)
+        btn_row.addStretch()
+        hba_lay.addLayout(btn_row)
+        lay.addWidget(hba_box)
 
         # Connection form
         conn_box = QGroupBox("Connect to Selected Instance")
@@ -494,6 +532,154 @@ class DBSetupPanel(QWidget):
             for b in (self._btn_start, self._btn_stop, self._btn_reload):
                 b.setEnabled(True)
             self._conn_port.setText(inst.port)
+            # auto-fill pg_hba.conf path
+            hba = self._find_hba(inst)
+            if hba:
+                self._hba_path.setText(hba)
+
+    def _find_hba(self, inst: PGInstance) -> str:
+        """Return pg_hba.conf path for this instance."""
+        # 1. data_dir/pg_hba.conf (most reliable)
+        if inst.data_dir:
+            candidate = os.path.join(inst.data_dir, "pg_hba.conf")
+            if os.path.isfile(candidate):
+                return candidate
+        # 2. Ask psql if connected
+        if inst.data_dir and os.path.isfile(inst.psql):
+            try:
+                import subprocess
+                out = subprocess.check_output(
+                    [inst.psql, "-U", "postgres", "-h", "localhost",
+                     "-p", inst.port, "-tAc",
+                     "SHOW hba_file;"],
+                    timeout=5, stderr=subprocess.DEVNULL, text=True)
+                p = out.strip()
+                if p and os.path.isfile(p):
+                    return p
+            except Exception:
+                pass
+        # 3. Common Linux paths
+        if PLATFORM == "Linux":
+            import glob
+            for pattern in [
+                "/etc/postgresql/*/main/pg_hba.conf",
+                "/var/lib/postgresql/*/main/pg_hba.conf",
+            ]:
+                matches = glob.glob(pattern)
+                if matches:
+                    return sorted(matches)[-1]
+        # 4. macOS
+        if PLATFORM == "Darwin":
+            import glob
+            for pattern in [
+                os.path.expanduser("~/Library/Application Support/Postgres/var-*/pg_hba.conf"),
+                "/opt/homebrew/var/postgresql*/pg_hba.conf",
+                "/usr/local/var/postgresql*/pg_hba.conf",
+            ]:
+                matches = glob.glob(pattern)
+                if matches:
+                    return sorted(matches)[-1]
+        return ""
+
+    # ── pg_hba.conf helpers ───────────────────────────────────────────────
+
+    def _browse_hba(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Select pg_hba.conf", "",
+            "Config files (pg_hba.conf);;All files (*)")
+        if path:
+            self._hba_path.setText(path)
+
+    def _open_hba(self):
+        path = self._hba_path.text().strip()
+        if not path or not os.path.isfile(path):
+            QMessageBox.warning(self, "Not found",
+                                "Set a valid pg_hba.conf path first.")
+            return
+        import subprocess
+        if PLATFORM == "Windows":
+            os.startfile(path)
+        elif PLATFORM == "Darwin":
+            subprocess.Popen(["open", "-t", path])
+        else:
+            for editor in ("gedit", "kate", "xed", "mousepad", "nano"):
+                import shutil
+                if shutil.which(editor):
+                    subprocess.Popen([editor, path])
+                    return
+            subprocess.Popen(["xdg-open", path])
+
+    def _view_hba(self):
+        path = self._hba_path.text().strip()
+        if not path or not os.path.isfile(path):
+            QMessageBox.warning(self, "Not found",
+                                "Set a valid pg_hba.conf path first.")
+            return
+        try:
+            content = open(path, encoding="utf-8", errors="replace").read()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
+            return
+        dlg = QMessageBox(self)
+        dlg.setWindowTitle(f"pg_hba.conf — {path}")
+        dlg.setText("Contents (read-only preview):")
+        dlg.setDetailedText(content)
+        dlg.setStandardButtons(QMessageBox.StandardButton.Ok)
+        dlg.exec()
+
+    def _reload_hba_sql(self):
+        """Run SELECT pg_reload_conf() via active connection."""
+        if not self._conn_params:
+            QMessageBox.warning(self, "No connection",
+                                "Test a connection first.")
+            return
+        try:
+            conn = psycopg2.connect(**self._conn_params)
+            conn.autocommit = True
+            cur = conn.cursor()
+            cur.execute("SELECT pg_reload_conf();")
+            cur.close()
+            conn.close()
+            QMessageBox.information(self, "Reloaded",
+                                    "✓ pg_reload_conf() executed — pg_hba.conf reloaded.")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
+
+    def _add_hba_rule(self):
+        """Append a new host rule to pg_hba.conf."""
+        path = self._hba_path.text().strip()
+        if not path or not os.path.isfile(path):
+            QMessageBox.warning(self, "Not found",
+                                "Set a valid pg_hba.conf path first.")
+            return
+        # ask for CIDR
+        cidr, ok = QInputDialog.getText(
+            self, "Add Allow Rule",
+            "Enter client IP or CIDR  (e.g. 192.168.0.0/24  or  10.116.12.0/24):",
+            text="192.168.0.0/24")
+        if not ok or not cidr.strip():
+            return
+        method, ok2 = QInputDialog.getItem(
+            self, "Auth Method", "Authentication method:",
+            ["md5", "scram-sha-256", "trust", "reject"], 0, False)
+        if not ok2:
+            return
+        line = f"\nhost\tall\tall\t{cidr.strip()}\t{method}\n"
+        try:
+            with open(path, "a", encoding="utf-8") as f:
+                f.write(line)
+            QMessageBox.information(
+                self, "Rule added",
+                f"✓ Added:\n{line.strip()}\n\n"
+                "Click 'Reload Config' to apply without restarting PostgreSQL.")
+        except PermissionError:
+            QMessageBox.critical(
+                self, "Permission denied",
+                f"Cannot write to {path}.\n\n"
+                "Run the application as administrator, or edit the file manually:\n"
+                f"  sudo nano {path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
 
     def _svc_start(self):
         if not self._selected_inst:
