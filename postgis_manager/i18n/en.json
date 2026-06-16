@@ -46,6 +46,7 @@
   "tab_db_setup": "DB Setup",
   "tab_security": "Security",
   "tab_audit": "Audit Log",
+  "tab_geodata_io": "GeoData Import/Export",
 
   "qb_connections": "Connections",
   "qb_project_layers": "Project Layers",

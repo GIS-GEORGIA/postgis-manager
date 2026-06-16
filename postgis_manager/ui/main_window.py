@@ -42,6 +42,7 @@ from .panels.qgis_bridge_panel import QGISBridgePanel
 from .panels.db_setup_panel import DBSetupPanel
 from .panels.security_panel import SecurityPanel
 from .panels.audit_panel import AuditPanel
+from .panels.import_export_panel import ImportExportPanel
 from .sidebar_nav import NavSidebar
 from .dialogs.connection_dialog import ConnectionDialog
 from .dialogs.settings_dialog import SettingsDialog
@@ -303,6 +304,9 @@ class MainWindow(QMainWindow):
         self.raster_panel = RasterImportPanel(self.db, self)
         _add(self.raster_panel, "📥", "tab_raster")
 
+        self.geodata_panel = ImportExportPanel(db=self.db, parent=self)
+        _add(self.geodata_panel, "🌍", "tab_geodata_io")
+
         self.export_panel = ExportPanel(self.db, self)
         _add(self.export_panel, "📤", "tab_export")
 
@@ -467,6 +471,7 @@ class MainWindow(QMainWindow):
         self.browser.refresh()
         self.security_panel.set_connection(dict(self.db.params))
         self.audit_panel.set_connection(dict(self.db.params))
+        self.geodata_panel.set_connection(dict(self.db.params))
 
     def _on_connect_error(self, error: str):
         self._set_conn_status("disconnected")

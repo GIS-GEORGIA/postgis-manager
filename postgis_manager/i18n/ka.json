@@ -46,6 +46,7 @@
   "tab_db_setup": "DB Setup",
   "tab_security": "უსაფრთხოება",
   "tab_audit": "აუდიტი",
+  "tab_geodata_io": "იმპორტი / ექსპორტი",
 
   "qb_connections": "კავშირები",
   "qb_project_layers": "პროექტის შრეები",
