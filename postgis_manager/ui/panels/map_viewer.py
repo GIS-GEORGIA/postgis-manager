@@ -190,10 +190,15 @@ class MapLoadWorker(QThread):
         self.geom_col = geom_col
         self.srid   = srid
 
+    def _q(self, sql, params=None):
+        import psycopg2.extras
+        with self.db.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(sql, params)
+            return cur.fetchall()
+
     def run(self):
         try:
-            # Non-geometry columns
-            col_rows = self.db.execute("""
+            col_rows = self._q("""
                 SELECT column_name
                 FROM information_schema.columns
                 WHERE table_schema = %s AND table_name = %s
@@ -202,11 +207,11 @@ class MapLoadWorker(QThread):
                 LIMIT 20
             """, (self.schema, self.table, self.geom_col))
 
-            cols = [r["column_name"] for r in (col_rows or [])]
+            cols = [r["column_name"] for r in col_rows]
             self.columns.emit(cols)
 
             col_sql = ", ".join(f'"{c}"' for c in cols) if cols else "NULL as _no_cols"
-            target_srid = 4326 if self.srid != 0 else 4326
+            target_srid = 4326
 
             sql = f"""
                 SELECT
@@ -219,7 +224,7 @@ class MapLoadWorker(QThread):
                 WHERE "{self.geom_col}" IS NOT NULL
                 LIMIT {self.LIMIT}
             """
-            rows = self.db.execute(sql) or []
+            rows = self._q(sql)
             result = []
             total = len(rows)
             for i, row in enumerate(rows):
@@ -596,12 +601,12 @@ class MapViewerPanel(QWidget):
             return
 
         try:
-            self.db.execute(
-                f'UPDATE "{schema}"."{table}" SET "{col}" = %s '
-                f'WHERE "{pk_col}" = %s',
-                (new_val, pk_val)
-            )
-            self.db.conn.commit()
+            with self.db.conn.cursor() as cur:
+                cur.execute(
+                    f'UPDATE "{schema}"."{table}" SET "{col}" = %s '
+                    f'WHERE "{pk_col}" = %s',
+                    (new_val, pk_val)
+                )
             self._feature_data[fid][2][col] = new_val
             self._status.setText(
                 i18n.t("mv_saved", col=col, pk=pk_val))
