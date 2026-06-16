@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
     QLabel, QLineEdit, QPushButton, QSpinBox, QDoubleSpinBox,
     QCheckBox, QTableWidget, QTableWidgetItem, QHeaderView,
     QAbstractItemView, QProgressBar, QMessageBox, QComboBox,
+    QSplitter, QScrollArea, QSizePolicy,
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QMutex
 from PyQt6.QtGui import QColor, QFont
@@ -99,7 +100,19 @@ class NetworkScanPanel(QWidget):
     # ── UI ────────────────────────────────────────────────────────────────────
 
     def _build_ui(self):
-        layout = QVBoxLayout(self)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+
+        splitter = QSplitter(Qt.Orientation.Vertical)
+        root.addWidget(splitter)
+
+        # ── TOP: scrollable config area ───────────────────────────────────────
+        top_scroll = QScrollArea()
+        top_scroll.setWidgetResizable(True)
+        top_scroll.setFrameShape(top_scroll.Shape.NoFrame)
+        top_widget = QWidget()
+        layout = QVBoxLayout(top_widget)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
 
@@ -186,12 +199,23 @@ class NetworkScanPanel(QWidget):
         self._progress.setValue(0)
         prog_row.addWidget(self._progress)
         self._status_lbl = QLabel(i18n.t("scan_status_idle"))
+        self._status_lbl.setMinimumWidth(180)
         prog_row.addWidget(self._status_lbl)
         layout.addLayout(prog_row)
 
-        # ── Results table ─────────────────────────────────────────────────────
-        res_box = QGroupBox(i18n.t("scan_results"))
-        res_l = QVBoxLayout(res_box)
+        layout.addStretch()
+        top_scroll.setWidget(top_widget)
+        splitter.addWidget(top_scroll)
+
+        # ── BOTTOM: results table (gets all remaining space) ──────────────────
+        bottom = QWidget()
+        res_layout = QVBoxLayout(bottom)
+        res_layout.setContentsMargins(8, 4, 8, 8)
+        res_layout.setSpacing(4)
+
+        res_label = QLabel(f"<b>{i18n.t('scan_results')}</b>")
+        res_layout.addWidget(res_label)
+
         self._table = QTableWidget()
         self._table.setColumnCount(7)
         self._table.setHorizontalHeaderLabels([
@@ -215,7 +239,9 @@ class NetworkScanPanel(QWidget):
         self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self._table.setAlternatingRowColors(True)
         self._table.setSortingEnabled(True)
-        res_l.addWidget(self._table)
+        self._table.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        res_layout.addWidget(self._table, 1)
 
         add_row = QHBoxLayout()
         self._add_btn = QPushButton(f"➕  {i18n.t('scan_add_connection')}")
@@ -225,8 +251,12 @@ class NetworkScanPanel(QWidget):
         self._add_all_btn.clicked.connect(self._add_all)
         add_row.addWidget(self._add_all_btn)
         add_row.addStretch()
-        res_l.addLayout(add_row)
-        layout.addWidget(res_box)
+        res_layout.addLayout(add_row)
+
+        splitter.addWidget(bottom)
+        splitter.setSizes([280, 400])
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
 
     # ── Scan control ──────────────────────────────────────────────────────────
 
