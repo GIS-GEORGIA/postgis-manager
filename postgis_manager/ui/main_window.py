@@ -442,7 +442,7 @@ class MainWindow(QMainWindow):
         v_splitter.setCollapsible(0, False)
         v_splitter.setCollapsible(1, False)
         v_splitter.setHandleWidth(6)
-        self.log_panel.setMinimumHeight(60)
+        self.log_panel.setMinimumHeight(80)
         self._v_splitter = v_splitter
         self._main_splitter.addWidget(right_widget)
         self._main_splitter.setSizes([260, 1140])

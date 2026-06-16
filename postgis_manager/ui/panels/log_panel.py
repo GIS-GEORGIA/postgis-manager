@@ -1,256 +1,390 @@
-"""Log panel — color-coded levels, filter chips, search, wrap toggle, status bar."""
+"""Log panel — filter chips, search, wrap toggle, status bar.
+Uses the app theme engine so it works in both Light and Dark mode.
+"""
 
 from datetime import datetime
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTextEdit,
-    QPushButton, QFileDialog, QLineEdit, QLabel, QSizePolicy,
+    QPushButton, QFileDialog, QLineEdit, QLabel,
+    QSizePolicy,
 )
 from PyQt6.QtGui import QTextCharFormat, QColor, QFont, QTextCursor
 from PyQt6.QtCore import Qt
 
-LEVEL_COLORS = {
-    "info":    "#58A6FF",
-    "success": "#3FB950",
-    "warn":    "#D29922",
-    "error":   "#FF7B72",
-    "dim":     "#888899",
-    "sql":     "#A78BFA",
-}
+from ...utils import theme as _theme
+
+# ── Level metadata ─────────────────────────────────────────────────────────────
+
 LEVEL_ICONS = {
     "info": "ℹ", "success": "✔", "warn": "⚠",
     "error": "✖", "dim": "·", "sql": "⌗",
 }
 
-_CHIP_STYLE = {
-    "all":     ("background:#3a3a4a;color:#ccc;border:1px solid #555;",
-                "background:#555;color:#fff;border:1px solid #888;"),
-    "info":    ("background:#0d2137;color:#58A6FF;border:1px solid #1a4a7a;",
-                "background:#1a4a7a;color:#8fc8ff;border:1px solid #58A6FF;"),
-    "success": ("background:#0d2215;color:#3FB950;border:1px solid #1a4a25;",
-                "background:#1a4a25;color:#7de38a;border:1px solid #3FB950;"),
-    "warn":    ("background:#2a1f00;color:#D29922;border:1px solid #5a4200;",
-                "background:#5a4200;color:#f5c842;border:1px solid #D29922;"),
-    "error":   ("background:#2a0d0d;color:#FF7B72;border:1px solid #5a1a1a;",
-                "background:#5a1a1a;color:#ffaaa4;border:1px solid #FF7B72;"),
-    "sql":     ("background:#1a1030;color:#A78BFA;border:1px solid #3a2070;",
-                "background:#3a2070;color:#c4b0ff;border:1px solid #A78BFA;"),
+# Keys into theme.colors() for fg color of each level
+_LEVEL_THEME_KEY = {
+    "info":    "info",
+    "success": "success",
+    "warn":    "warn",
+    "error":   "error",
+    "dim":     "fg_dim",
+    "sql":     "accent",
 }
 
+# Chip accent colors — fixed, readable on any background
+_CHIP_COLORS = {
+    "all":     ("#888899", "#888899"),   # (normal-fg, active-fg)
+    "info":    ("#01579B", "#1565C0"),
+    "success": ("#2E7D32", "#388E3C"),
+    "warn":    ("#E65100", "#F57C00"),
+    "error":   ("#C62828", "#D32F2F"),
+    "sql":     ("#4527A0", "#5E35B1"),
+}
+# Dark-mode overrides for chip fg
+_CHIP_COLORS_DARK = {
+    "all":     ("#aaaaaa", "#cccccc"),
+    "info":    ("#58A6FF", "#90CAF9"),
+    "success": ("#3FB950", "#81C784"),
+    "warn":    ("#D29922", "#FFB74D"),
+    "error":   ("#FF7B72", "#EF9A9A"),
+    "sql":     ("#A78BFA", "#CE93D8"),
+}
+
+_TOOLBAR_H  = 28
+_FILTERBAR_H = 26
+_STATUSBAR_H = 22
+
+
+# ── Chip widget ────────────────────────────────────────────────────────────────
 
 class _Chip(QPushButton):
     def __init__(self, label: str, level: str, parent=None):
         super().__init__(label, parent)
         self._level = level
         self._active = False
-        self.setFixedHeight(20)
+        self.setFixedHeight(18)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setCheckable(False)
-        self._apply()
+        self._refresh()
 
     def set_active(self, v: bool):
         self._active = v
-        self._apply()
+        self._refresh()
 
-    def _apply(self):
-        base, active = _CHIP_STYLE.get(self._level, _CHIP_STYLE["all"])
-        s = active if self._active else base
+    def _refresh(self):
+        dark = _theme.current() == "dark"
+        colors = _CHIP_COLORS_DARK if dark else _CHIP_COLORS
+        normal_fg, active_fg = colors.get(self._level, colors["all"])
+        bg      = _theme.c("bg_card")
+        bg_act  = _theme.c("selection_bg")
+        fg      = active_fg if self._active else normal_fg
+        bg_use  = bg_act if self._active else bg
+        bw      = "2px" if self._active else "1px"
         self.setStyleSheet(
-            f"QPushButton{{{s}border-radius:9px;font-size:11px;"
-            f"padding:0 8px;font-weight:{'600' if self._active else '400'};}}"
-            f"QPushButton:hover{{opacity:0.85;}}"
+            f"QPushButton{{"
+            f"color:{fg};background:{bg_use};"
+            f"border:{bw} solid {fg};"
+            f"border-radius:8px;font-size:11px;padding:0 7px;"
+            f"font-weight:{'600' if self._active else '400'};}}"
+            f"QPushButton:hover{{background:{_theme.c('selection_bg')};}}"
         )
 
+
+# ── Log Panel ──────────────────────────────────────────────────────────────────
 
 class LogPanel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._entries: list[tuple[str, str, str]] = []  # (ts, level, msg)
+        self._entries: list[tuple[str, str, str]] = []   # (ts, level, msg)
         self._active_level = "all"
         self._search = ""
         self._wrap = False
         self._collapsed = False
         self._build_ui()
+        _theme.on_theme_change(self._on_theme)
 
-    # ── Build ─────────────────────────────────────────────────────────────
+    # ── Build ──────────────────────────────────────────────────────────────
 
     def _build_ui(self):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        # ── Toolbar ───────────────────────────────────────────────────────
-        toolbar = QWidget()
-        toolbar.setFixedHeight(30)
-        toolbar.setStyleSheet("background:#1e1e2e;border-bottom:1px solid #333;")
-        tb = QHBoxLayout(toolbar)
-        tb.setContentsMargins(8, 0, 8, 0)
-        tb.setSpacing(4)
+        # Toolbar
+        self._toolbar = self._make_toolbar()
+        root.addWidget(self._toolbar)
 
-        self._title_lbl = QLabel("▼  Log")
-        self._title_lbl.setStyleSheet(
-            "color:#ccc;font-weight:600;font-size:12px;")
-        tb.addWidget(self._title_lbl)
+        # Thin divider
+        self._div1 = self._hline()
+        root.addWidget(self._div1)
 
-        self._cnt_badge = QLabel("0")
-        self._cnt_badge.setStyleSheet(
-            "background:#2a2a3a;color:#888;border-radius:8px;"
-            "padding:0 6px;font-size:11px;")
-        tb.addWidget(self._cnt_badge)
-        tb.addStretch()
-
-        self._wrap_btn = self._tb_btn("⇌ Wrap", self._toggle_wrap)
-        tb.addWidget(self._wrap_btn)
-
-        self._sep(tb)
-
-        tb.addWidget(self._tb_btn("🧹 Clear", self.clear))
-        tb.addWidget(self._tb_btn("💾 Save",  self._save_log))
-
-        self._sep(tb)
-
-        self._collapse_btn = self._tb_btn("▼", self._toggle_collapse)
-        self._collapse_btn.setFixedWidth(24)
-        tb.addWidget(self._collapse_btn)
-
-        root.addWidget(toolbar)
-
-        # ── Filter row ────────────────────────────────────────────────────
-        self._filter_row = QWidget()
-        self._filter_row.setFixedHeight(28)
-        self._filter_row.setStyleSheet(
-            "background:#181825;border-bottom:1px solid #2a2a3a;")
-        fr = QHBoxLayout(self._filter_row)
-        fr.setContentsMargins(8, 0, 8, 0)
-        fr.setSpacing(4)
-
-        self._search_box = QLineEdit()
-        self._search_box.setPlaceholderText("Filter messages…")
-        self._search_box.setFixedHeight(20)
-        self._search_box.setStyleSheet(
-            "QLineEdit{background:#2a2a3a;color:#ccc;border:1px solid #444;"
-            "border-radius:4px;padding:0 6px;font-size:11px;font-family:'Courier New';}"
-            "QLineEdit:focus{border-color:#58A6FF;}")
-        self._search_box.textChanged.connect(self._on_search)
-        fr.addWidget(self._search_box, 1)
-
-        self._sep(fr)
-
-        self._chips: dict[str, _Chip] = {}
-        for level, label in [("all","All"),("info","info"),("success","ok"),
-                              ("warn","warn"),("error","err"),("sql","sql")]:
-            chip = _Chip(label, level)
-            chip.clicked.connect(lambda _, lv=level: self._set_level(lv))
-            self._chips[level] = chip
-            fr.addWidget(chip)
-
-        self._chips["all"].set_active(True)
+        # Filter row
+        self._filter_row = self._make_filter_row()
         root.addWidget(self._filter_row)
 
-        # ── Log area ──────────────────────────────────────────────────────
+        # Thin divider
+        self._div2 = self._hline()
+        root.addWidget(self._div2)
+
+        # Log text area
         self._log = QTextEdit()
         self._log.setReadOnly(True)
         self._log.setFont(QFont("Courier New", 10))
         self._log.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
-        self._log.setStyleSheet(
-            "QTextEdit{background:#11111b;color:#cdd6f4;"
-            "border:none;selection-background-color:#313244;}"
-            "QScrollBar:vertical{background:#1e1e2e;width:8px;}"
-            "QScrollBar::handle:vertical{background:#45475a;border-radius:4px;}"
-            "QScrollBar:horizontal{background:#1e1e2e;height:8px;}"
-            "QScrollBar::handle:horizontal{background:#45475a;border-radius:4px;}")
-        root.addWidget(self._log)
+        self._log.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        root.addWidget(self._log, 1)
 
-        # ── Status bar ────────────────────────────────────────────────────
-        self._status_bar = QWidget()
-        self._status_bar.setFixedHeight(22)
-        self._status_bar.setStyleSheet(
-            "background:#1e1e2e;border-top:1px solid #333;")
-        sb = QHBoxLayout(self._status_bar)
-        sb.setContentsMargins(8, 0, 8, 0)
-        sb.setSpacing(6)
+        # Thin divider
+        self._div3 = self._hline()
+        root.addWidget(self._div3)
+
+        # Status bar
+        self._status_bar = self._make_status_bar()
+        root.addWidget(self._status_bar)
+
+        self._apply_theme()
+
+    def _make_toolbar(self) -> QWidget:
+        w = QWidget()
+        w.setFixedHeight(_TOOLBAR_H)
+        lay = QHBoxLayout(w)
+        lay.setContentsMargins(8, 0, 8, 0)
+        lay.setSpacing(4)
+
+        self._title_lbl = QLabel("▼  Log")
+        self._title_lbl.setStyleSheet("font-weight:600;font-size:12px;")
+        lay.addWidget(self._title_lbl)
+
+        self._cnt_badge = QLabel("0")
+        self._cnt_badge.setFixedHeight(16)
+        self._cnt_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._cnt_badge.setMinimumWidth(24)
+        lay.addWidget(self._cnt_badge)
+
+        lay.addStretch()
+
+        self._wrap_btn = self._small_btn("⇌ Wrap", self._toggle_wrap)
+        lay.addWidget(self._wrap_btn)
+
+        lay.addWidget(self._vsep())
+
+        lay.addWidget(self._small_btn("🧹 Clear", self.clear))
+        lay.addWidget(self._small_btn("💾 Save",  self._save_log))
+
+        lay.addWidget(self._vsep())
+
+        self._collapse_btn = self._small_btn("▼", self._toggle_collapse)
+        self._collapse_btn.setFixedWidth(28)
+        lay.addWidget(self._collapse_btn)
+
+        return w
+
+    def _make_filter_row(self) -> QWidget:
+        w = QWidget()
+        w.setFixedHeight(_FILTERBAR_H)
+        lay = QHBoxLayout(w)
+        lay.setContentsMargins(8, 0, 8, 0)
+        lay.setSpacing(4)
+
+        self._search_box = QLineEdit()
+        self._search_box.setPlaceholderText("Filter messages…")
+        self._search_box.setFixedHeight(20)
+        self._search_box.textChanged.connect(self._on_search)
+        lay.addWidget(self._search_box, 1)
+
+        lay.addWidget(self._vsep())
+
+        self._chips: dict[str, _Chip] = {}
+        for level, label in [
+            ("all", "All"), ("info", "info"), ("success", "ok"),
+            ("warn", "warn"), ("error", "err"), ("sql", "sql"),
+        ]:
+            chip = _Chip(label, level)
+            chip.clicked.connect(lambda _, lv=level: self._set_level(lv))
+            self._chips[level] = chip
+            lay.addWidget(chip)
+
+        self._chips["all"].set_active(True)
+        return w
+
+    def _make_status_bar(self) -> QWidget:
+        w = QWidget()
+        w.setFixedHeight(_STATUSBAR_H)
+        lay = QHBoxLayout(w)
+        lay.setContentsMargins(8, 0, 8, 0)
+        lay.setSpacing(6)
 
         self._dot = QLabel("●")
-        self._dot.setStyleSheet("color:#3FB950;font-size:9px;")
-        sb.addWidget(self._dot)
+        self._dot.setFixedWidth(12)
+        lay.addWidget(self._dot)
 
         self._last_lbl = QLabel("")
-        self._last_lbl.setStyleSheet("color:#666;font-size:11px;")
+        self._last_lbl.setStyleSheet("font-size:11px;")
         self._last_lbl.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        self._last_lbl.setMaximumWidth(400)
-        sb.addWidget(self._last_lbl)
-        sb.addStretch()
+        lay.addWidget(self._last_lbl)
 
         self._count_lbl = QLabel("0 / 0")
-        self._count_lbl.setStyleSheet("color:#555;font-size:11px;")
-        sb.addWidget(self._count_lbl)
+        self._count_lbl.setStyleSheet("font-size:11px;")
+        lay.addWidget(self._count_lbl)
 
-        self._sep(sb)
+        lay.addWidget(self._vsep())
 
         bottom_btn = QPushButton("↓ bottom")
         bottom_btn.setFixedHeight(16)
-        bottom_btn.setStyleSheet(
-            "QPushButton{background:transparent;color:#555;font-size:11px;"
-            "border:1px solid #333;border-radius:3px;padding:0 5px;}"
-            "QPushButton:hover{color:#aaa;border-color:#666;}")
-        bottom_btn.clicked.connect(
-            lambda: self._log.verticalScrollBar().setValue(
-                self._log.verticalScrollBar().maximum()))
-        sb.addWidget(bottom_btn)
+        bottom_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        bottom_btn.clicked.connect(self._scroll_bottom)
+        lay.addWidget(bottom_btn)
 
-        root.addWidget(self._status_bar)
+        return w
 
-    # ── Helpers ───────────────────────────────────────────────────────────
+    # ── Theme ──────────────────────────────────────────────────────────────
+
+    def _apply_theme(self):
+        co = _theme.colors()
+
+        # Toolbar + filter row
+        tb_bg = co["bg_toolbar"]
+        border = co["border"]
+        for w in (self._toolbar, self._filter_row, self._status_bar):
+            w.setStyleSheet(f"background:{tb_bg};")
+
+        # Dividers
+        for d in (self._div1, self._div2, self._div3):
+            d.setStyleSheet(f"background:{border};")
+
+        # Badge
+        self._cnt_badge.setStyleSheet(
+            f"background:{co['bg_card']};color:{co['fg_secondary']};"
+            f"border:1px solid {border};border-radius:7px;"
+            f"padding:0 5px;font-size:11px;")
+
+        # Buttons
+        btn_style = (
+            f"QPushButton{{background:transparent;color:{co['fg_secondary']};"
+            f"font-size:11px;border:1px solid {border};"
+            f"border-radius:4px;padding:0 6px;}}"
+            f"QPushButton:hover{{background:{co['selection_bg']};"
+            f"color:{co['fg']};}}")
+        for btn in (self._wrap_btn, self._collapse_btn):
+            btn.setStyleSheet(btn_style)
+        for btn in self._toolbar.findChildren(QPushButton):
+            if btn not in (self._wrap_btn, self._collapse_btn):
+                btn.setStyleSheet(btn_style)
+
+        # Search box
+        self._search_box.setStyleSheet(
+            f"QLineEdit{{background:{co['bg_input']};color:{co['fg']};"
+            f"border:1px solid {border};border-radius:4px;"
+            f"padding:0 6px;font-size:11px;font-family:'Courier New';}}"
+            f"QLineEdit:focus{{border-color:{co['border_focus']};}}"
+        )
+
+        # Bottom button
+        bb_style = (
+            f"QPushButton{{background:transparent;color:{co['fg_dim']};"
+            f"font-size:11px;border:1px solid {border};"
+            f"border-radius:3px;padding:0 5px;}}"
+            f"QPushButton:hover{{color:{co['fg']};border-color:{co['fg_secondary']};}}")
+        for btn in self._status_bar.findChildren(QPushButton):
+            btn.setStyleSheet(bb_style)
+
+        # Status dot + labels
+        self._dot.setStyleSheet(f"color:{co['success']};font-size:9px;")
+        self._last_lbl.setStyleSheet(
+            f"font-size:11px;color:{co['fg_dim']};")
+        self._count_lbl.setStyleSheet(
+            f"font-size:11px;color:{co['fg_secondary']};")
+        self._title_lbl.setStyleSheet(
+            f"font-weight:600;font-size:12px;color:{co['fg']};")
+
+        # Log area
+        self._log.setStyleSheet(
+            f"QTextEdit{{background:{co['bg_log']};color:{co['fg']};"
+            f"border:none;"
+            f"selection-background-color:{co['selection_bg']};"
+            f"selection-color:{co['selection_fg']};}}"
+            f"QScrollBar:vertical{{background:{co['bg_card']};"
+            f"width:8px;border:none;}}"
+            f"QScrollBar::handle:vertical{{background:{co['scrollbar']};"
+            f"border-radius:4px;min-height:20px;}}"
+            f"QScrollBar:horizontal{{background:{co['bg_card']};"
+            f"height:8px;border:none;}}"
+            f"QScrollBar::handle:horizontal{{background:{co['scrollbar']};"
+            f"border-radius:4px;min-width:20px;}}"
+        )
+
+        # Refresh chips
+        for chip in self._chips.values():
+            chip._refresh()
+
+        # Wrap button highlight if active
+        if self._wrap:
+            self._wrap_btn.setStyleSheet(
+                btn_style.replace(
+                    f"color:{co['fg_secondary']}", f"color:{co['accent']}"))
+
+    def _on_theme(self, _name: str):
+        self._apply_theme()
+
+    # ── Small helpers ──────────────────────────────────────────────────────
 
     @staticmethod
-    def _tb_btn(label: str, slot) -> QPushButton:
+    def _small_btn(label: str, slot) -> QPushButton:
         btn = QPushButton(label)
         btn.setFixedHeight(22)
-        btn.setStyleSheet(
-            "QPushButton{background:transparent;color:#aaa;font-size:11px;"
-            "border:1px solid #333;border-radius:4px;padding:0 7px;}"
-            "QPushButton:hover{color:#fff;border-color:#666;}")
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.clicked.connect(slot)
         return btn
 
     @staticmethod
-    def _sep(layout):
-        sep = QLabel()
+    def _vsep() -> QWidget:
+        sep = QWidget()
         sep.setFixedSize(1, 14)
-        sep.setStyleSheet("background:#333;")
-        layout.addWidget(sep)
+        return sep
 
-    # ── Actions ───────────────────────────────────────────────────────────
+    @staticmethod
+    def _hline() -> QWidget:
+        line = QWidget()
+        line.setFixedHeight(1)
+        return line
+
+    # ── Actions ────────────────────────────────────────────────────────────
 
     def _toggle_collapse(self):
         self._collapsed = not self._collapsed
-        self._filter_row.setVisible(not self._collapsed)
-        self._log.setVisible(not self._collapsed)
-        self._status_bar.setVisible(not self._collapsed)
-        self._collapse_btn.setText("▶" if self._collapsed else "▼")
-        self._title_lbl.setText(
-            ("▶" if self._collapsed else "▼") + "  Log")
+        arrow = "▶" if self._collapsed else "▼"
+        self._collapse_btn.setText(arrow)
+        self._title_lbl.setText(f"{arrow}  Log")
 
+        # Hide/show everything below the toolbar
+        for w in (self._div1, self._filter_row,
+                  self._div2, self._log,
+                  self._div3, self._status_bar):
+            w.setVisible(not self._collapsed)
+
+        # Adjust splitter
         from PyQt6.QtWidgets import QSplitter
         splitter = self.parent()
         while splitter and not isinstance(splitter, QSplitter):
             splitter = splitter.parent()
+
         if splitter:
             if self._collapsed:
                 self._saved_sizes = splitter.sizes()
                 total = sum(self._saved_sizes)
-                splitter.setSizes([total - 30, 30])
+                self.setMinimumHeight(_TOOLBAR_H + 2)
+                splitter.setSizes([total - _TOOLBAR_H - 2, _TOOLBAR_H + 2])
             else:
-                splitter.setSizes(getattr(self, "_saved_sizes", [620, 180]))
+                self.setMinimumHeight(80)
+                splitter.setSizes(
+                    getattr(self, "_saved_sizes", [620, 180]))
 
     def _toggle_wrap(self):
         self._wrap = not self._wrap
         mode = (QTextEdit.LineWrapMode.WidgetWidth
                 if self._wrap else QTextEdit.LineWrapMode.NoWrap)
         self._log.setLineWrapMode(mode)
-        self._wrap_btn.setStyleSheet(
-            self._wrap_btn.styleSheet().replace(
-                "color:#aaa", "color:#58A6FF" if self._wrap else "color:#aaa"))
+        self._apply_theme()
 
     def _set_level(self, level: str):
         self._active_level = level
@@ -262,21 +396,26 @@ class LogPanel(QWidget):
         self._search = text.lower()
         self._rebuild_display()
 
-    # ── Core ──────────────────────────────────────────────────────────────
+    def _scroll_bottom(self):
+        sb = self._log.verticalScrollBar()
+        sb.setValue(sb.maximum())
+
+    # ── Core ───────────────────────────────────────────────────────────────
 
     def append(self, message: str, level: str = "info"):
         ts = datetime.now().strftime("%H:%M:%S")
         self._entries.append((ts, level, message))
         self._cnt_badge.setText(str(len(self._entries)))
 
-        # update status bar dot + last message
+        co = _theme.colors()
         if level == "error":
-            self._dot.setStyleSheet("color:#FF7B72;font-size:9px;")
-        self._last_lbl.setText(
-            message[:60] + ("…" if len(message) > 60 else ""))
+            self._dot.setStyleSheet(f"color:{co['error']};font-size:9px;")
+
+        preview = message[:70] + ("…" if len(message) > 70 else "")
+        self._last_lbl.setText(preview)
 
         if self._matches(level, message):
-            self._append_line(ts, level, message)
+            self._write_line(ts, level, message)
             self._update_count()
 
     def _matches(self, level: str, msg: str) -> bool:
@@ -286,32 +425,36 @@ class LogPanel(QWidget):
             return False
         return True
 
-    def _append_line(self, ts: str, level: str, msg: str):
-        color = LEVEL_COLORS.get(level, "#AAAAAA")
-        icon  = LEVEL_ICONS.get(level, "·")
-        fmt = QTextCharFormat()
-        fmt.setForeground(QColor(color))
+    def _write_line(self, ts: str, level: str, msg: str):
+        co = _theme.colors()
+        theme_key = _LEVEL_THEME_KEY.get(level, "fg_secondary")
+        fg_color  = co.get(theme_key, co["fg"])
+
         cursor = self._log.textCursor()
         cursor.movePosition(QTextCursor.MoveOperation.End)
 
-        # timestamp in dim color
         dim = QTextCharFormat()
-        dim.setForeground(QColor("#555577"))
+        dim.setForeground(QColor(co["fg_dim"]))
         cursor.insertText(f"[{ts}] ", dim)
 
+        icon = LEVEL_ICONS.get(level, "·")
+        fmt  = QTextCharFormat()
+        fmt.setForeground(QColor(fg_color))
         cursor.insertText(f"{icon}  {msg}\n", fmt)
+
         self._log.ensureCursorVisible()
 
     def _rebuild_display(self):
         self._log.clear()
         for ts, level, msg in self._entries:
             if self._matches(level, msg):
-                self._append_line(ts, level, msg)
+                self._write_line(ts, level, msg)
         self._update_count()
 
     def _update_count(self):
         visible = sum(
-            1 for _, lv, msg in self._entries if self._matches(lv, msg))
+            1 for _, lv, msg in self._entries
+            if self._matches(lv, msg))
         self._count_lbl.setText(f"{visible} / {len(self._entries)}")
 
     def clear(self):
@@ -320,16 +463,18 @@ class LogPanel(QWidget):
         self._cnt_badge.setText("0")
         self._count_lbl.setText("0 / 0")
         self._last_lbl.setText("")
-        self._dot.setStyleSheet("color:#3FB950;font-size:9px;")
+        co = _theme.colors()
+        self._dot.setStyleSheet(f"color:{co['success']};font-size:9px;")
 
     def _save_log(self):
         path, _ = QFileDialog.getSaveFileName(
             self, "Save Log", "postgis_manager.log", "Log (*.log *.txt)")
-        if path:
-            lines = [
-                f"[{ts}] {LEVEL_ICONS.get(lv,'·')}  {msg}"
-                for ts, lv, msg in self._entries
-                if self._matches(lv, msg)
-            ]
-            with open(path, "w", encoding="utf-8") as f:
-                f.write("\n".join(lines))
+        if not path:
+            return
+        lines = [
+            f"[{ts}] {LEVEL_ICONS.get(lv, '·')}  {msg}"
+            for ts, lv, msg in self._entries
+            if self._matches(lv, msg)
+        ]
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("\n".join(lines))
