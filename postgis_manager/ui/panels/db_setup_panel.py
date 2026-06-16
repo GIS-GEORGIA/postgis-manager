@@ -184,9 +184,8 @@ class CreateDBWorker(QThread):
 class DBSetupPanel(QWidget):
     connect_to = pyqtSignal(dict)   # emit connection info for main window
 
-    def __init__(self, config=None, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self._config = config
         self._instances: list[PGInstance] = []
         self._selected_inst: PGInstance | None = None
         self._ext_worker = None

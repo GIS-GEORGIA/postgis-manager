@@ -363,7 +363,7 @@ class MainWindow(QMainWindow):
         self.qgis_bridge.connect_to.connect(self._connect_from_bridge)
         _add(self.qgis_bridge, "🔗", "tab_qgis_bridge")
 
-        self.db_setup = DBSetupPanel(config=self._config, parent=self)
+        self.db_setup = DBSetupPanel(parent=self)
         self.db_setup.connect_to.connect(self._connect_from_bridge)
         _add(self.db_setup, "⚙", "tab_db_setup")
 
