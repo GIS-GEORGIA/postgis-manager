@@ -41,6 +41,7 @@ from .panels.map_viewer import MapViewerPanel
 from .panels.qgis_bridge_panel import QGISBridgePanel
 from .panels.db_setup_panel import DBSetupPanel
 from .panels.security_panel import SecurityPanel
+from .panels.audit_panel import AuditPanel
 from .sidebar_nav import NavSidebar
 from .dialogs.connection_dialog import ConnectionDialog
 from .dialogs.settings_dialog import SettingsDialog
@@ -371,6 +372,9 @@ class MainWindow(QMainWindow):
         self.security_panel = SecurityPanel(db=self.db, parent=self)
         _add(self.security_panel, "🔐", "tab_security")
 
+        self.audit_panel = AuditPanel(db=self.db, parent=self)
+        _add(self.audit_panel, "📋", "tab_audit")
+
         self.instance_panel = InstanceManagerPanel(self)
         self.instance_panel.add_connection.connect(self._add_container_connection)
         _add(self.instance_panel, "🖥", "tab_instances")
@@ -462,6 +466,7 @@ class MainWindow(QMainWindow):
             self.log("PostGIS Topology extension available", "info")
         self.browser.refresh()
         self.security_panel.set_connection(dict(self.db.params))
+        self.audit_panel.set_connection(dict(self.db.params))
 
     def _on_connect_error(self, error: str):
         self._set_conn_status("disconnected")
