@@ -3,7 +3,7 @@
 from __future__ import annotations
 import psycopg2
 import psycopg2.extras
-from PyQt6.QtCore import QThread, pyqtSignal, QTimer
+from PyQt6.QtCore import QThread, pyqtSignal, QTimer, Qt
 from PyQt6.QtGui import QFont, QColor, QBrush
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
@@ -382,9 +382,9 @@ class MonitorPanel(QWidget):
         if not sql:
             return
         w = MonitorWorker(self._conn_params, sql, tag)
-        w.done.connect(self._on_data)
-        w.error.connect(self._on_error)
-        w.finished.connect(w.deleteLater)
+        w.done.connect(self._on_data, Qt.ConnectionType.QueuedConnection)
+        w.error.connect(self._on_error, Qt.ConnectionType.QueuedConnection)
+        w.finished.connect(lambda: self._workers.remove(w) if w in self._workers else None)
         self._workers.append(w)
         w.start()
 
@@ -442,9 +442,10 @@ class MonitorPanel(QWidget):
         if not self._conn_params:
             return
         w = MonitorWorker(self._conn_params, sql, tag)
-        w.done.connect(lambda r, c, t: self._refresh_all())
-        w.error.connect(lambda e, t: QMessageBox.critical(self, "Error", e))
-        w.finished.connect(w.deleteLater)
+        w.done.connect(lambda r, c, t: self._refresh_all(), Qt.ConnectionType.QueuedConnection)
+        w.error.connect(lambda e, t: QMessageBox.critical(self, "Error", e), Qt.ConnectionType.QueuedConnection)
+        self._workers.append(w)
+        w.finished.connect(lambda: self._workers.remove(w) if w in self._workers else None)
         w.start()
 
     @staticmethod
