@@ -28,18 +28,27 @@ class LogPanel(QWidget):
 
     def _build_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(4, 4, 4, 4)
-        layout.setSpacing(4)
+        layout.setContentsMargins(4, 2, 4, 4)
+        layout.setSpacing(2)
 
         header = QHBoxLayout()
-        header.addWidget(QLabel("📜  Log"))
+        header.setContentsMargins(0, 0, 0, 0)
+
+        self._toggle_btn = QPushButton("▼  Log")
+        self._toggle_btn.setFixedHeight(22)
+        self._toggle_btn.setStyleSheet(
+            "QPushButton { text-align:left; font-weight:bold; "
+            "border:none; background:transparent; padding-left:4px; }")
+        self._toggle_btn.clicked.connect(self._toggle_log)
+        header.addWidget(self._toggle_btn)
         header.addStretch()
+
         clear_btn = QPushButton("🧹 Clear")
-        clear_btn.setFixedHeight(24)
+        clear_btn.setFixedHeight(22)
         clear_btn.clicked.connect(self.clear)
         header.addWidget(clear_btn)
         save_btn = QPushButton("💾 Save")
-        save_btn.setFixedHeight(24)
+        save_btn.setFixedHeight(22)
         save_btn.clicked.connect(self._save_log)
         header.addWidget(save_btn)
         layout.addLayout(header)
@@ -49,6 +58,25 @@ class LogPanel(QWidget):
         self._log.setFont(QFont("Courier New", 11))
         self._log.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
         layout.addWidget(self._log)
+        self._collapsed = False
+
+    def _toggle_log(self):
+        self._collapsed = not self._collapsed
+        self._log.setVisible(not self._collapsed)
+        self._toggle_btn.setText(
+            "▶  Log" if self._collapsed else "▼  Log")
+        # tell the splitter to shrink/restore
+        splitter = self.parent()
+        from PyQt6.QtWidgets import QSplitter
+        while splitter and not isinstance(splitter, QSplitter):
+            splitter = splitter.parent()
+        if splitter:
+            if self._collapsed:
+                self._saved_sizes = splitter.sizes()
+                total = sum(self._saved_sizes)
+                splitter.setSizes([total - 28, 28])
+            else:
+                splitter.setSizes(getattr(self, "_saved_sizes", [620, 180]))
 
     def append(self, message: str, level: str = "info"):
         ts = datetime.now().strftime("%H:%M:%S")
