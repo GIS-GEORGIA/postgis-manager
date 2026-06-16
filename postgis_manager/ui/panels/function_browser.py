@@ -11,6 +11,7 @@ from PyQt6.QtGui import QFont, QColor
 
 from ...db.connection import DBManager
 from ...utils import i18n
+from ...utils.workers import launch
 
 # SQL Keywords for minimal highlighting
 _KW = ("SELECT", "FROM", "WHERE", "AND", "OR", "NOT", "IN", "IS",
@@ -299,7 +300,7 @@ class FunctionBrowserPanel(QWidget):
         w = FuncSourceWorker(self.db, oid)
         w.done.connect(self._on_source_loaded)
         w.error.connect(lambda e: self._src_view.setPlainText(f"-- Error: {e}"))
-        w.start()
+        launch(w)
 
     def _on_source_loaded(self, src: str, lang: str):
         self._src_view.setPlainText(src)
@@ -312,7 +313,7 @@ class FunctionBrowserPanel(QWidget):
         w = FuncExecWorker(self.db, sql)
         w.done.connect(self._on_exec_done)
         w.error.connect(lambda e: self._exec_status.setText(f"✖ {e}"))
-        w.start()
+        launch(w)
 
     def _on_exec_done(self, rows: list, cols: list):
         t = self._result_table

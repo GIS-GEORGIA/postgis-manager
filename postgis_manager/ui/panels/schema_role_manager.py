@@ -12,6 +12,7 @@ from PyQt6.QtGui import QColor
 
 from ...db.connection import DBManager
 from ...utils import i18n
+from ...utils.workers import launch
 
 
 # ── Workers ───────────────────────────────────────────────────────────────────
@@ -141,7 +142,7 @@ class SchemaRolePanel(QWidget):
         """)
         w.done.connect(lambda rows: _fill(self._schema_table, rows))
         w.error.connect(lambda e: self._status.setText(f"Error: {e}"))
-        w.start()
+        launch(w)
 
     def _on_schema_selected(self):
         row = self._schema_table.currentRow()
@@ -255,10 +256,9 @@ class SchemaRolePanel(QWidget):
         w.done.connect(lambda rows: _fill(self._role_table, rows,
                                           bool_cols={1, 2, 3, 4}))
         w.error.connect(lambda e: self._status.setText(f"Error: {e}"))
-        w.start()
+        launch(w)
         # Also fill owner combo in schema tab
-        LoadWorker(self.db, "SELECT rolname FROM pg_roles ORDER BY rolname") \
-            .start()
+        launch(LoadWorker(self.db, "SELECT rolname FROM pg_roles ORDER BY rolname"))
 
     def _on_role_selected(self):
         row = self._role_table.currentRow()
@@ -419,7 +419,7 @@ class SchemaRolePanel(QWidget):
         w.done.connect(lambda rows: (
             self._gr_object.clear(),
             self._gr_object.addItems([r[0] for r in rows])))
-        w.start()
+        launch(w)
 
     def _get_selected_privs(self) -> list[str]:
         return [p for p, cb in self._priv_checks.items() if cb.isChecked()]
@@ -480,7 +480,7 @@ class SchemaRolePanel(QWidget):
         """)
         w.done.connect(lambda rows: _fill(self._grants_table, rows))
         w.error.connect(lambda e: self._status.setText(f"Error: {e}"))
-        w.start()
+        launch(w)
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -520,9 +520,9 @@ class SchemaRolePanel(QWidget):
                 self._gr_role.addItems([r[0] for r in rrows]),
                 self._sch_owner.clear(),
                 self._sch_owner.addItems([r[0] for r in rrows])))
-            roles_w.start()
+            launch(roles_w)
         w.done.connect(on_schemas)
-        w.start()
+        launch(w)
 
 
 # ── Utilities ─────────────────────────────────────────────────────────────────

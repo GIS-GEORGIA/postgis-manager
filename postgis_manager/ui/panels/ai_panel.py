@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
 )
 
 from ...utils import config
+from ...utils.workers import launch
 
 
 # ── Schema fetcher ────────────────────────────────────────────────────────
@@ -348,7 +349,7 @@ class AIPanel(QWidget):
                 self, "✓ Connected", f"Response: {r[:80]}"))
             w.error.connect(lambda e: QMessageBox.critical(
                 self, "Connection failed", e))
-            w.start()
+            launch(w)
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
 

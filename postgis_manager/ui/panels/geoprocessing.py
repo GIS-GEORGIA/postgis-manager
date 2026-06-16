@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import QThread, pyqtSignal
 from ...db.connection import DBManager
 from ...utils import i18n
+from ...utils.workers import launch
 
 
 class GeoWorker(QThread):
@@ -112,7 +113,7 @@ class GeoprocessingPanel(QWidget):
                       op, self._out_schema.text().strip(), out, **kw)
         w.done.connect(self._on_done)
         w.error.connect(lambda e: QMessageBox.critical(self, "Error", e))
-        w.start()
+        launch(w)
 
     def _on_done(self, result: str):
         self._result.setText(f"✔  {result}")

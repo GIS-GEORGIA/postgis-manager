@@ -1,6 +1,7 @@
 """Table Designer — create/alter tables, manage columns and spatial indexes."""
 
 from __future__ import annotations
+from ...utils.workers import launch
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
@@ -444,7 +445,7 @@ class TableDesignerPanel(QWidget):
         w = LoadColumnsWorker(self.db, schema, table)
         w.done.connect(self._on_columns_loaded)
         w.error.connect(lambda e: self._status.setText(f"Error: {e}"))
-        w.start()
+        launch(w)
 
     def _on_columns_loaded(self, rows: list):
         t = self._alt_col_table
@@ -582,7 +583,7 @@ class TableDesignerPanel(QWidget):
         w = LoadIndexWorker(self.db, s, tb)
         w.done.connect(self._on_indexes_loaded)
         w.error.connect(lambda e: self._status.setText(f"Error: {e}"))
-        w.start()
+        launch(w)
 
     def _on_indexes_loaded(self, rows: list):
         t = self._idx_list

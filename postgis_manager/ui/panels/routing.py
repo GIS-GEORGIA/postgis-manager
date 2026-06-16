@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import QThread, pyqtSignal
 from ...db.connection import DBManager
 from ...utils import i18n
+from ...utils.workers import launch
 
 
 class RoutingWorker(QThread):
@@ -115,7 +116,7 @@ class pgRoutingPanel(QWidget):
             reverse_cost_col=self._revcost.text().strip() or None)
         w.done.connect(self._show_sp)
         w.error.connect(lambda e: QMessageBox.critical(self, "Error", e))
-        w.start()
+        launch(w)
 
     def _show_sp(self, rows):
         if not rows:
@@ -142,7 +143,7 @@ class pgRoutingPanel(QWidget):
             max_cost=self._dd_max.value())
         w.done.connect(self._show_dd)
         w.error.connect(lambda e: QMessageBox.critical(self, "Error", e))
-        w.start()
+        launch(w)
 
     def _show_dd(self, rows):
         if not rows:
