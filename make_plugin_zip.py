@@ -43,11 +43,16 @@ if os.path.exists(OUT_ZIP):
     os.remove(OUT_ZIP)
 
 with zipfile.ZipFile(OUT_ZIP, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-    # qgis_plugin/ files go into root postgis_manager/
-    for fname in os.listdir(PLUGIN):
-        src = os.path.join(PLUGIN, fname)
-        if os.path.isfile(src) and os.path.splitext(fname)[1] not in SKIP_EXTS:
-            zf.write(src, f"postgis_manager/{fname}")
+    # qgis_plugin/ files AND subdirs (algorithms/, etc.) → postgis_manager/
+    for entry in os.listdir(PLUGIN):
+        src = os.path.join(PLUGIN, entry)
+        if entry in SKIP_DIRS:
+            continue
+        if os.path.isfile(src):
+            if os.path.splitext(entry)[1] not in SKIP_EXTS:
+                zf.write(src, f"postgis_manager/{entry}")
+        elif os.path.isdir(src):
+            add_tree(zf, src, f"postgis_manager/{entry}")
 
     # core package goes into postgis_manager/postgis_manager/
     add_tree(zf, PACKAGE, "postgis_manager/postgis_manager")
