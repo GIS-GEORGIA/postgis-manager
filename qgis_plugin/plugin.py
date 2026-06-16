@@ -2,34 +2,64 @@
 
 import os
 import sys
-from qgis.PyQt.QtWidgets import QAction, QMessageBox
+from qgis.PyQt.QtWidgets import QAction
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import Qt
 
 
-def _ensure_postgis_manager_on_path():
-    """Add the directory that contains the postgis_manager package to sys.path.
+def _register_core_package():
+    """Register the nested core package under its canonical name.
 
-    Search order:
-    1. plugin_dir itself  — ZIP install: qgis_plugin folder IS the plugin root
-       and postgis_manager/ is nested inside it.
-    2. parent of plugin_dir — dev install where both qgis_plugin/ and
-       postgis_manager/ sit side-by-side inside the QGIS plugins folder.
-    3. grandparent        — repo checkout: .../repo/qgis_plugin/ with
-       .../repo/postgis_manager/ next to it.
+    When installed from ZIP the layout is:
+        plugins/postgis_manager/              ← QGIS loads this as 'postgis_manager'
+            plugin.py  (this file)
+            postgis_manager/                  ← core package lives HERE
+                ui/ db/ utils/ i18n/ ...
+
+    QGIS has already bound 'postgis_manager' in sys.modules to the outer
+    wrapper.  We inject the nested core sub-package into sys.modules under
+    the same top-level name so that 'from postgis_manager.ui...' resolves
+    to the nested core package instead of the wrapper.
+
+    For standalone / dev installs (core package already on sys.path) this
+    function is a no-op.
     """
+    import importlib
+    import types
+
+    # Already properly importable — nothing to do.
+    try:
+        import postgis_manager.ui  # noqa: F401
+        return
+    except ImportError:
+        pass
+
+    # Locate the nested core package directory.
     plugin_dir = os.path.dirname(os.path.abspath(__file__))
-    candidates = [
-        plugin_dir,
-        os.path.dirname(plugin_dir),
-        os.path.dirname(os.path.dirname(plugin_dir)),
-    ]
-    for candidate in candidates:
-        if os.path.isdir(os.path.join(candidate, "postgis_manager")):
-            if candidate not in sys.path:
-                sys.path.insert(0, candidate)
-            return True
-    return False
+    core_dir = os.path.join(plugin_dir, "postgis_manager")
+
+    if not os.path.isdir(core_dir):
+        raise ImportError(
+            "Cannot find the nested postgis_manager core package. "
+            "Please reinstall using the ZIP built by make_plugin_zip.py."
+        )
+
+    # Add plugin_dir to sys.path so sub-packages resolve correctly.
+    if plugin_dir not in sys.path:
+        sys.path.insert(0, plugin_dir)
+
+    # Force-reload 'postgis_manager' from the nested core directory
+    # so that postgis_manager.ui / .db / .utils all resolve correctly.
+    spec = importlib.util.spec_from_file_location(
+        "postgis_manager",
+        os.path.join(core_dir, "__init__.py"),
+        submodule_search_locations=[core_dir],
+    )
+    mod = importlib.util.module_from_spec(spec)
+    mod.__path__ = [core_dir]
+    mod.__package__ = "postgis_manager"
+    sys.modules["postgis_manager"] = mod
+    spec.loader.exec_module(mod)
 
 
 class PostGISManagerPlugin:
@@ -81,14 +111,14 @@ class PostGISManagerPlugin:
 
     def _open_manager(self):
         if self._window is None:
-            if not _ensure_postgis_manager_on_path():
+            try:
+                _register_core_package()
+            except ImportError as e:
+                from qgis.PyQt.QtWidgets import QMessageBox
                 QMessageBox.critical(
                     self.iface.mainWindow(),
                     "PostGIS Manager — Import Error",
-                    "Cannot find the <b>postgis_manager</b> package.<br><br>"
-                    "Please install the plugin from the ZIP file built by "
-                    "<code>python make_plugin_zip.py</code>, which bundles the "
-                    "core package inside the plugin folder.",
+                    str(e),
                 )
                 self._action.setChecked(False)
                 return
