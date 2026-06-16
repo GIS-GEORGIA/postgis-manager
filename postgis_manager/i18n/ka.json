@@ -43,6 +43,7 @@
   "tab_tools": "ხელსაწყოები",
   "tab_log": "ლოგი",
   "tab_qgis_bridge": "QGIS ბრიჯი",
+  "tab_db_setup": "DB Setup",
 
   "qb_connections": "კავშირები",
   "qb_project_layers": "პროექტის შრეები",

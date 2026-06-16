@@ -39,6 +39,7 @@ from .panels.matview_panel import MatViewPanel
 from .panels.raster_tools import RasterToolsPanel
 from .panels.map_viewer import MapViewerPanel
 from .panels.qgis_bridge_panel import QGISBridgePanel
+from .panels.db_setup_panel import DBSetupPanel
 from .sidebar_nav import NavSidebar
 from .dialogs.connection_dialog import ConnectionDialog
 from .dialogs.settings_dialog import SettingsDialog
@@ -361,6 +362,10 @@ class MainWindow(QMainWindow):
         self.qgis_bridge = QGISBridgePanel(self.db, iface=self.iface, parent=self)
         self.qgis_bridge.connect_to.connect(self._connect_from_bridge)
         _add(self.qgis_bridge, "🔗", "tab_qgis_bridge")
+
+        self.db_setup = DBSetupPanel(config=self._config, parent=self)
+        self.db_setup.connect_to.connect(self._connect_from_bridge)
+        _add(self.db_setup, "⚙", "tab_db_setup")
 
         self.instance_panel = InstanceManagerPanel(self)
         self.instance_panel.add_connection.connect(self._add_container_connection)
