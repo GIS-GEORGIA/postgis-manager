@@ -488,7 +488,7 @@ class MainWindow(QMainWindow):
             self._on_connect_success, Qt.ConnectionType.QueuedConnection)
         self._connect_worker.error.connect(
             self._on_connect_error, Qt.ConnectionType.QueuedConnection)
-        self._connect_worker.finished.connect(self._connect_worker.deleteLater)
+        self._connect_worker.finished.connect(self._on_connect_worker_done)
         self._connect_worker.start()
 
     def _disconnect(self):
@@ -701,6 +701,9 @@ class MainWindow(QMainWindow):
         if idx >= 0:
             self._conn_combo.setCurrentIndex(idx)
         self.log(f"Connection added: {profile['name']}", "success")
+
+    def _on_connect_worker_done(self):
+        self._connect_worker = None
 
     def _edit_connection(self):
         profile = self._conn_combo.currentData()
