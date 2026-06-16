@@ -158,14 +158,18 @@ class LayerListWorker(QThread):
 
     def run(self):
         try:
-            rows = self.db.execute("""
-                SELECT f_table_schema, f_table_name,
-                       f_geometry_column, type, srid
-                FROM geometry_columns
-                ORDER BY f_table_schema, f_table_name
-            """)
-            self.done.emit(rows or [])
+            with self.db.conn.cursor() as cur:
+                cur.execute("""
+                    SELECT f_table_schema, f_table_name,
+                           f_geometry_column, type, srid
+                    FROM geometry_columns
+                    ORDER BY f_table_schema, f_table_name
+                """)
+                cols = [d[0] for d in cur.description]
+                rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+            self.done.emit(rows)
         except Exception:
+            self.db.conn.rollback()
             self.done.emit([])
 
 
@@ -472,7 +476,7 @@ class MapViewerPanel(QWidget):
     # ── DB interaction ────────────────────────────────────────────────────
     def showEvent(self, e):
         super().showEvent(e)
-        if self.db.is_connected() and self._layer_combo.count() == 0:
+        if self.db.is_connected():
             self._load_layers()
 
     def _load_layers(self):
