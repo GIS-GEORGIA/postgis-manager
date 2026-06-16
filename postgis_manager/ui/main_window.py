@@ -103,6 +103,8 @@ class MainWindow(QMainWindow):
         i18n.load(config.get("language", "en"))
         theme.set_theme(config.get("theme", "light"))
         size = config.get("font_size", 13)
+        if not isinstance(size, int) or size <= 0:
+            size = 13
         family = config.get("font_family", "Segoe UI")
         if not self.embedded:
             # In standalone mode only — don't touch QGIS's QApplication font

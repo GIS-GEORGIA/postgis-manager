@@ -108,8 +108,11 @@ class LayerBrowserPanel(QWidget):
         self._worker = RefreshWorker(self.db)
         self._worker.done.connect(self._populate, Qt.ConnectionType.QueuedConnection)
         self._worker.error.connect(self._on_refresh_error, Qt.ConnectionType.QueuedConnection)
-        self._worker.finished.connect(self._worker.deleteLater)
+        self._worker.finished.connect(self._on_worker_done)
         self._worker.start()
+
+    def _on_worker_done(self):
+        self._worker = None
 
     def clear(self):
         self._tree.clear()
