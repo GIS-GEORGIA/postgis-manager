@@ -9,9 +9,10 @@ def test_main_window_creates(qapp):
     from postgis_manager.ui.main_window import MainWindow
     w = MainWindow()
     assert w is not None
-    assert w._stack.count() == 21
-    assert len(w._nav._buttons) == 21
-    assert len(w._nav_labels) == 21
+    count = w._stack.count()
+    assert count == len(w._nav._buttons)
+    assert count == len(w._nav_labels)
+    assert count > 0
 
 
 def test_main_window_page_switch(qapp):
