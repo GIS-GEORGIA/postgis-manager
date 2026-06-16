@@ -179,6 +179,23 @@ class LayerBrowserPanel(QWidget):
                         "type": "view", "schema": schema, "table": vname,
                     })
 
+            # All tables (including those without PostGIS geometry)
+            geom_names = {row[0] for row in geom_layers}
+            all_tables = contents.get("tables", [])
+            plain_tables = [r for r in all_tables if r[0] not in geom_names]
+            if plain_tables:
+                tbl_group = QTreeWidgetItem(schema_item, ["🗃  Tables"])
+                tbl_group.setData(0, Qt.ItemDataRole.UserRole, {"type": "group"})
+                for tname, col_count, row_est in plain_tables:
+                    if flt and flt not in tname.lower():
+                        continue
+                    item = QTreeWidgetItem(
+                        tbl_group,
+                        [f"▦  {tname}  ({col_count} cols, ~{row_est} rows)"])
+                    item.setData(0, Qt.ItemDataRole.UserRole, {
+                        "type": "table", "schema": schema, "table": tname,
+                    })
+
             schema_item.setExpanded(True)
             self._tree.addTopLevelItem(schema_item)
 

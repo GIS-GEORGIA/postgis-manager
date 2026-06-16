@@ -318,6 +318,7 @@ class MainWindow(QMainWindow):
         _add(self.raster_panel, "📥", "tab_raster")
 
         self.geodata_panel = ImportExportPanel(db=self.db, parent=self)
+        self.geodata_panel.import_done.connect(self.browser.refresh)
         _add(self.geodata_panel, "🌍", "tab_geodata_io")
 
         self.export_panel = ExportPanel(self.db, self)

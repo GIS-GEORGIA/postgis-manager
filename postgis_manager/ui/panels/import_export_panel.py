@@ -205,6 +205,8 @@ class WFSCapWorker(QThread):
 # ── Main panel ────────────────────────────────────────────────────────────
 
 class ImportExportPanel(QWidget):
+    import_done = pyqtSignal()   # emitted after successful import
+
     def __init__(self, db=None, parent=None):
         super().__init__(parent)
         self._db = db
@@ -606,6 +608,7 @@ class ImportExportPanel(QWidget):
         self._imp_progress.setVisible(False)
         self._log_msg(msg, "success" if ok else "error")
         if ok:
+            self.import_done.emit()
             QMessageBox.information(self, "Import complete", msg)
 
     # ── Export slots ──────────────────────────────────────────────────────

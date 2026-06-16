@@ -102,7 +102,8 @@ class DBManager:
                 SELECT schema_name FROM information_schema.schemata
                 WHERE schema_name NOT IN (
                     'information_schema','pg_catalog','pg_toast',
-                    'pg_temp_1','pg_toast_temp_1'
+                    'pg_temp_1','pg_toast_temp_1',
+                    'ogr_system_tables','topology'
                 )
                 ORDER BY schema_name
             """)
