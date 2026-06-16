@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QComboBox, QTextEdit, QGroupBox, QFormLayout, QSpinBox,
     QDoubleSpinBox, QMessageBox, QSplitter, QHeaderView,
     QAbstractItemView, QCheckBox, QRadioButton, QButtonGroup,
-    QProgressBar, QSizePolicy,
+    QProgressBar, QSizePolicy, QScrollArea,
 )
 
 
@@ -144,9 +144,20 @@ class SpatialAnalysisPanel(QWidget):
         bottom.setSizes([160, 100])
         root.addWidget(bottom)
 
+    # ── helpers ───────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _wrap_scroll(w: QWidget) -> QScrollArea:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setWidget(w)
+        return scroll
+
     # ── Tab 1: Buffer / Overlay ───────────────────────────────────────────
 
-    def _build_overlay_tab(self) -> QWidget:
+    def _build_overlay_tab(self) -> QScrollArea:
         w = QWidget()
         lay = QVBoxLayout(w)
         lay.setContentsMargins(6, 6, 6, 6)
@@ -247,7 +258,7 @@ class SpatialAnalysisPanel(QWidget):
         run_row.addStretch()
         lay.addLayout(run_row)
         lay.addStretch()
-        return w
+        return self._wrap_scroll(w)
 
     def _on_op_changed(self, op_id: int, checked: bool):
         if not checked:
@@ -397,7 +408,7 @@ class SpatialAnalysisPanel(QWidget):
         run_row.addStretch()
         lay.addLayout(run_row)
         lay.addStretch()
-        return w
+        return self._wrap_scroll(w)
 
     def _build_nn_sql(self) -> str:
         ss = self._nn_src_schema.text().strip()
@@ -532,7 +543,7 @@ class SpatialAnalysisPanel(QWidget):
         run_row.addStretch()
         lay.addLayout(run_row)
         lay.addStretch()
-        return w
+        return self._wrap_scroll(w)
 
     def _build_sjoin_sql(self) -> str:
         ls  = self._sj_l_schema.text().strip()
@@ -641,7 +652,7 @@ class SpatialAnalysisPanel(QWidget):
         run_row.addStretch()
         lay.addLayout(run_row)
         lay.addStretch()
-        return w
+        return self._wrap_scroll(w)
 
     def _run_topology(self):
         schema = self._tp_schema.text().strip()
@@ -782,7 +793,7 @@ class SpatialAnalysisPanel(QWidget):
         run_row.addStretch()
         lay.addLayout(run_row)
         lay.addStretch()
-        return w
+        return self._wrap_scroll(w)
 
     def _build_routing_sql(self) -> str:
         schema = self._rt_schema.text().strip()
