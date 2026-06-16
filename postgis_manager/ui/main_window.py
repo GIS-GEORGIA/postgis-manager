@@ -44,6 +44,9 @@ from .panels.security_panel import SecurityPanel
 from .panels.audit_panel import AuditPanel
 from .panels.import_export_panel import ImportExportPanel
 from .panels.spatial_analysis_panel import SpatialAnalysisPanel
+from .panels.automation_panel import AutomationPanel
+from .panels.monitor_panel import MonitorPanel
+from .panels.developer_panel import DeveloperPanel
 from .sidebar_nav import NavSidebar
 from .dialogs.connection_dialog import ConnectionDialog
 from .dialogs.settings_dialog import SettingsDialog
@@ -391,11 +394,26 @@ class MainWindow(QMainWindow):
         self.scan_panel.add_connection.connect(self._add_container_connection)
         _add(self.scan_panel, "🌐", "tab_network_scan")
 
+        # ── Automation ────────────────────────────────────────────────────────
+        self._nav.add_group(i18n.t("nav_grp_automation"))
+
+        self.automation_panel = AutomationPanel(parent=self)
+        _add(self.automation_panel, "⏰", "tab_automation")
+
         # ── Monitor ───────────────────────────────────────────────────────────
         self._nav.add_group(i18n.t("nav_grp_monitor"))
 
         self.dashboard_panel = DBDashboardPanel(self.db, self)
         _add(self.dashboard_panel, "📊", "tab_dashboard")
+
+        self.monitor_panel = MonitorPanel(parent=self)
+        _add(self.monitor_panel, "📈", "tab_monitor")
+
+        # ── Developer ─────────────────────────────────────────────────────────
+        self._nav.add_group(i18n.t("nav_grp_developer"))
+
+        self.developer_panel = DeveloperPanel(parent=self)
+        _add(self.developer_panel, "💻", "tab_developer")
 
         # ── Log at bottom ─────────────────────────────────────────────────────
         self.log_panel = LogPanel(self)
@@ -478,6 +496,9 @@ class MainWindow(QMainWindow):
         self.geodata_panel.set_connection(dict(self.db.params))
         self.spatial_analysis_panel.set_connection(dict(self.db.params))
         self.sql_editor.refresh_completions()
+        self.automation_panel.set_connection(dict(self.db.params))
+        self.monitor_panel.set_connection(dict(self.db.params))
+        self.developer_panel.set_connection(dict(self.db.params))
 
     def _on_connect_error(self, error: str):
         self._set_conn_status("disconnected")

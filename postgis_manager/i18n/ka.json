@@ -26,6 +26,8 @@
   "nav_grp_advanced": "დამატებითი",
   "nav_grp_connect": "კავშირები",
   "nav_grp_monitor": "მონიტორი",
+  "nav_grp_automation": "ავტომატიზაცია",
+  "nav_grp_developer": "დეველოპერი",
 
   "tab_browser": "ბრაუზერი",
   "tab_map_viewer": "რუკის მაჩვენებელი",
@@ -48,6 +50,9 @@
   "tab_audit": "აუდიტი",
   "tab_geodata_io": "იმპორტი / ექსპორტი",
   "tab_spatial_analysis": "სივრცული ანალიზი",
+  "tab_automation": "ავტომატიზაცია",
+  "tab_monitor": "ლაივ მონიტორი",
+  "tab_developer": "დეველოპერი",
 
   "qb_connections": "კავშირები",
   "qb_project_layers": "პროექტის შრეები",
