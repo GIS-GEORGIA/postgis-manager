@@ -87,10 +87,17 @@ class SettingsDialog(QDialog):
         i18n.load(lang)
         theme.set_theme(thm)
 
+        # Detect if we're running inside QGIS (embedded mode) by checking
+        # whether the top-level parent has embedded=True.
+        embedded = getattr(self.parent(), "embedded", False)
+        qss = theme.build_qss()
         app = QApplication.instance()
-        if app:
+        if app and not embedded:
             app.setFont(QFont(family, size))
-            app.setStyleSheet(theme.build_qss())
+            app.setStyleSheet(qss)
+        elif embedded and self.parent():
+            self.parent().setFont(QFont(family, size))
+            self.parent().setStyleSheet(qss)
 
         config.set("language", lang)
         config.set("theme", thm)

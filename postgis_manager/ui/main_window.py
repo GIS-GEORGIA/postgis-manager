@@ -92,9 +92,13 @@ class MainWindow(QMainWindow):
         theme.set_theme(config.get("theme", "light"))
         size = config.get("font_size", 13)
         family = config.get("font_family", "Segoe UI")
-        app = QApplication.instance()
-        if app:
-            app.setFont(QFont(family, size))
+        if not self.embedded:
+            # In standalone mode only — don't touch QGIS's QApplication font
+            app = QApplication.instance()
+            if app:
+                app.setFont(QFont(family, size))
+        else:
+            self.setFont(QFont(family, size))
 
     def _setup_ui(self):
         self.setWindowTitle("PostGIS Manager")
@@ -517,16 +521,27 @@ class MainWindow(QMainWindow):
     def _switch_font_size(self, _):
         size = self._font_spin.currentData()
         config.set("font_size", size)
-        app = QApplication.instance()
-        if app:
-            f = app.font()
+        if not self.embedded:
+            app = QApplication.instance()
+            if app:
+                f = app.font()
+                f.setPointSize(size)
+                app.setFont(f)
+        else:
+            f = self.font()
             f.setPointSize(size)
-            app.setFont(f)
+            self.setFont(f)
 
     def _apply_theme(self):
-        app = QApplication.instance()
-        if app:
-            app.setStyleSheet(theme.build_qss())
+        qss = theme.build_qss()
+        if not self.embedded:
+            # Standalone: style the whole app
+            app = QApplication.instance()
+            if app:
+                app.setStyleSheet(qss)
+        else:
+            # Plugin: style only our window, never touch QGIS UI
+            self.setStyleSheet(qss)
 
     def _on_lang_change(self, lang):
         self._retranslate()
