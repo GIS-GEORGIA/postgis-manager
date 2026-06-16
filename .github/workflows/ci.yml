@@ -86,9 +86,9 @@ jobs:
           print('✔ i18n (ka)')
 
           # Check all i18n keys have Georgian translations
-          en_keys = set(i18n._strings.keys())
+          en_keys = set(i18n._STRINGS.keys())
           i18n.load('ka')
-          ka_keys = set(i18n._strings.keys())
+          ka_keys = set(i18n._STRINGS.keys())
           missing = en_keys - ka_keys
           if missing:
               print(f'WARNING: {len(missing)} keys missing in ka.json: {list(missing)[:5]}')
