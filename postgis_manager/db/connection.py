@@ -37,7 +37,7 @@ class DBManager:
                 connect_timeout=timeout,
                 sslmode=ssl_mode,
             )
-            self.conn.autocommit = False
+            self.conn.autocommit = True
             self.params = dict(host=host, port=port, dbname=dbname, user=user)
 
     def disconnect(self) -> None:
