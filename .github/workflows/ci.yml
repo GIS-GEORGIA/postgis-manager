@@ -18,7 +18,7 @@ jobs:
       - name: Install ruff
         run: pip install ruff
       - name: Run ruff
-        run: ruff check postgis_manager/ standalone/ --select E,F,W --ignore E501,W503
+        run: ruff check postgis_manager/ standalone/ --select E,F,W --ignore E501
 
   syntax:
     name: Syntax check
