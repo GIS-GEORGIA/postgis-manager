@@ -847,7 +847,7 @@ class SecurityPanel(QWidget):
                                 "Open a DB connection first.")
             return
         self._log_msg(f"SQL: {sql}", "sql")
-        w = GrantWorker(self, self._conn_params, sql)
+        w = GrantWorker(self._conn_params, sql)
         w.log.connect(self._log_msg)
         if refresh:
             w.finished.connect(self._reload)

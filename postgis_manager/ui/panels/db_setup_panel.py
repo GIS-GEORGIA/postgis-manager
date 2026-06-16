@@ -733,7 +733,7 @@ class DBSetupPanel(QWidget):
         exts = [n for n, cb in self._create_ext_checks.items() if cb.isChecked()]
         owner = self._new_db_owner.text().strip()
         self._create_log.clear()
-        worker = CreateDBWorker(self, self._conn_params, db_name, owner, exts)
+        worker = CreateDBWorker(self._conn_params, db_name, owner, exts)
         worker.log.connect(self._create_log.append)
         worker.finished.connect(
             lambda ok: self._create_log.append(
@@ -752,7 +752,7 @@ class DBSetupPanel(QWidget):
         self._ext_table.setRowCount(0)
         self._ext_log.clear()
 
-        worker = ExtensionWorker(self, self._conn_params, ext_names)
+        worker = ExtensionWorker(self._conn_params, ext_names)
         worker.row_done.connect(self._on_ext_row)
         worker.error.connect(self._ext_log.append)
         self._ext_worker = worker
@@ -801,7 +801,7 @@ class DBSetupPanel(QWidget):
                                     "Check extensions to install first.")
             return
         self._ext_log.clear()
-        worker = InstallExtWorker(self, self._conn_params, exts)
+        worker = InstallExtWorker(self._conn_params, exts)
         worker.log.connect(self._ext_log.append)
         worker.finished.connect(
             lambda ok: self._ext_log.append("Done ✓" if ok else "Done ✗"))
