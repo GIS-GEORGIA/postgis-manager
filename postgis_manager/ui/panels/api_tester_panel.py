@@ -13,6 +13,8 @@ from PyQt6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem,
 )
 
+from ...utils.workers import launch
+
 
 # ── Worker ────────────────────────────────────────────────────────────────
 
@@ -178,9 +180,8 @@ class APITesterPanel(QWidget):
         w = RequestWorker(target_method, target_url, body, headers)
         w.done.connect(self._on_response)
         w.error.connect(self._on_error)
-        w.finished.connect(w.deleteLater)
         self._worker = w
-        w.start()
+        launch(w)
 
     def _on_response(self, status: int, body: str, headers: dict):
         self._send_btn.setEnabled(True)
@@ -294,8 +295,7 @@ class APITesterPanel(QWidget):
         w = RequestWorker("GET", f"{base}/collections?f=json")
         w.done.connect(self._fs_on_collections)
         w.error.connect(self._on_error)
-        w.finished.connect(w.deleteLater)
-        w.start()
+        launch(w)
 
     def _fs_on_collections(self, status: int, body: str, headers: dict):
         self._on_response(status, body, headers)
@@ -393,8 +393,7 @@ class APITesterPanel(QWidget):
         w = RequestWorker("GET", base, headers=headers)
         w.done.connect(lambda s, b, h: self._on_response(s, b, h))
         w.error.connect(self._on_error)
-        w.finished.connect(w.deleteLater)
-        w.start()
+        launch(w)
 
     def _pr_get(self):
         base  = self._pr_url.text().rstrip("/")
@@ -418,8 +417,7 @@ class APITesterPanel(QWidget):
         w = RequestWorker("GET", url, headers=headers)
         w.done.connect(self._on_response)
         w.error.connect(self._on_error)
-        w.finished.connect(w.deleteLater)
-        w.start()
+        launch(w)
 
     # ── OGC API Features tab ──────────────────────────────────────────────
 

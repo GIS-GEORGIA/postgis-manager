@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
     QInputDialog,
 )
 
+from ...utils.workers import launch
 from ...utils.pg_engine import (
     discover_instances, start_instance, stop_instance,
     reload_instance, PGInstance,
@@ -495,9 +496,8 @@ class DBSetupPanel(QWidget):
         worker = DiscoverWorker(self)
         worker.done.connect(self._on_scan_done)
         worker.error.connect(lambda e: self._scan_status.setText(f"Error: {e}"))
-        worker.finished.connect(worker.deleteLater)
         self._discover_worker = worker
-        worker.start()
+        launch(worker)
 
     def _on_scan_done(self, instances: list):
         self._instances = instances
@@ -738,9 +738,8 @@ class DBSetupPanel(QWidget):
         worker.finished.connect(
             lambda ok: self._create_log.append(
                 "Done ✓" if ok else "Completed with errors ✗"))
-        worker.finished.connect(worker.deleteLater)
         self._create_worker = worker
-        worker.start()
+        launch(worker)
 
     # ── Slots: Extensions tab ─────────────────────────────────────────────
 
@@ -756,9 +755,8 @@ class DBSetupPanel(QWidget):
         worker = ExtensionWorker(self, self._conn_params, ext_names)
         worker.row_done.connect(self._on_ext_row)
         worker.error.connect(self._ext_log.append)
-        worker.finished.connect(worker.deleteLater)
         self._ext_worker = worker
-        worker.start()
+        launch(worker)
 
     def _on_ext_row(self, name: str, installed: str, available: str):
         t = self._ext_table
@@ -808,6 +806,5 @@ class DBSetupPanel(QWidget):
         worker.finished.connect(
             lambda ok: self._ext_log.append("Done ✓" if ok else "Done ✗"))
         worker.finished.connect(self._probe_extensions)  # refresh
-        worker.finished.connect(worker.deleteLater)
         self._install_worker = worker
-        worker.start()
+        launch(worker)

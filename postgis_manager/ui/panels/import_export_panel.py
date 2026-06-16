@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
     QMessageBox, QFileDialog, QProgressBar, QAbstractItemView,
 )
 
+from ...utils.workers import launch
 from ...utils.geodata_io import (
     import_geojson, import_shapefile, import_geopackage,
     import_csv, export_geojson, export_ogr,
@@ -567,9 +568,8 @@ class ImportExportPanel(QWidget):
         w = ImportWorker(task)
         w.log.connect(self._log_msg)
         w.finished.connect(self._on_import_done)
-        w.finished.connect(w.deleteLater)
         self._import_worker = w
-        w.start()
+        launch(w)
 
     def _on_import_done(self, ok: bool, msg: str):
         self._imp_btn.setEnabled(True)
@@ -621,9 +621,8 @@ class ImportExportPanel(QWidget):
         w = ExportWorker(task)
         w.log.connect(self._log_msg)
         w.finished.connect(self._on_export_done)
-        w.finished.connect(w.deleteLater)
         self._export_worker = w
-        w.start()
+        launch(w)
 
     def _on_export_done(self, ok: bool, msg: str):
         self._exp_btn.setEnabled(True)
@@ -640,8 +639,7 @@ class ImportExportPanel(QWidget):
         w = WFSCapWorker(url)
         w.ready.connect(self._on_wfs_caps)
         w.error.connect(lambda e: self._log_msg(f"✗ WFS error: {e}", "error"))
-        w.finished.connect(w.deleteLater)
-        w.start()
+        launch(w)
 
     def _on_wfs_caps(self, layers: list):
         self._wfs_layers = layers

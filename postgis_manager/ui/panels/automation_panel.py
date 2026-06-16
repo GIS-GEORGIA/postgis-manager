@@ -13,6 +13,8 @@ from PyQt6.QtWidgets import (
     QDialog, QDialogButtonBox, QFileDialog,
 )
 
+from ...utils.workers import launch
+
 
 # ── Worker ────────────────────────────────────────────────────────────────
 
@@ -543,9 +545,8 @@ CREATE TABLE IF NOT EXISTS public.ddl_audit_log (
         w.log.connect(self._log_msg)
         if _callback:
             w.rows.connect(_callback)
-        w.finished.connect(w.deleteLater)
         self._worker = w
-        w.start()
+        launch(w)
 
     def _log_msg(self, msg: str, level: str = "info"):
         colors = {

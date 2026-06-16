@@ -16,6 +16,8 @@ from PyQt6.QtWidgets import (
 import platform
 PLATFORM = platform.system()
 
+from ...utils.workers import launch
+
 
 # ── SQL helpers ───────────────────────────────────────────────────────────
 
@@ -602,8 +604,7 @@ class SecurityPanel(QWidget):
         self._worker.finished.connect(
             lambda: (self._status_lbl.setText("Loaded"),
                      self._reload_btn.setEnabled(True)))
-        self._worker.finished.connect(self._worker.deleteLater)
-        self._worker.start()
+        launch(self._worker)
 
     def _try_get_conn_from_db(self):
         if self._db and hasattr(self._db, "params") and self._db.params:
@@ -850,8 +851,7 @@ class SecurityPanel(QWidget):
         w.log.connect(self._log_msg)
         if refresh:
             w.finished.connect(self._reload)
-        w.finished.connect(w.deleteLater)
-        w.start()
+        launch(w)
 
     def _log_msg(self, msg: str, level: str = "info"):
         colors = {

@@ -12,6 +12,8 @@ from PyQt6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QSplitter, QFileDialog,
 )
 
+from ...utils.workers import launch
+
 
 # ── Worker ────────────────────────────────────────────────────────────────
 
@@ -679,9 +681,8 @@ class DeveloperPanel(QWidget):
         w.log.connect(self._log_msg)
         if _callback:
             w.rows.connect(_callback)
-        w.finished.connect(w.deleteLater)
         self._worker = w
-        w.start()
+        launch(w)
 
     def _log_msg(self, msg: str, level: str = "info"):
         colors = {

@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import QDate
 
+from ...utils.workers import launch
 from ...utils.audit_manager import (
     ensure_audit_schema, install_trigger, drop_trigger,
     list_audited_tables, get_pgaudit_settings,
@@ -496,9 +497,8 @@ class AuditPanel(QWidget):
                         self._current_page)
         w.ready.connect(self._on_rows)
         w.error.connect(lambda e: self._log_msg(f"Error: {e}", "error"))
-        w.finished.connect(w.deleteLater)
         self._fetch_worker = w
-        w.start()
+        launch(w)
 
     def _on_rows(self, rows: list, total: int):
         self._rows = rows
@@ -553,8 +553,7 @@ class AuditPanel(QWidget):
             return
         w = ExportWorker(self._conn_params, path, self._get_filters())
         w.log.connect(self._log_msg)
-        w.finished.connect(w.deleteLater)
-        w.start()
+        launch(w)
 
     # ── Slots: Triggers tab ───────────────────────────────────────────────
 
@@ -562,8 +561,7 @@ class AuditPanel(QWidget):
         w = SetupWorker(self._conn_params)
         w.log.connect(self._log_msg)
         w.finished.connect(self._refresh_audited)
-        w.finished.connect(w.deleteLater)
-        w.start()
+        launch(w)
 
     def _install_trigger(self):
         schema = self._trig_schema.text().strip()
@@ -574,8 +572,7 @@ class AuditPanel(QWidget):
         w = TriggerWorker(self._conn_params, schema, table, "install")
         w.log.connect(self._log_msg)
         w.finished.connect(self._refresh_audited)
-        w.finished.connect(w.deleteLater)
-        w.start()
+        launch(w)
 
     def _remove_trigger(self):
         schema = self._trig_schema.text().strip()
@@ -586,8 +583,7 @@ class AuditPanel(QWidget):
         w = TriggerWorker(self._conn_params, schema, table, "drop")
         w.log.connect(self._log_msg)
         w.finished.connect(self._refresh_audited)
-        w.finished.connect(w.deleteLater)
-        w.start()
+        launch(w)
 
     def _refresh_audited(self):
         if not self._conn_params:

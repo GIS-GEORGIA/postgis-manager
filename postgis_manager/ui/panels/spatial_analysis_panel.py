@@ -15,6 +15,8 @@ from PyQt6.QtWidgets import (
     QScrollArea,
 )
 
+from ...utils.workers import launch
+
 
 # ── Generic SQL worker ────────────────────────────────────────────────────
 
@@ -870,9 +872,8 @@ class SpatialAnalysisPanel(QWidget):
         w = AnalysisWorker(self._conn_params, sql, fetch=fetch)
         w.log.connect(self._log_msg)
         w.rows.connect(self._show_rows)
-        w.finished.connect(w.deleteLater)
         self._worker = w
-        w.start()
+        launch(w)
 
     def _show_rows(self, rows: list, cols: list):
         t = self._result_table
