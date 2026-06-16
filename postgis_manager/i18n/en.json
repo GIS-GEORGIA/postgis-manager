@@ -44,6 +44,7 @@
   "tab_log": "Log",
   "tab_qgis_bridge": "QGIS Bridge",
   "tab_db_setup": "DB Setup",
+  "tab_security": "Security",
 
   "qb_connections": "Connections",
   "qb_project_layers": "Project Layers",
