@@ -194,6 +194,14 @@ class MainWindow(QMainWindow):
         self._tb_new_conn.triggered.connect(self._new_connection)
         tb.addAction(self._tb_new_conn)
 
+        self._tb_edit_conn = QAction("✏ Edit", self)
+        self._tb_edit_conn.triggered.connect(self._edit_connection)
+        tb.addAction(self._tb_edit_conn)
+
+        self._tb_del_conn = QAction("🗑 Delete", self)
+        self._tb_del_conn.triggered.connect(self._delete_connection)
+        tb.addAction(self._tb_del_conn)
+
         self._tb_refresh = QAction("↻ Refresh", self)
         self._tb_refresh.triggered.connect(self._refresh)
         tb.addAction(self._tb_refresh)
@@ -693,6 +701,36 @@ class MainWindow(QMainWindow):
         if idx >= 0:
             self._conn_combo.setCurrentIndex(idx)
         self.log(f"Connection added: {profile['name']}", "success")
+
+    def _edit_connection(self):
+        profile = self._conn_combo.currentData()
+        if not profile:
+            return
+        dlg = ConnectionDialog(self, profile=profile)
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            new_profile = dlg.get_profile()
+            config.delete_connection(profile["name"])
+            config.save_connection(new_profile)
+            self._refresh_conn_combo()
+            idx = self._conn_combo.findText(new_profile["name"])
+            if idx >= 0:
+                self._conn_combo.setCurrentIndex(idx)
+
+    def _delete_connection(self):
+        profile = self._conn_combo.currentData()
+        if not profile:
+            return
+        name = profile.get("name", "?")
+        reply = QMessageBox.question(
+            self, "Delete Connection",
+            f"Delete connection '{name}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            config.delete_connection(name)
+            self._refresh_conn_combo()
+            self.log(f"Connection deleted: {name}", "warn")
 
     def _connect_from_bridge(self, profile: dict):
         """Triggered by QGISBridgePanel — save + immediately connect."""
