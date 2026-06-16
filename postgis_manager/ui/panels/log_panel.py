@@ -42,9 +42,9 @@ _CHIP_FG = {
     },
 }
 
-_H_TOOLBAR   = 28
-_H_FILTERBAR = 26
-_H_STATUSBAR = 22
+_H_TOOLBAR   = 32
+_H_FILTERBAR = 36
+_H_STATUSBAR = 26
 
 
 # ── Chip ──────────────────────────────────────────────────────────────────────
@@ -54,7 +54,7 @@ class _Chip(QPushButton):
         super().__init__(label, parent)
         self._level = level
         self._active = False
-        self.setFixedHeight(18)
+        self.setFixedHeight(22)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.refresh_style()
 
@@ -102,8 +102,8 @@ class LogPanel(QWidget):
         self._toolbar.setObjectName("logToolbar")
         self._toolbar.setFixedHeight(_H_TOOLBAR)
         tb = QHBoxLayout(self._toolbar)
-        tb.setContentsMargins(8, 0, 8, 0)
-        tb.setSpacing(4)
+        tb.setContentsMargins(8, 4, 8, 4)
+        tb.setSpacing(6)
 
         self._title_lbl = QLabel("Log")
         self._title_lbl.setObjectName("logTitle")
@@ -136,13 +136,13 @@ class LogPanel(QWidget):
         self._filter_row.setObjectName("logFilterBar")
         self._filter_row.setFixedHeight(_H_FILTERBAR)
         fr = QHBoxLayout(self._filter_row)
-        fr.setContentsMargins(8, 0, 8, 0)
-        fr.setSpacing(4)
+        fr.setContentsMargins(8, 6, 8, 6)
+        fr.setSpacing(6)
 
         self._search_box = QLineEdit()
         self._search_box.setObjectName("logSearch")
         self._search_box.setPlaceholderText("Filter messages…")
-        self._search_box.setFixedHeight(20)
+        self._search_box.setMinimumHeight(22)
         self._search_box.textChanged.connect(self._on_search)
         fr.addWidget(self._search_box, 1)
 
@@ -185,7 +185,7 @@ class LogPanel(QWidget):
         self._status_bar.setObjectName("logStatusBar")
         self._status_bar.setFixedHeight(_H_STATUSBAR)
         sb = QHBoxLayout(self._status_bar)
-        sb.setContentsMargins(8, 0, 8, 0)
+        sb.setContentsMargins(8, 3, 8, 3)
         sb.setSpacing(6)
 
         self._dot = QLabel("●")
