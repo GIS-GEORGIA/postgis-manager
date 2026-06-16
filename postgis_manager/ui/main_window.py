@@ -476,8 +476,11 @@ class MainWindow(QMainWindow):
         self._set_conn_status("connecting")
         self.log(f"Connecting to {profile.get('dbname')} @ {profile.get('host')}...", "info")
         self._connect_worker = ConnectWorker(self.db, profile)
-        self._connect_worker.success.connect(self._on_connect_success)
-        self._connect_worker.error.connect(self._on_connect_error)
+        self._connect_worker.success.connect(
+            self._on_connect_success, Qt.ConnectionType.QueuedConnection)
+        self._connect_worker.error.connect(
+            self._on_connect_error, Qt.ConnectionType.QueuedConnection)
+        self._connect_worker.finished.connect(self._connect_worker.deleteLater)
         self._connect_worker.start()
 
     def _disconnect(self):

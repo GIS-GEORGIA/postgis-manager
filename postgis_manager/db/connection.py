@@ -64,33 +64,33 @@ class DBManager:
 
     def server_info(self) -> dict:
         info = {}
-        with self.conn.cursor() as cur:
-            cur.execute("SELECT version()")
-            info["pg_version"] = cur.fetchone()[0]
+
+        def _q(sql, default=None):
             try:
-                cur.execute("SELECT PostGIS_Lib_Version()")
-                info["postgis_version"] = cur.fetchone()[0]
+                with self.conn.cursor() as cur:
+                    cur.execute(sql)
+                    row = cur.fetchone()
+                    return row[0] if row else default
             except Exception:
-                info["postgis_version"] = None
+                self.conn.rollback()
+                return default
+
+        def _exists(sql) -> bool:
             try:
-                cur.execute("SELECT pgr_version()")
-                info["pgrouting_version"] = cur.fetchone()[0]
+                with self.conn.cursor() as cur:
+                    cur.execute(sql)
+                    return bool(cur.fetchone())
             except Exception:
-                info["pgrouting_version"] = None
-            try:
-                cur.execute("SELECT topology.TopologySummary('public')")
-                info["topology"] = True
-            except Exception:
-                try:
-                    cur.execute("SELECT 1 FROM pg_extension WHERE extname='postgis_topology'")
-                    info["topology"] = cur.fetchone() is not None
-                except Exception:
-                    info["topology"] = False
-            try:
-                cur.execute("SELECT 1 FROM pg_extension WHERE extname='postgis_raster'")
-                info["raster"] = cur.fetchone() is not None
-            except Exception:
-                info["raster"] = False
+                self.conn.rollback()
+                return False
+
+        info["pg_version"]       = _q("SELECT version()")
+        info["postgis_version"]  = _q("SELECT PostGIS_Lib_Version()")
+        info["pgrouting_version"] = _q("SELECT pgr_version()")
+        info["topology"] = _exists(
+            "SELECT 1 FROM pg_extension WHERE extname='postgis_topology'")
+        info["raster"] = _exists(
+            "SELECT 1 FROM pg_extension WHERE extname='postgis_raster'")
         return info
 
     # ── Schema / Layer Browsing ──────────────────────────────────────────────
