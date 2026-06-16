@@ -87,7 +87,6 @@ class LogPanel(QWidget):
         self._active_level = "all"
         self._search = ""
         self._wrap = False
-        self._collapsed = False
         self._build_ui()
         _theme.on_theme_change(self._on_theme)
 
@@ -106,7 +105,7 @@ class LogPanel(QWidget):
         tb.setContentsMargins(8, 0, 8, 0)
         tb.setSpacing(4)
 
-        self._title_lbl = QLabel("▼  Log")
+        self._title_lbl = QLabel("Log")
         self._title_lbl.setObjectName("logTitle")
         tb.addWidget(self._title_lbl)
 
@@ -125,11 +124,6 @@ class LogPanel(QWidget):
         tb.addWidget(self._vsep())
         tb.addWidget(self._mkbtn("🧹 Clear", self.clear, "logBtn"))
         tb.addWidget(self._mkbtn("💾 Save",  self._save_log, "logBtn"))
-        tb.addWidget(self._vsep())
-
-        self._collapse_btn = self._mkbtn("▼", self._toggle_collapse, "logBtn")
-        self._collapse_btn.setFixedWidth(28)
-        tb.addWidget(self._collapse_btn)
 
         root.addWidget(self._toolbar)
 
@@ -381,32 +375,6 @@ QFrame#logDivider {{
         return f
 
     # ── Actions ────────────────────────────────────────────────────────────
-
-    def _toggle_collapse(self):
-        self._collapsed = not self._collapsed
-        arrow = "▶" if self._collapsed else "▼"
-        self._collapse_btn.setText(arrow)
-        self._title_lbl.setText(f"{arrow}  Log")
-
-        for w in (self._div1, self._filter_row, self._div2,
-                  self._log, self._div3, self._status_bar):
-            w.setVisible(not self._collapsed)
-
-        # Adjust splitter
-        from PyQt6.QtWidgets import QSplitter
-        sp = self.parent()
-        while sp and not isinstance(sp, QSplitter):
-            sp = sp.parent()
-
-        if sp:
-            if self._collapsed:
-                self._saved_sizes = sp.sizes()
-                total = sum(self._saved_sizes)
-                self.setMinimumHeight(_H_TOOLBAR + 2)
-                sp.setSizes([total - (_H_TOOLBAR + 2), _H_TOOLBAR + 2])
-            else:
-                self.setMinimumHeight(80)
-                sp.setSizes(getattr(self, "_saved_sizes", [620, 180]))
 
     def _toggle_wrap(self):
         self._wrap = not self._wrap

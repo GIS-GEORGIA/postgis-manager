@@ -256,14 +256,11 @@ class MainWindow(QMainWindow):
         self.browser.load_in_qgis.connect(self._load_layer_in_qgis)
         self._main_splitter.addWidget(self.browser)
 
-        # ── Right: sidebar + stacked content + log ────────────────────────────
+        # ── Right: sidebar + stacked content ──────────────────────────────────
         right_widget = QWidget()
         right_layout = QVBoxLayout(right_widget)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(0)
-
-        v_splitter = QSplitter(Qt.Orientation.Vertical)
-        right_layout.addWidget(v_splitter)
 
         # Content area = sidebar nav + stacked panels side by side
         content_widget = QWidget()
@@ -273,7 +270,6 @@ class MainWindow(QMainWindow):
 
         self._nav = NavSidebar()
         self._nav.page_requested.connect(self._show_page)
-        # thin separator line between sidebar and content
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.VLine)
         sep.setFixedWidth(1)
@@ -283,7 +279,7 @@ class MainWindow(QMainWindow):
         self._stack = QStackedWidget()
         content_layout.addWidget(self._stack, 1)
 
-        v_splitter.addWidget(content_widget)
+        right_layout.addWidget(content_widget, 1)
 
         # ── Build panels and register in sidebar ──────────────────────────────
         self._nav_labels: list[tuple] = []  # (btn, i18n_key)
@@ -434,16 +430,10 @@ class MainWindow(QMainWindow):
         self.pointcloud_panel = PointCloudPanel(parent=self)
         _add(self.pointcloud_panel, "☁", "tab_pointcloud")
 
-        # ── Log at bottom ─────────────────────────────────────────────────────
+        # ── Log as regular panel ───────────────────────────────────────────────
         self.log_panel = LogPanel(self)
-        v_splitter.addWidget(self.log_panel)
+        _add(self.log_panel, "📋", "tab_log")
 
-        v_splitter.setSizes([620, 180])
-        v_splitter.setCollapsible(0, False)
-        v_splitter.setCollapsible(1, False)
-        v_splitter.setHandleWidth(6)
-        self.log_panel.setMinimumHeight(80)
-        self._v_splitter = v_splitter
         self._main_splitter.addWidget(right_widget)
         self._main_splitter.setSizes([260, 1140])
 
