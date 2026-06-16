@@ -3,7 +3,10 @@
 from __future__ import annotations
 import math
 import threading
-from typing import Optional, Callable
+from typing import TYPE_CHECKING, Optional, Callable
+
+if TYPE_CHECKING:
+    import geopandas as gpd
 import psycopg2
 import psycopg2.extras
 import psycopg2.extensions
