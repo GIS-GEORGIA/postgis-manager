@@ -43,6 +43,7 @@ from .panels.db_setup_panel import DBSetupPanel
 from .panels.security_panel import SecurityPanel
 from .panels.audit_panel import AuditPanel
 from .panels.import_export_panel import ImportExportPanel
+from .panels.spatial_analysis_panel import SpatialAnalysisPanel
 from .sidebar_nav import NavSidebar
 from .dialogs.connection_dialog import ConnectionDialog
 from .dialogs.settings_dialog import SettingsDialog
@@ -316,6 +317,9 @@ class MainWindow(QMainWindow):
         # ── Spatial Analysis ──────────────────────────────────────────────────
         self._nav.add_group(i18n.t("nav_grp_analysis"))
 
+        self.spatial_analysis_panel = SpatialAnalysisPanel(parent=self)
+        _add(self.spatial_analysis_panel, "🔲", "tab_spatial_analysis")
+
         self.routing_panel = pgRoutingPanel(self.db, self)
         _add(self.routing_panel, "🛣", "tab_routing")
 
@@ -472,6 +476,7 @@ class MainWindow(QMainWindow):
         self.security_panel.set_connection(dict(self.db.params))
         self.audit_panel.set_connection(dict(self.db.params))
         self.geodata_panel.set_connection(dict(self.db.params))
+        self.spatial_analysis_panel.set_connection(dict(self.db.params))
 
     def _on_connect_error(self, error: str):
         self._set_conn_status("disconnected")
