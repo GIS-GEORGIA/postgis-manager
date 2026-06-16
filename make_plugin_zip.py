@@ -57,6 +57,12 @@ with zipfile.ZipFile(OUT_ZIP, "w", compression=zipfile.ZIP_DEFLATED) as zf:
     # core package goes into postgis_manager/postgis_manager/
     add_tree(zf, PACKAGE, "postgis_manager/postgis_manager")
 
+    # bundled docs at plugin root so CreditsDialog can find them
+    for fname in ("CREDITS.md", "LICENSE", "README.md"):
+        src = os.path.join(ROOT, fname)
+        if os.path.exists(src):
+            zf.write(src, f"postgis_manager/{fname}")
+
 print(f"Created: {OUT_ZIP}")
 print(f"Size:    {os.path.getsize(OUT_ZIP):,} bytes")
 print()

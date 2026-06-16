@@ -15,8 +15,15 @@ class CreditsDialog(QDialog):
         try:
             with open(credits_path, encoding="utf-8") as f:
                 self._text.setMarkdown(f.read())
-        except Exception:
-            self._text.setPlainText("CREDITS.md not found.")
+        except FileNotFoundError:
+            self._text.setMarkdown(
+                "**CREDITS.md not found.**\n\n"
+                f"Expected path: `{credits_path}`\n\n"
+                "See the full credits at: "
+                "https://github.com/GIS-GEORGIA/postgis-manager/blob/master/CREDITS.md"
+            )
+        except Exception as e:
+            self._text.setPlainText(f"Could not load CREDITS.md: {e}")
         layout.addWidget(self._text)
         close_btn = QPushButton("Close")
         close_btn.clicked.connect(self.accept)
