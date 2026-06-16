@@ -6,11 +6,10 @@ and macOS (Homebrew / Postgres.app / paths).
 
 from __future__ import annotations
 import os
-import sys
 import shutil
 import subprocess
 import platform
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 

@@ -9,9 +9,7 @@ from __future__ import annotations
 import os
 import platform
 import re
-import shutil
 from pathlib import Path
-from typing import Optional
 
 PLATFORM = platform.system()
 
@@ -39,7 +37,8 @@ def _win_get(name: str) -> str:
 
 def _win_set(name: str, value: str) -> None:
     """Write to HKCU\\Environment and broadcast the change."""
-    import winreg, ctypes
+    import winreg
+    import ctypes
     key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment",
                          0, winreg.KEY_SET_VALUE)
     winreg.SetValueEx(key, name, 0, winreg.REG_EXPAND_SZ, value)
@@ -53,7 +52,8 @@ def _win_set(name: str, value: str) -> None:
 
 def _win_delete(name: str) -> None:
     try:
-        import winreg, ctypes
+        import winreg
+        import ctypes
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment",
                              0, winreg.KEY_SET_VALUE)
         winreg.DeleteValue(key, name)

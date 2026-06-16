@@ -203,8 +203,6 @@ def ensure_audit_schema(conn: psycopg2.extensions.connection) -> None:
 def install_trigger(conn: psycopg2.extensions.connection,
                     schema: str, table: str) -> None:
     quoted = f'"{schema}"."{table}"'
-    sql = _INSTALL_TRIGGER_SQL.format(quoted=f"'{schema}.{table}'")
-    # Use format properly to avoid injection via DO block
     with conn.cursor() as cur:
         cur.execute(
             f"DO $$ BEGIN "
@@ -302,7 +300,6 @@ def export_csv(conn: psycopg2.extensions.connection,
                schema: str = "", table: str = "",
                user: str = "", operation: str = "") -> int:
     """Export filtered audit log to CSV using server-side COPY."""
-    conditions = []
     parts: list[str] = []
     if schema:
         parts.append(f"schema_name = '{schema}'")

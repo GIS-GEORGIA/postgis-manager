@@ -144,7 +144,7 @@ def mdns_discover(timeout: float = 3.0) -> list[dict]:
 
         zc = Zeroconf()
         handler = Handler()
-        browser = ServiceBrowser(zc, "_postgresql._tcp.local.", handler)
+        _browser = ServiceBrowser(zc, "_postgresql._tcp.local.", handler)
         time.sleep(timeout)
         zc.close()
         results = found

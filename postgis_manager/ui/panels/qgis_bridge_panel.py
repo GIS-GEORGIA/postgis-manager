@@ -4,13 +4,13 @@ from __future__ import annotations
 from typing import Optional
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QSplitter, QTabWidget,
-    QTableWidget, QTableWidgetItem, QHeaderView, QPushButton,
+    QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
+    QTableWidget, QTableWidgetItem, QPushButton,
     QLabel, QAbstractItemView, QGroupBox, QLineEdit, QFormLayout,
-    QMessageBox, QToolBar, QComboBox, QFrame, QProgressBar,
+    QMessageBox, QToolBar,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QColor, QAction, QFont
+from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtGui import QColor, QAction
 
 from ...db.connection import DBManager
 from ...utils import i18n, config

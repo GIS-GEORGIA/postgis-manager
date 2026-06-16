@@ -1,7 +1,6 @@
 """Security panel — Role/Grant matrix, Row-Level Security, SSL status."""
 
 from __future__ import annotations
-import os
 
 import psycopg2
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
@@ -10,9 +9,8 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QTabWidget, QLineEdit,
     QTextEdit, QGroupBox, QFormLayout, QComboBox, QCheckBox,
-    QMessageBox, QSplitter, QHeaderView, QAbstractItemView,
-    QFileDialog, QTreeWidget, QTreeWidgetItem, QInputDialog,
-    QDialog, QDialogButtonBox, QScrollArea, QSizePolicy,
+    QMessageBox, QSplitter, QAbstractItemView,
+    QFileDialog, QDialog, QDialogButtonBox,
 )
 
 import platform

@@ -1,13 +1,15 @@
 """Backup & Restore panel — pg_dump / pg_restore / psql wrappers."""
 
 from __future__ import annotations
-import os, shutil, subprocess, datetime
+import os
+import shutil
+import datetime
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QGroupBox, QComboBox, QLineEdit, QCheckBox, QTextEdit,
     QFileDialog, QMessageBox, QProgressBar, QFormLayout, QSplitter,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QProcess
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
 
 from ...db.connection import DBManager
 from ...utils import i18n, config

@@ -3,7 +3,7 @@
 from datetime import datetime
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTextEdit,
-    QPushButton, QLabel, QFileDialog, QComboBox,
+    QPushButton, QFileDialog,
 )
 from PyQt6.QtGui import QTextCharFormat, QColor, QFont, QTextCursor
 

@@ -4,14 +4,12 @@ from __future__ import annotations
 import os
 import subprocess
 import shutil
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTextEdit, QLineEdit, QComboBox, QGroupBox, QFormLayout,
-    QSpinBox, QDoubleSpinBox, QCheckBox, QTableWidget,
-    QTableWidgetItem, QHeaderView, QAbstractItemView,
-    QFileDialog, QMessageBox, QTabWidget, QProgressBar,
+    QSpinBox, QDoubleSpinBox, QCheckBox, QFileDialog, QMessageBox, QTabWidget, QProgressBar,
 )
 
 
@@ -236,7 +234,8 @@ class PointCloudPanel(QWidget):
             ]
         }
         # Write temp pipeline JSON
-        import json, tempfile
+        import json
+        import tempfile
         tmp = tempfile.NamedTemporaryFile(
             suffix=".json", mode="w", delete=False, encoding="utf-8")
         json.dump(pipeline, tmp)
@@ -324,7 +323,8 @@ class PointCloudPanel(QWidget):
         return w
 
     def _run_pipeline(self):
-        import json, tempfile
+        import json
+        import tempfile
         text = self._pipeline_edit.toPlainText().strip()
         try:
             json.loads(text)  # validate

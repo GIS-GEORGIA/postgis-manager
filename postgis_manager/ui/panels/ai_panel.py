@@ -5,12 +5,12 @@ import json
 import urllib.request
 import urllib.error
 import psycopg2
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTextEdit, QLineEdit, QComboBox, QGroupBox, QFormLayout,
-    QMessageBox, QSplitter, QTabWidget, QCheckBox,
+    QMessageBox, QTabWidget, QCheckBox,
 )
 
 from ...utils import config
@@ -379,10 +379,6 @@ class AIPanel(QWidget):
                                 "Enter your Anthropic API key in Settings tab.")
             return
 
-        schema_section = (
-            f"\nDatabase schema:\n{self._schema_ctx}"
-            if self._include_schema.isChecked() else ""
-        )
         system = SYSTEM_PROMPT.format(schema=self._schema_ctx)
 
         self._append_chat("user", text)

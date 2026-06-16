@@ -6,14 +6,13 @@ from __future__ import annotations
 import psycopg2
 import psycopg2.extras
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QColor, QFont
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QTabWidget, QLineEdit,
     QComboBox, QTextEdit, QGroupBox, QFormLayout, QSpinBox,
-    QDoubleSpinBox, QMessageBox, QSplitter, QHeaderView,
-    QAbstractItemView, QCheckBox, QRadioButton, QButtonGroup,
-    QProgressBar, QSizePolicy, QScrollArea,
+    QDoubleSpinBox, QMessageBox, QSplitter, QAbstractItemView, QCheckBox, QRadioButton, QButtonGroup,
+    QScrollArea,
 )
 
 
@@ -562,7 +561,7 @@ class SpatialAnalysisPanel(QWidget):
             select = f'l.*, r."{rg}" AS right_geom'
             group  = ""
         elif agg == "COUNT(*)":
-            select = f'l.*, COUNT(*) AS n_matched'
+            select = 'l.*, COUNT(*) AS n_matched'
             group  = f'GROUP BY l.ctid, l."{lg}"'
         elif agg == "SUM":
             select = f'l.*, SUM(r."{acol}") AS sum_{acol}'

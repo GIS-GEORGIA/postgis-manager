@@ -1,16 +1,15 @@
 """Automation Panel — pg_cron jobs, auto-backup, matview refresh, event triggers."""
 
 from __future__ import annotations
-import subprocess
 import psycopg2
 import psycopg2.extras
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
+from PyQt6.QtCore import QThread, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QTabWidget, QLineEdit,
     QComboBox, QTextEdit, QGroupBox, QFormLayout, QSpinBox,
-    QMessageBox, QCheckBox, QHeaderView, QAbstractItemView,
+    QMessageBox, QCheckBox, QAbstractItemView,
     QDialog, QDialogButtonBox, QFileDialog,
 )
 

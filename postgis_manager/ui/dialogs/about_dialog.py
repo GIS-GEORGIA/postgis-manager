@@ -1,7 +1,7 @@
 """About dialog — PyQt6."""
 
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QLabel, QPushButton, QFrame, QTextEdit,
+    QDialog, QVBoxLayout, QLabel, QPushButton, QFrame,
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont

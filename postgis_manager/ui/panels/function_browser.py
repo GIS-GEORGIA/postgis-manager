@@ -4,8 +4,7 @@ from __future__ import annotations
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
-    QSplitter, QTextEdit, QLineEdit, QComboBox, QGroupBox, QFormLayout,
-    QDialog, QDialogButtonBox, QMessageBox,
+    QSplitter, QTextEdit, QLineEdit, QComboBox,
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QFont, QColor

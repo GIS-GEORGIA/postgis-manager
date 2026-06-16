@@ -3,8 +3,7 @@
 from __future__ import annotations
 import os
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QLabel,
-    QLineEdit, QPushButton, QComboBox, QProgressBar,
+    QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QPushButton, QComboBox, QProgressBar,
     QDialogButtonBox, QFileDialog, QMessageBox, QTextEdit,
 )
 from PyQt6.QtCore import QThread, pyqtSignal

@@ -3,15 +3,13 @@
 from __future__ import annotations
 import psycopg2
 import psycopg2.extras
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
-from PyQt6.QtGui import QFont, QColor, QBrush
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QTabWidget, QLineEdit,
-    QComboBox, QTextEdit, QGroupBox, QFormLayout, QSpinBox,
-    QMessageBox, QCheckBox, QHeaderView, QAbstractItemView,
+    QComboBox, QTextEdit, QGroupBox, QFormLayout, QMessageBox, QCheckBox, QHeaderView, QAbstractItemView,
     QTreeWidget, QTreeWidgetItem, QSplitter, QFileDialog,
-    QDialog, QDialogButtonBox,
 )
 
 

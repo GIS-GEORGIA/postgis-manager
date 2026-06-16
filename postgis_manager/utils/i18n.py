@@ -2,7 +2,6 @@
 
 import json
 import os
-from typing import Optional
 
 _LANG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "i18n")
 _STRINGS: dict = {}

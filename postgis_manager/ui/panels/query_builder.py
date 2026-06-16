@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox,
+    QWidget, QVBoxLayout, QHBoxLayout, QGroupBox,
     QLabel, QLineEdit, QPushButton, QComboBox, QTableWidget,
     QTableWidgetItem, QHeaderView, QAbstractItemView, QCheckBox,
     QSpinBox, QTextEdit, QSplitter, QMessageBox,

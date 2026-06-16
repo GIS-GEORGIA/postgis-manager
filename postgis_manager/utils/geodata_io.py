@@ -18,7 +18,7 @@ import tempfile
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
-from typing import Callable, Iterator
+from typing import Callable
 
 import psycopg2
 import psycopg2.extras
@@ -33,7 +33,8 @@ def find_ogr2ogr() -> str:
     if candidate:
         return candidate
     # QGIS / OSGeo4W bundled locations
-    import platform, glob
+    import platform
+    import glob
     if platform.system() == "Windows":
         for pattern in [
             r"C:\OSGeo4W\bin\ogr2ogr.exe",
@@ -54,7 +55,8 @@ def find_shp2pgsql() -> str:
     candidate = shutil.which("shp2pgsql")
     if candidate:
         return candidate
-    import platform, glob
+    import platform
+    import glob
     if platform.system() == "Windows":
         for pattern in [
             r"C:\Program Files\PostgreSQL\*\bin\shp2pgsql.exe",
@@ -141,9 +143,6 @@ def import_geojson(conn: psycopg2.extensions.connection,
             nonlocal inserted
             if not batch:
                 return
-            placeholders = ", ".join(
-                ["(%s" + ", %s" * len(attr_cols) + ", ST_SetSRID(ST_GeomFromGeoJSON(%s), %s))"]
-                * len(batch))
             flat = []
             for row in batch:
                 flat.extend(row)

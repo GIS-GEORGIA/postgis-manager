@@ -24,7 +24,6 @@ class ExportWorker(QThread):
     def run(self):
         import os
         try:
-            import geopandas as gpd
             exported = 0
             for schema, table, geom_col, srid in self.layers:
                 self.progress.emit(f"Exporting {schema}.{table}...")

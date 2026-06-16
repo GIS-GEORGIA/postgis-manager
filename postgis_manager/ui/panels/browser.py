@@ -7,10 +7,10 @@ from PyQt6.QtWidgets import (
     QApplication,
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QThread, pyqtSlot
-from PyQt6.QtGui import QColor, QBrush, QFont, QAction
+from PyQt6.QtGui import QColor, QBrush
 
 from ...db.connection import DBManager
-from ...utils import i18n, theme
+from ...utils import i18n
 
 GEOM_COLORS = {
     "POINT":           "#4FC3F7",

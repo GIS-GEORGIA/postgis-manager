@@ -71,7 +71,6 @@ def _build_tree(parent_item: QTreeWidgetItem, node: dict, max_time: float):
     node_type   = node.get("Node Type", "?")
     relation    = node.get("Relation Name", "")
     alias       = node.get("Alias", "")
-    startup     = node.get("Actual Startup Time", 0)
     total       = node.get("Actual Total Time", 0)
     loops       = node.get("Actual Loops", 1) or 1
     plan_rows   = node.get("Plan Rows", "?")

@@ -290,7 +290,6 @@ class DBManager:
                                schema: str, table: str,
                                geom_col: str, srid: int) -> None:
         """Create a PostGIS table matching a GeoDataFrame schema."""
-        import pandas as pd
         type_map = {
             "int64": "BIGINT", "int32": "INTEGER", "int16": "SMALLINT",
             "float64": "DOUBLE PRECISION", "float32": "REAL",

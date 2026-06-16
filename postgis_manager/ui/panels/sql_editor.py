@@ -13,7 +13,7 @@ from PyQt6.QtGui import (
 )
 from PyQt6.QtCore import (
     Qt, QThread, pyqtSignal, QRegularExpression,
-    QStringListModel, QRect,
+    QRect,
 )
 
 from ...db.connection import DBManager

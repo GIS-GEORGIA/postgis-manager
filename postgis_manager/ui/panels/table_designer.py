@@ -5,10 +5,9 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
     QGroupBox, QComboBox, QLineEdit, QCheckBox, QMessageBox,
-    QSplitter, QTabWidget, QSpinBox, QDialog, QDialogButtonBox,
-    QFormLayout, QTextEdit, QProgressBar,
+    QTabWidget, QSpinBox, QFormLayout, QTextEdit,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtGui import QColor
 
 from ...db.connection import DBManager
@@ -636,11 +635,11 @@ class TableDesignerPanel(QWidget):
         l.addLayout(sel)
 
         btns = [
-            (f"🔄 VACUUM ANALYZE", "VACUUM ANALYZE", i18n.t("td_vacuum_done")),
-            (f"🔄 VACUUM FULL",    "VACUUM FULL",    i18n.t("td_vacuum_done")),
-            (f"📊 ANALYZE",        "ANALYZE",        i18n.t("td_analyze_done")),
-            (f"🔁 CLUSTER",        "CLUSTER",        i18n.t("td_cluster_done")),
-            (f"🔢 REINDEX TABLE",  "REINDEX TABLE",  i18n.t("td_reindex_done")),
+            ("🔄 VACUUM ANALYZE", "VACUUM ANALYZE", i18n.t("td_vacuum_done")),
+            ("🔄 VACUUM FULL",    "VACUUM FULL",    i18n.t("td_vacuum_done")),
+            ("📊 ANALYZE",        "ANALYZE",        i18n.t("td_analyze_done")),
+            ("🔁 CLUSTER",        "CLUSTER",        i18n.t("td_cluster_done")),
+            ("🔢 REINDEX TABLE",  "REINDEX TABLE",  i18n.t("td_reindex_done")),
         ]
         for label, cmd, msg in btns:
             btn = QPushButton(label)

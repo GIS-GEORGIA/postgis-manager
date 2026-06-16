@@ -4,7 +4,7 @@ from __future__ import annotations
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
-    QGroupBox, QGridLayout, QFrame, QProgressBar, QSplitter,
+    QGroupBox, QFrame, QProgressBar, QSplitter,
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
 from PyQt6.QtGui import QColor, QFont

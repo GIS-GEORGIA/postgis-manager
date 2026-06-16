@@ -5,10 +5,9 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
     QGroupBox, QComboBox, QLineEdit, QCheckBox, QMessageBox,
-    QTabWidget, QFormLayout, QTextEdit, QDialog, QDialogButtonBox,
-    QListWidget, QListWidgetItem, QSplitter,
+    QTabWidget, QFormLayout,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtGui import QColor
 
 from ...db.connection import DBManager

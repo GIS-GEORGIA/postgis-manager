@@ -4,15 +4,13 @@ from __future__ import annotations
 import os
 
 import psycopg2
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QUrl
-from PyQt6.QtGui import QColor, QFont, QDragEnterEvent, QDropEvent
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtGui import QFont, QDragEnterEvent, QDropEvent
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QTabWidget, QLineEdit,
     QComboBox, QTextEdit, QGroupBox, QFormLayout, QSpinBox,
-    QMessageBox, QFileDialog, QProgressBar, QSplitter,
-    QHeaderView, QAbstractItemView, QCheckBox, QSizePolicy,
-    QRadioButton, QButtonGroup,
+    QMessageBox, QFileDialog, QProgressBar, QAbstractItemView,
 )
 
 from ...utils.geodata_io import (

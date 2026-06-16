@@ -3,9 +3,8 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QLabel, QLineEdit,
     QPushButton, QCheckBox, QComboBox, QSpinBox, QHBoxLayout,
-    QDialogButtonBox, QMessageBox,
+    QDialogButtonBox,
 )
-from PyQt6.QtCore import Qt
 
 from ...utils import i18n
 

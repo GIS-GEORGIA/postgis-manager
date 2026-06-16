@@ -5,19 +5,18 @@ import struct
 from typing import Optional
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
+    QWidget, QVBoxLayout, QSplitter,
     QToolBar, QComboBox, QLabel, QTableWidget, QTableWidgetItem,
-    QHeaderView, QGraphicsView, QGraphicsScene, QGraphicsItem,
-    QGraphicsEllipseItem, QGraphicsPathItem, QGraphicsRectItem,
-    QSizePolicy, QMessageBox, QApplication, QAbstractItemView,
+    QGraphicsView, QGraphicsScene, QGraphicsItem,
+    QGraphicsPathItem, QAbstractItemView,
     QFrame, QProgressBar,
 )
 from PyQt6.QtCore import (
-    Qt, QThread, pyqtSignal, QRectF, QPointF, QSizeF,
+    Qt, QThread, pyqtSignal, QPointF,
 )
 from PyQt6.QtGui import (
     QPainter, QPainterPath, QColor, QPen, QBrush,
-    QWheelEvent, QMouseEvent, QAction, QFont, QTransform,
+    QWheelEvent, QMouseEvent, QAction, QTransform,
 )
 
 from ...db.connection import DBManager

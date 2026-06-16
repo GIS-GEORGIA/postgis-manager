@@ -4,12 +4,10 @@ from __future__ import annotations
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
-    QGroupBox, QComboBox, QLineEdit, QSpinBox, QDoubleSpinBox,
-    QTextEdit, QTabWidget, QFormLayout, QMessageBox, QProgressBar,
-    QSplitter, QCheckBox,
+    QGroupBox, QComboBox, QLineEdit, QSpinBox, QTextEdit, QTabWidget, QFormLayout, QMessageBox,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtGui import QFont
 
 from ...db.connection import DBManager
 from ...utils import i18n

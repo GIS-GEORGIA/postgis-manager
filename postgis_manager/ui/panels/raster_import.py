@@ -1,7 +1,9 @@
 """Raster Import panel — raster2pgsql wrapper."""
 
 from __future__ import annotations
-import subprocess, shutil, os
+import subprocess
+import shutil
+import os
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLabel,
     QLineEdit, QPushButton, QComboBox, QCheckBox,

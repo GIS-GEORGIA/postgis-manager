@@ -5,12 +5,12 @@ from typing import Optional
 
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
-    QStatusBar, QToolBar, QMenuBar, QMenu, QApplication,
+    QStatusBar, QToolBar, QApplication,
     QLabel, QComboBox, QSizePolicy, QMessageBox, QDialog,
     QStackedWidget, QFrame,
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize
-from PyQt6.QtGui import QFont, QIcon, QAction
+from PyQt6.QtGui import QFont, QAction
 
 from ..db.connection import DBManager
 from ..utils import i18n, theme, config
@@ -498,7 +498,6 @@ class MainWindow(QMainWindow):
 
     def _on_connect_success(self, info: dict):
         self._set_conn_status("connected")
-        pg_ver = info.get("pg_version", "?")
         postgis_ver = info.get("postgis_version", "N/A")
         self._db_info_label.setText(f"PostgreSQL  |  PostGIS {postgis_ver}")
         self.log(i18n.t("log_connected",
@@ -628,7 +627,7 @@ class MainWindow(QMainWindow):
         self._apply_theme()
 
     def _export_config(self):
-        from PyQt6.QtWidgets import QFileDialog, QCheckBox, QDialog, QVBoxLayout, QDialogButtonBox
+        from PyQt6.QtWidgets import QFileDialog
         path, _ = QFileDialog.getSaveFileName(
             self, i18n.t("cfg_export_title"), "postgis_manager_config.json",
             "JSON (*.json)")

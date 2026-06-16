@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLabel,
-    QLineEdit, QPushButton, QComboBox, QSpinBox, QDoubleSpinBox,
+    QWidget, QVBoxLayout, QFormLayout, QLabel,
+    QLineEdit, QPushButton, QSpinBox, QDoubleSpinBox,
     QTableWidget, QTableWidgetItem, QTabWidget, QMessageBox, QHeaderView,
 )
 from PyQt6.QtCore import QThread, pyqtSignal

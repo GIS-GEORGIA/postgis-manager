@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QComboBox,
     QSpinBox, QCheckBox, QDialogButtonBox, QGroupBox,
 )
-from PyQt6.QtGui import QFontDatabase, QFont
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QApplication
 
 from ...utils import i18n, theme, config
@@ -45,7 +45,6 @@ class SettingsDialog(QDialog):
         form.addRow(i18n.t("settings_font_size"), self._font_size)
 
         self._font_family = QComboBox()
-        all_families = QFontDatabase.families()
         for fam in ["Segoe UI", "Arial", "Helvetica", "Roboto", "Open Sans",
                     "Noto Sans", "DejaVu Sans", "Verdana", "Tahoma"]:
             self._font_family.addItem(fam)

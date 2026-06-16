@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
     QGroupBox, QComboBox, QTextEdit, QSplitter, QTreeWidget, QTreeWidgetItem,
-    QLineEdit, QMessageBox, QProgressBar,
+    QProgressBar,
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QColor, QFont

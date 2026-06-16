@@ -7,18 +7,17 @@ import platform
 
 import psycopg2
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QColor, QIcon
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QTabWidget, QLineEdit,
-    QComboBox, QTextEdit, QGroupBox, QFormLayout, QSplitter,
-    QProgressBar, QCheckBox, QMessageBox, QFileDialog, QScrollArea,
-    QSizePolicy, QFrame, QInputDialog,
+    QTextEdit, QGroupBox, QFormLayout, QCheckBox, QMessageBox, QFileDialog, QScrollArea,
+    QInputDialog,
 )
 
 from ...utils.pg_engine import (
     discover_instances, start_instance, stop_instance,
-    reload_instance, get_status, init_new_cluster, PGInstance,
+    reload_instance, PGInstance,
 )
 from ...utils.env_manager import (
     get_persistent, set_persistent, delete_persistent, all_suggestions,

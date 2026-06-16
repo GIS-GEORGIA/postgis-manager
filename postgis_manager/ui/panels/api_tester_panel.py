@@ -5,12 +5,11 @@ import json
 import urllib.request
 import urllib.error
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTextEdit, QLineEdit, QComboBox, QGroupBox, QFormLayout,
-    QTableWidget, QTableWidgetItem, QTabWidget, QHeaderView,
-    QAbstractItemView, QSplitter, QSpinBox, QMessageBox,
+    QTableWidget, QTableWidgetItem, QTabWidget, QAbstractItemView, QSplitter, QSpinBox, QMessageBox,
     QTreeWidget, QTreeWidgetItem,
 )
 
@@ -208,7 +207,7 @@ class APITesterPanel(QWidget):
 
     def _on_error(self, error: str):
         self._send_btn.setEnabled(True)
-        self._status_label.setText(f'<span style="color:#ff7b72;">Error</span>')
+        self._status_label.setText('<span style="color:#ff7b72;">Error</span>')
         self._resp_body.setPlainText(f"Error: {error}")
 
     def _format_json(self):
@@ -491,7 +490,7 @@ class APITesterPanel(QWidget):
         if not col:
             return
         base = self._ogc_url.text().rstrip("/")
-        params = [f"f=json", f"limit={self._ogc_flimit.value()}"]
+        params = ["f=json", f"limit={self._ogc_flimit.value()}"]
         if self._ogc_bbox.text().strip():
             params.append(f"bbox={self._ogc_bbox.text().strip()}")
         if self._ogc_datetime.text().strip():

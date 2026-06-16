@@ -18,8 +18,7 @@ from PyQt6.QtWidgets import (
     QTableWidget, QTableWidgetItem, QLineEdit, QComboBox,
     QTextEdit, QGroupBox, QMessageBox, QDialog, QDialogButtonBox,
     QHeaderView, QAbstractItemView, QFileDialog, QDateEdit,
-    QCheckBox, QSplitter, QSizePolicy, QFormLayout, QTabWidget,
-    QTreeWidget, QTreeWidgetItem,
+    QCheckBox, QFormLayout, QTabWidget,
 )
 from PyQt6.QtCore import QDate
 
