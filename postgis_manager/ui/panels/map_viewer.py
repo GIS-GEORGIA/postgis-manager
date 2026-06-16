@@ -215,10 +215,10 @@ class MapLoadWorker(QThread):
 
             sql = f"""
                 SELECT
-                    ST_AsWKB(ST_Transform(
-                        ST_Force2D("{self.geom_col}"), {target_srid}
+                    ST_AsBinary(ST_Transform(
+                        ST_Force2D("{self.geom_col}"::geometry), {target_srid}
                     )) AS _wkb,
-                    ST_GeometryType("{self.geom_col}") AS _gtype,
+                    ST_GeometryType("{self.geom_col}"::geometry) AS _gtype,
                     {col_sql}
                 FROM "{self.schema}"."{self.table}"
                 WHERE "{self.geom_col}" IS NOT NULL
