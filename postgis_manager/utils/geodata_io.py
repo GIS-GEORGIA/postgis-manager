@@ -216,6 +216,24 @@ def import_geopackage(conn_params: dict,
     ogr = find_ogr2ogr()
     if not ogr:
         raise RuntimeError("ogr2ogr not found.")
+
+    # If no specific layer requested → import all layers preserving their names
+    if not layer:
+        cmd = [ogr, "-f", "PostgreSQL",
+               _pg_conn_str(conn_params),
+               gpkg_path,
+               "-lco", "GEOMETRY_NAME=geom",
+               "-lco", "FID=gid",
+               "-lco", f"SCHEMA={schema}",
+               "--config", "PG_USE_COPY", "YES",
+               "-progress"]
+        if mode == "replace":
+            cmd += ["-overwrite"]
+        elif mode == "append":
+            cmd += ["-append"]
+        code, _ = _run(cmd, log_fn=log_fn)
+        return code == 0
+
     cmd = [ogr, "-f", "PostgreSQL",
            _pg_conn_str(conn_params),
            gpkg_path,

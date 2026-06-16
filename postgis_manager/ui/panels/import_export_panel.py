@@ -343,13 +343,23 @@ class ImportExportPanel(QWidget):
             "GeoPackage (*.gpkg);;All files (*)"))
         self._gpkg_path.textChanged.connect(self._refresh_gpkg_layers)
         self._gpkg_layer = QComboBox()
+        self._gpkg_layer.currentTextChanged.connect(self._on_gpkg_layer_changed)
         btn_refresh = QPushButton("↺")
         btn_refresh.setFixedWidth(28)
         btn_refresh.clicked.connect(
             lambda: self._refresh_gpkg_layers(self._gpkg_path.text()))
+        self._gpkg_import_all_btn = QPushButton("📦  Import All Layers")
+        self._gpkg_import_all_btn.setStyleSheet("font-weight:bold;")
+        self._gpkg_import_all_btn.clicked.connect(self._do_import_all_gpkg)
         fl.addRow("File:",  self._hrow(self._gpkg_path, btn_browse))
         fl.addRow("Layer:", self._hrow(self._gpkg_layer, btn_refresh))
+        fl.addRow("",       self._gpkg_import_all_btn)
         return w
+
+    def _on_gpkg_layer_changed(self, name: str):
+        if name:
+            safe = name.lower().replace(" ", "_").replace("-", "_")
+            self._imp_table.setText(safe)
 
     def _build_csv_src(self) -> QWidget:
         w = QWidget()
@@ -558,6 +568,26 @@ class ImportExportPanel(QWidget):
             delim = self._csv_delim.currentText()
             task["delimiter"] = "\t" if delim == "\\t" else delim
 
+        self._start_import(task)
+
+    def _do_import_all_gpkg(self):
+        if not self._conn_params:
+            QMessageBox.warning(self, "No connection", "Open a DB connection first.")
+            return
+        p = self._gpkg_path.text().strip()
+        if not p:
+            return self._warn_no_file()
+        schema = self._imp_schema.text().strip()
+        task = {
+            "kind":   "geopackage",
+            "conn":   self._conn_params,
+            "schema": schema,
+            "table":  "",   # empty → import all layers
+            "layer":  "",
+            "mode":   self._imp_mode.currentText(),
+        }
+        task["path"] = p
+        self._log_msg(f"Importing all layers from {os.path.basename(p)} → {schema}…")
         self._start_import(task)
 
     def _start_import(self, task: dict):

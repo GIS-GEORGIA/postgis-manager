@@ -38,7 +38,8 @@ class DBManager:
                 sslmode=ssl_mode,
             )
             self.conn.autocommit = True
-            self.params = dict(host=host, port=port, dbname=dbname, user=user)
+            self.params = dict(host=host, port=port, dbname=dbname,
+                               user=user, password=password)
 
     def disconnect(self) -> None:
         with self._lock:
