@@ -7,7 +7,6 @@ from typing import Optional, Callable
 import psycopg2
 import psycopg2.extras
 import psycopg2.extensions
-import geopandas as gpd
 
 
 class DBManager:
@@ -284,7 +283,7 @@ class DBManager:
 
     # ── Vector Import ────────────────────────────────────────────────────────
 
-    def create_table_from_gdf(self, gdf: gpd.GeoDataFrame,
+    def create_table_from_gdf(self, gdf: "gpd.GeoDataFrame",
                                schema: str, table: str,
                                geom_col: str, srid: int) -> None:
         """Create a PostGIS table matching a GeoDataFrame schema."""
@@ -313,7 +312,7 @@ class DBManager:
             """)
         self.conn.commit()
 
-    def import_geodataframe(self, gdf: gpd.GeoDataFrame,
+    def import_geodataframe(self, gdf: "gpd.GeoDataFrame",
                              schema: str, table: str,
                              geom_col: str, target_srid: int,
                              log_fn: Callable[[str, str], None],
@@ -412,7 +411,8 @@ class DBManager:
 
     def export_to_geodataframe(self, schema: str, table: str,
                                 geom_col: str, srid: int,
-                                where: str = "") -> gpd.GeoDataFrame:
+                                where: str = "") -> "gpd.GeoDataFrame":
+        import geopandas as gpd
         where_clause = f"WHERE {where}" if where.strip() else ""
         sql = (f'SELECT *, ST_AsText("{geom_col}") AS _wkt '
                f'FROM "{schema}"."{table}" {where_clause}')
