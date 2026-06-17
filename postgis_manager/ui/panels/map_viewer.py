@@ -855,6 +855,12 @@ class MapCanvas(QGraphicsView):
                                        r.width()*.05,  r.height()*.05),
                            Qt.AspectRatioMode.KeepAspectRatio)
 
+    def fit_world(self):
+        """Fit to full world extent (EPSG:3857). Used when basemap loads with no data."""
+        pad = _MAX_MERC * 1.05
+        self.fitInView(QRectF(-pad, -pad, pad * 2, pad * 2),
+                       Qt.AspectRatioMode.KeepAspectRatio)
+
     def select_feature(self, fid: int):
         for item in self._items:
             item.set_selected_state(item.fid == fid)
@@ -884,17 +890,19 @@ class MapCanvas(QGraphicsView):
         self._schedule_wms()
 
     def mousePressEvent(self, e: QMouseEvent):
-        start_pan = (
+        want_pan = (
             e.button() == Qt.MouseButton.MiddleButton or
             (e.button() == Qt.MouseButton.LeftButton and
-             e.modifiers() & Qt.KeyboardModifier.AltModifier) or
+             bool(e.modifiers() & Qt.KeyboardModifier.AltModifier)) or
             (e.button() == Qt.MouseButton.LeftButton and self._pan_mode)
         )
-        if start_pan:
+        if want_pan:
             self._panning = True
             self._pan_start = e.position()
             self.setCursor(Qt.CursorShape.ClosedHandCursor)
-        elif e.button() == Qt.MouseButton.LeftButton:
+            e.accept()          # stop Qt from doing rubber-band / selection
+            return
+        if e.button() == Qt.MouseButton.LeftButton:
             scene_pos = self.mapToScene(e.position().toPoint())
             hit = self._scene.itemAt(scene_pos, QTransform())
             if isinstance(hit, FeatureItem):
@@ -909,14 +917,19 @@ class MapCanvas(QGraphicsView):
                 self.horizontalScrollBar().value() - int(delta.x()))
             self.verticalScrollBar().setValue(
                 self.verticalScrollBar().value() - int(delta.y()))
+            e.accept()
+            return
         super().mouseMoveEvent(e)
 
     def mouseReleaseEvent(self, e: QMouseEvent):
-        if self._panning:
+        if self._panning and e.button() in (
+                Qt.MouseButton.LeftButton, Qt.MouseButton.MiddleButton):
             self._panning = False
             self.setCursor(
                 Qt.CursorShape.OpenHandCursor if self._pan_mode
                 else Qt.CursorShape.ArrowCursor)
+            e.accept()
+            return
         super().mouseReleaseEvent(e)
 
     def zoom_in(self):
@@ -1121,15 +1134,14 @@ class MapViewerPanel(QWidget):
         self._layer_list = QListWidget()
         self._layer_list.setSelectionMode(
             QAbstractItemView.SelectionMode.SingleSelection)
+        self._layer_list.setDragDropMode(
+            QAbstractItemView.DragDropMode.InternalMove)
+        self._layer_list.setDefaultDropAction(Qt.DropAction.MoveAction)
         self._layer_list.currentItemChanged.connect(self._on_layer_selected)
         self._layer_list.itemChanged.connect(self._on_layer_check_changed)
+        self._layer_list.model().rowsMoved.connect(
+            lambda: self._canvas.draw_all(self._layer_list))
         lp_layout.addWidget(self._layer_list)
-
-        self._btn_wfs = QPushButton("🌐 Add WFS Layer")
-        self._btn_wfs.setToolTip("Load vector features from a WFS service")
-        self._btn_wfs.setFixedHeight(24)
-        self._btn_wfs.clicked.connect(self._add_wfs_layer)
-        lp_layout.addWidget(self._btn_wfs)
 
         # ── Basemap section (separator + controls) ────────────────────────
         sep = QFrame()
@@ -1204,9 +1216,13 @@ class MapViewerPanel(QWidget):
                 user_data["url"], user_data["layer"],
                 user_data.get("styles", ""))
             self._upsert_basemap_list_item(name, "wms")
+            if not self._has_vector_features():
+                self._canvas.fit_world()
         elif isinstance(user_data, str):
             self._canvas.set_tile_basemap(user_data)
             self._upsert_basemap_list_item(name, "xyz")
+            if not self._has_vector_features():
+                self._canvas.fit_world()
         else:
             url = PREDEFINED_BASEMAPS.get(name)
             if url is None:
@@ -1215,6 +1231,12 @@ class MapViewerPanel(QWidget):
             else:
                 self._canvas.set_tile_basemap(url)
                 self._upsert_basemap_list_item(name, "xyz")
+                if not self._has_vector_features():
+                    self._canvas.fit_world()
+
+    def _has_vector_features(self) -> bool:
+        """Return True if any non-basemap layer has features loaded."""
+        return bool(self._layers_data)
 
     def _upsert_basemap_list_item(self, name: str, bm_type: str):
         """Create or update the basemap entry at position 0 of the layer list."""
