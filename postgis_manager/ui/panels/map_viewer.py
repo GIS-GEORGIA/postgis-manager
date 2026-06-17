@@ -5,22 +5,24 @@ import struct
 from typing import Optional
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QSplitter,
+    QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
     QToolBar, QComboBox, QLabel, QTableWidget, QTableWidgetItem,
     QGraphicsView, QGraphicsScene, QGraphicsItem,
     QGraphicsPathItem, QAbstractItemView,
-    QFrame, QProgressBar,
+    QFrame, QProgressBar, QListWidget, QListWidgetItem,
+    QPushButton, QDialog, QDialogButtonBox,
 )
 from PyQt6.QtCore import (
     Qt, QThread, pyqtSignal, QPointF,
 )
 from PyQt6.QtGui import (
     QPainter, QPainterPath, QColor, QPen, QBrush,
-    QWheelEvent, QMouseEvent, QAction, QTransform,
+    QWheelEvent, QMouseEvent, QAction, QTransform, QPixmap, QIcon,
 )
 
 from ...db.connection import DBManager
 from ...utils import i18n
+from ...utils.workers import launch
 
 
 # ── Colours by geometry type ──────────────────────────────────────────────
@@ -35,6 +37,12 @@ _COLOURS = {
 }
 _SEL_STROKE = "#FF6D00"
 _SEL_FILL   = "#FFD180"
+
+# ── Layer colour palette (cycles for new layers) ──────────────────────────
+_LAYER_COLORS = [
+    "#2979FF", "#00C853", "#FF6D00", "#AA00FF",
+    "#D50000", "#00BCD4", "#FFD600", "#76FF03",
+]
 
 
 # ── WKB parser (no external dep) ─────────────────────────────────────────
@@ -181,14 +189,14 @@ class MapLoadWorker(QThread):
 
     LIMIT = 5000
 
-    def __init__(self, db: DBManager, schema: str, table: str,
-                 geom_col: str, srid: int):
+    def __init__(self, db: DBManager, layer_info: dict):
+        """layer_info keys: schema, table, geom_col, srid, color (hex str)."""
         super().__init__()
-        self.db = db
-        self.schema = schema
-        self.table  = table
-        self.geom_col = geom_col
-        self.srid   = srid
+        self.db       = db
+        self.schema   = layer_info["schema"]
+        self.table    = layer_info["table"]
+        self.geom_col = layer_info["geom_col"]
+        self.srid     = layer_info.get("srid", 0)
 
     def _q(self, sql, params=None):
         import psycopg2.extras
@@ -243,29 +251,43 @@ class MapLoadWorker(QThread):
 
 # ── Feature graphics item ─────────────────────────────────────────────────
 class FeatureItem(QGraphicsPathItem):
-    def __init__(self, path: QPainterPath, gtype: str, fid: int):
+    def __init__(self, path: QPainterPath, gtype: str, fid: int,
+                 layer_color: Optional[str] = None):
         super().__init__(path)
         self.fid   = fid
         self.gtype = gtype
+        self._layer_color = layer_color
         self._selected_state = False
         self._apply_style(False)
         self.setAcceptHoverEvents(True)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable)
 
     def _apply_style(self, selected: bool):
-        stroke, fill = _COLOURS.get(self.gtype, ("#888", "#CCC"))
         if selected:
             pen   = QPen(QColor(_SEL_STROKE), 0)
             brush = QBrush(QColor(_SEL_FILL + "AA"))
-        elif "LINE" in self.gtype:
-            pen   = QPen(QColor(stroke), 0)
-            brush = QBrush(Qt.BrushStyle.NoBrush)
-        elif "POINT" in self.gtype:
-            pen   = QPen(QColor(stroke), 0)
-            brush = QBrush(QColor(fill))
+        elif self._layer_color:
+            color = self._layer_color
+            if "LINE" in self.gtype:
+                pen   = QPen(QColor(color), 0)
+                brush = QBrush(Qt.BrushStyle.NoBrush)
+            elif "POINT" in self.gtype:
+                pen   = QPen(QColor(color), 0)
+                brush = QBrush(QColor(color))
+            else:
+                pen   = QPen(QColor(color), 0)
+                brush = QBrush(QColor(color + "88"))
         else:
-            pen   = QPen(QColor(stroke), 0)
-            brush = QBrush(QColor(fill + "88"))
+            stroke, fill = _COLOURS.get(self.gtype, ("#888", "#CCC"))
+            if "LINE" in self.gtype:
+                pen   = QPen(QColor(stroke), 0)
+                brush = QBrush(Qt.BrushStyle.NoBrush)
+            elif "POINT" in self.gtype:
+                pen   = QPen(QColor(stroke), 0)
+                brush = QBrush(QColor(fill))
+            else:
+                pen   = QPen(QColor(stroke), 0)
+                brush = QBrush(QColor(fill + "88"))
         self.setPen(pen)
         self.setBrush(brush)
 
@@ -327,6 +349,37 @@ class MapCanvas(QGraphicsView):
                 continue
         self.fit_extent()
 
+    def draw_all(self, layer_list: QListWidget):
+        """Redraw canvas from all visible layers in order (bottom to top)."""
+        self._scene.clear()
+        self._items.clear()
+        self._selected_fid = -1
+
+        count = layer_list.count()
+        for list_idx in range(count):
+            item = layer_list.item(list_idx)
+            if item.checkState() != Qt.CheckState.Checked:
+                continue
+            data = item.data(Qt.ItemDataRole.UserRole)
+            if not data:
+                continue
+            features = data.get("features", [])
+            color = data.get("color", None)
+            for fid, (wkb, gtype, _attrs) in enumerate(features):
+                try:
+                    path, resolved = _wkb_to_path(wkb)
+                    if path.isEmpty():
+                        continue
+                    fi = FeatureItem(path, gtype, fid, layer_color=color)
+                    fi.setZValue(list_idx * 10 + (0 if "POLY" in gtype else 1))
+                    self._scene.addItem(fi)
+                    self._items.append(fi)
+                except Exception:
+                    continue
+
+        if self._scene.items():
+            self.fit_extent()
+
     def fit_extent(self):
         if self._scene.items():
             r = self._scene.itemsBoundingRect()
@@ -387,45 +440,83 @@ class MapCanvas(QGraphicsView):
     def zoom_out(self): self.scale(1/1.5, 1/1.5)
 
 
+# ── Add-layer dialog ──────────────────────────────────────────────────────
+def _make_dot_icon(color: str, size: int = 14) -> QIcon:
+    """Create a small filled-circle icon for the given hex color."""
+    px = QPixmap(size, size)
+    px.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(px)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setBrush(QBrush(QColor(color)))
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.drawEllipse(1, 1, size - 2, size - 2)
+    painter.end()
+    return QIcon(px)
+
+
+class _AddLayerDialog(QDialog):
+    """Small dialog that lets the user pick a layer from geometry_columns."""
+
+    def __init__(self, available_rows: list, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Add Layer")
+        self.setMinimumWidth(360)
+        layout = QVBoxLayout(self)
+
+        layout.addWidget(QLabel("Select a layer to add:"))
+        self._combo = QComboBox()
+        self._combo.setMinimumWidth(320)
+        for r in available_rows:
+            label = (f'{r["f_table_schema"]}.{r["f_table_name"]}'
+                     f' ({r["f_geometry_column"]})')
+            self._combo.addItem(label, r)
+        layout.addWidget(self._combo)
+
+        btns = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok |
+            QDialogButtonBox.StandardButton.Cancel
+        )
+        btns.accepted.connect(self.accept)
+        btns.rejected.connect(self.reject)
+        layout.addWidget(btns)
+
+    def selected_row(self) -> Optional[dict]:
+        return self._combo.currentData()
+
+
 # ── Main panel ────────────────────────────────────────────────────────────
 class MapViewerPanel(QWidget):
     def __init__(self, db: DBManager, parent=None):
         super().__init__(parent)
         self.db = db
-        self._feature_data: list = []
-        self._columns: list = []
-        self._load_worker:  Optional[MapLoadWorker]  = None
+
+        # Available rows from geometry_columns (refreshed via LayerListWorker)
+        self._available_rows: list = []
+
+        # Per-layer feature data: layer_key → list of (wkb, gtype, attrs)
+        self._layers_data: dict[str, list] = {}
+
+        # Per-layer column names: layer_key → list[str]
+        self._layers_columns: dict[str, list] = {}
+
+        # Currently active load worker
+        self._load_worker: Optional[MapLoadWorker] = None
         self._layer_worker: Optional[LayerListWorker] = None
+
+        # Color assignment counter
+        self._color_idx: int = 0
+
         self._build_ui()
 
+    # ── UI construction ───────────────────────────────────────────────────
     def _build_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
 
         # ── Toolbar ───────────────────────────────────────────────────────
         tb = QToolBar()
         tb.setMovable(False)
-
-        self._layer_combo = QComboBox()
-        self._layer_combo.setMinimumWidth(260)
-        self._layer_combo.setPlaceholderText(i18n.t("mv_select_layer"))
-        self._layer_combo.currentIndexChanged.connect(self._on_layer_changed)
-        tb.addWidget(QLabel(f"  {i18n.t('mv_layer')}:  "))
-        tb.addWidget(self._layer_combo)
-        tb.addSeparator()
-
-        self._act_refresh = QAction("↻", self)
-        self._act_refresh.setToolTip(i18n.t("action_refresh"))
-        self._act_refresh.triggered.connect(self._load_layers)
-        tb.addAction(self._act_refresh)
-
-        self._act_load = QAction("⬇ Load", self)
-        self._act_load.setToolTip(i18n.t("mv_load"))
-        self._act_load.triggered.connect(self._load_map)
-        tb.addAction(self._act_load)
-
-        tb.addSeparator()
 
         self._act_fit = QAction("⊞ Fit", self)
         self._act_fit.triggered.connect(lambda: self._canvas.fit_extent())
@@ -439,7 +530,7 @@ class MapViewerPanel(QWidget):
         self._act_zo.triggered.connect(lambda: self._canvas.zoom_out())
         tb.addAction(self._act_zo)
 
-        layout.addWidget(tb)
+        root.addWidget(tb)
 
         # ── Progress bar ──────────────────────────────────────────────────
         self._progress = QProgressBar()
@@ -447,14 +538,50 @@ class MapViewerPanel(QWidget):
         self._progress.setTextVisible(False)
         self._progress.setRange(0, 100)
         self._progress.hide()
-        layout.addWidget(self._progress)
+        root.addWidget(self._progress)
 
-        # ── Splitter: map + table ─────────────────────────────────────────
-        splitter = QSplitter(Qt.Orientation.Vertical)
+        # ── Main splitter: layer panel | right area ────────────────────────
+        h_splitter = QSplitter(Qt.Orientation.Horizontal)
+
+        # Left: layer panel
+        layer_panel = QWidget()
+        layer_panel.setMinimumWidth(160)
+        layer_panel.setMaximumWidth(300)
+        lp_layout = QVBoxLayout(layer_panel)
+        lp_layout.setContentsMargins(4, 4, 4, 4)
+        lp_layout.setSpacing(4)
+
+        # Header row: "Layers" label + "+" + "-" buttons
+        header_row = QHBoxLayout()
+        header_row.addWidget(QLabel("Layers"))
+        header_row.addStretch()
+        self._btn_add = QPushButton("+")
+        self._btn_add.setFixedSize(22, 22)
+        self._btn_add.setToolTip("Add layer")
+        self._btn_add.clicked.connect(self._on_add_layer)
+        header_row.addWidget(self._btn_add)
+        self._btn_remove = QPushButton("−")
+        self._btn_remove.setFixedSize(22, 22)
+        self._btn_remove.setToolTip("Remove selected layer")
+        self._btn_remove.clicked.connect(self._on_remove_layer)
+        header_row.addWidget(self._btn_remove)
+        lp_layout.addLayout(header_row)
+
+        self._layer_list = QListWidget()
+        self._layer_list.setSelectionMode(
+            QAbstractItemView.SelectionMode.SingleSelection)
+        self._layer_list.currentItemChanged.connect(self._on_layer_selected)
+        self._layer_list.itemChanged.connect(self._on_layer_check_changed)
+        lp_layout.addWidget(self._layer_list)
+
+        h_splitter.addWidget(layer_panel)
+
+        # Right: vertical splitter (canvas + attr table)
+        v_splitter = QSplitter(Qt.Orientation.Vertical)
 
         self._canvas = MapCanvas()
         self._canvas.feature_clicked.connect(self._on_feature_clicked)
-        splitter.addWidget(self._canvas)
+        v_splitter.addWidget(self._canvas)
 
         # Attribute table
         self._table = QTableWidget()
@@ -467,16 +594,68 @@ class MapViewerPanel(QWidget):
         self._table.verticalHeader().setDefaultSectionSize(22)
         self._table.itemSelectionChanged.connect(self._on_table_selection)
         self._table.itemChanged.connect(self._on_cell_edit)
-        splitter.addWidget(self._table)
+        v_splitter.addWidget(self._table)
 
-        splitter.setSizes([480, 220])
-        layout.addWidget(splitter)
+        v_splitter.setSizes([480, 220])
+        h_splitter.addWidget(v_splitter)
+        h_splitter.setSizes([200, 800])
+
+        root.addWidget(h_splitter)
 
         # ── Status bar ────────────────────────────────────────────────────
         self._status = QLabel()
         self._status.setStyleSheet(
             "padding: 2px 8px; font-size: 12px; color: #888;")
-        layout.addWidget(self._status)
+        root.addWidget(self._status)
+
+    # ── Layer list helpers ────────────────────────────────────────────────
+    def _layer_key(self, schema: str, table: str, geom_col: str) -> str:
+        return f"{schema}.{table}.{geom_col}"
+
+    def _next_color(self) -> str:
+        color = _LAYER_COLORS[self._color_idx % len(_LAYER_COLORS)]
+        self._color_idx += 1
+        return color
+
+    def _find_list_item(self, key: str) -> Optional[QListWidgetItem]:
+        for i in range(self._layer_list.count()):
+            item = self._layer_list.item(i)
+            d = item.data(Qt.ItemDataRole.UserRole)
+            if d and self._layer_key(d["schema"], d["table"], d["geom_col"]) == key:
+                return item
+        return None
+
+    def _add_layer_to_list(self, schema: str, table: str,
+                           geom_col: str, srid: int,
+                           color: Optional[str] = None) -> QListWidgetItem:
+        """Create and append a QListWidgetItem for the given layer."""
+        if color is None:
+            color = self._next_color()
+        key = self._layer_key(schema, table, geom_col)
+        label = f"{schema}.{table}"
+        if geom_col:
+            label += f" [{geom_col}]"
+
+        lw_item = QListWidgetItem(label)
+        lw_item.setFlags(
+            Qt.ItemFlag.ItemIsUserCheckable |
+            Qt.ItemFlag.ItemIsEnabled |
+            Qt.ItemFlag.ItemIsSelectable
+        )
+        lw_item.setCheckState(Qt.CheckState.Checked)
+        lw_item.setIcon(_make_dot_icon(color))
+        lw_item.setData(Qt.ItemDataRole.UserRole, {
+            "schema":   schema,
+            "table":    table,
+            "geom_col": geom_col,
+            "srid":     srid,
+            "color":    color,
+            "features": [],
+        })
+        self._layer_list.blockSignals(True)
+        self._layer_list.addItem(lw_item)
+        self._layer_list.blockSignals(False)
+        return lw_item
 
     # ── DB interaction ────────────────────────────────────────────────────
     def showEvent(self, e):
@@ -485,74 +664,128 @@ class MapViewerPanel(QWidget):
             self._load_layers()
 
     def _load_layers(self):
+        """Refresh the available layer list from geometry_columns."""
         if not self.db.is_connected():
             return
-        self._layer_combo.clear()
         self._layer_worker = LayerListWorker(self.db)
         self._layer_worker.done.connect(self._on_layers_loaded)
-        self._layer_worker.start()
+        launch(self._layer_worker)
 
     def _on_layers_loaded(self, rows: list):
-        self._layer_combo.blockSignals(True)
-        self._layer_combo.clear()
-        for r in rows:
-            label = f'{r["f_table_schema"]}.{r["f_table_name"]} ({r["f_geometry_column"]})'
-            self._layer_combo.addItem(label, r)
-        self._layer_combo.blockSignals(False)
+        self._available_rows = rows
         self._status.setText(
-            i18n.t("mv_layers_found", n=self._layer_combo.count()))
+            i18n.t("mv_layers_found", n=len(rows)))
 
-    def _on_layer_changed(self, _):
-        pass
-
-    def _load_map(self):
-        data = self._layer_combo.currentData()
-        if not data or not self.db.is_connected():
+    # ── Add / remove layer buttons ────────────────────────────────────────
+    def _on_add_layer(self):
+        if not self._available_rows:
+            if self.db.is_connected():
+                self._load_layers()
+            self._status.setText("No available layers yet. Try again in a moment.")
             return
-        if self._load_worker and self._load_worker.isRunning():
-            self._load_worker.quit()
 
-        self._canvas.clear()
+        dlg = _AddLayerDialog(self._available_rows, self)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        row = dlg.selected_row()
+        if not row:
+            return
+
+        schema   = row["f_table_schema"]
+        table    = row["f_table_name"]
+        geom_col = row["f_geometry_column"]
+        srid     = row.get("srid", 0)
+        key      = self._layer_key(schema, table, geom_col)
+
+        # Don't add duplicates
+        if self._find_list_item(key):
+            self._status.setText(f"Layer {schema}.{table} already in list.")
+            return
+
+        lw_item = self._add_layer_to_list(schema, table, geom_col, srid)
+        self._layer_list.setCurrentItem(lw_item)
+        self._load_layer_data(lw_item)
+
+    def _on_remove_layer(self):
+        item = self._layer_list.currentItem()
+        if not item:
+            return
+        d = item.data(Qt.ItemDataRole.UserRole)
+        if d:
+            key = self._layer_key(d["schema"], d["table"], d["geom_col"])
+            self._layers_data.pop(key, None)
+            self._layers_columns.pop(key, None)
+        row = self._layer_list.row(item)
+        self._layer_list.takeItem(row)
+        self._canvas.draw_all(self._layer_list)
         self._table.clearContents()
         self._table.setRowCount(0)
-        self._feature_data = []
+
+    # ── Load data for a layer item ────────────────────────────────────────
+    def _load_layer_data(self, lw_item: QListWidgetItem):
+        """Start a MapLoadWorker for the given list item."""
+        if not self.db.is_connected():
+            return
+        d = lw_item.data(Qt.ItemDataRole.UserRole)
+        if not d:
+            return
+
+        if self._load_worker and self._load_worker.isRunning():
+            self._load_worker.quit()
+            self._load_worker.wait()
+
         self._progress.show()
         self._progress.setValue(0)
         self._status.setText(i18n.t("mv_loading"))
 
-        self._load_worker = MapLoadWorker(
-            self.db,
-            data["f_table_schema"],
-            data["f_table_name"],
-            data["f_geometry_column"],
-            data.get("srid", 0),
-        )
-        self._load_worker.progress.connect(self._progress.setValue)
-        self._load_worker.columns.connect(self._on_columns)
-        self._load_worker.features.connect(self._on_features)
-        self._load_worker.error.connect(self._on_error)
-        self._load_worker.start()
+        layer_info = {
+            "schema":   d["schema"],
+            "table":    d["table"],
+            "geom_col": d["geom_col"],
+            "srid":     d.get("srid", 0),
+            "color":    d.get("color"),
+        }
+        worker = MapLoadWorker(self.db, layer_info)
+        # Capture references for closures
+        worker.progress.connect(self._progress.setValue)
+        worker.columns.connect(
+            lambda cols, item=lw_item: self._on_columns(cols, item))
+        worker.features.connect(
+            lambda data, item=lw_item: self._on_features(data, item))
+        worker.error.connect(self._on_error)
+        self._load_worker = worker
+        launch(worker)
 
-    def _on_columns(self, cols: list):
-        self._columns = cols
-        self._table.setColumnCount(len(cols))
-        self._table.setHorizontalHeaderLabels(cols)
+    def _on_columns(self, cols: list, lw_item: QListWidgetItem):
+        d = lw_item.data(Qt.ItemDataRole.UserRole)
+        if not d:
+            return
+        key = self._layer_key(d["schema"], d["table"], d["geom_col"])
+        self._layers_columns[key] = cols
+        # If this is the currently selected layer, update table headers
+        if self._layer_list.currentItem() is lw_item:
+            self._table.setColumnCount(len(cols))
+            self._table.setHorizontalHeaderLabels(cols)
 
-    def _on_features(self, data: list):
-        self._feature_data = data
+    def _on_features(self, data: list, lw_item: QListWidgetItem):
         self._progress.hide()
-        self._canvas.load_features(data)
 
-        # Fill table
-        self._table.blockSignals(True)
-        self._table.setRowCount(len(data))
-        for row_idx, (_wkb, _gtype, attrs) in enumerate(data):
-            for col_idx, col in enumerate(self._columns):
-                val = attrs.get(col, "")
-                item = QTableWidgetItem(
-                    "" if val is None else str(val))
-                self._table.setItem(row_idx, col_idx, item)
-        self._table.blockSignals(False)
+        d = lw_item.data(Qt.ItemDataRole.UserRole)
+        if not d:
+            return
+        key = self._layer_key(d["schema"], d["table"], d["geom_col"])
+        self._layers_data[key] = data
+
+        # Store features inside the item's UserRole data too (for draw_all)
+        d["features"] = data
+        lw_item.setData(Qt.ItemDataRole.UserRole, d)
+
+        # Redraw all visible layers
+        self._canvas.draw_all(self._layer_list)
+
+        # If this is the active layer, populate the attribute table
+        if self._layer_list.currentItem() is lw_item:
+            self._populate_attr_table(lw_item)
 
         n = len(data)
         limit_note = f" (limit {MapLoadWorker.LIMIT})" if n == MapLoadWorker.LIMIT else ""
@@ -562,6 +795,48 @@ class MapViewerPanel(QWidget):
     def _on_error(self, msg: str):
         self._progress.hide()
         self._status.setText(f"Error: {msg}")
+
+    # ── Attribute table population ────────────────────────────────────────
+    def _populate_attr_table(self, lw_item: Optional[QListWidgetItem]):
+        self._table.blockSignals(True)
+        self._table.clearContents()
+        self._table.setRowCount(0)
+
+        if lw_item is None:
+            self._table.setColumnCount(0)
+            self._table.blockSignals(False)
+            return
+
+        d = lw_item.data(Qt.ItemDataRole.UserRole)
+        if not d:
+            self._table.blockSignals(False)
+            return
+
+        key = self._layer_key(d["schema"], d["table"], d["geom_col"])
+        cols = self._layers_columns.get(key, [])
+        data = self._layers_data.get(key, [])
+
+        self._table.setColumnCount(len(cols))
+        self._table.setHorizontalHeaderLabels(cols)
+        self._table.setRowCount(len(data))
+
+        for row_idx, (_wkb, _gtype, attrs) in enumerate(data):
+            for col_idx, col in enumerate(cols):
+                val = attrs.get(col, "")
+                cell = QTableWidgetItem("" if val is None else str(val))
+                self._table.setItem(row_idx, col_idx, cell)
+
+        self._table.blockSignals(False)
+
+    # ── Layer list signals ────────────────────────────────────────────────
+    def _on_layer_selected(self, current: Optional[QListWidgetItem],
+                           previous: Optional[QListWidgetItem]):
+        """User clicked a different layer in the list."""
+        self._populate_attr_table(current)
+
+    def _on_layer_check_changed(self, item: QListWidgetItem):
+        """Checkbox toggled — redraw canvas."""
+        self._canvas.draw_all(self._layer_list)
 
     # ── Sync: canvas ↔ table ──────────────────────────────────────────────
     def _on_feature_clicked(self, fid: int):
@@ -579,24 +854,34 @@ class MapViewerPanel(QWidget):
 
     # ── Inline edit ───────────────────────────────────────────────────────
     def _on_cell_edit(self, item: QTableWidgetItem):
-        if not self.db.is_connected() or not self._feature_data:
+        if not self.db.is_connected():
             return
+        current = self._layer_list.currentItem()
+        if current is None:
+            return
+        d = current.data(Qt.ItemDataRole.UserRole)
+        if not d:
+            return
+        key = self._layer_key(d["schema"], d["table"], d["geom_col"])
+        feature_data = self._layers_data.get(key, [])
+        cols = self._layers_columns.get(key, [])
+        if not feature_data or not cols:
+            return
+
         fid = item.row()
-        col = self._columns[item.column()]
+        col_idx = item.column()
+        if col_idx >= len(cols):
+            return
+        col = cols[col_idx]
         new_val = item.text()
 
-        layer_data = self._layer_combo.currentData()
-        if not layer_data:
-            return
+        schema = d["schema"]
+        table  = d["table"]
 
-        schema = layer_data["f_table_schema"]
-        table  = layer_data["f_table_name"]
-
-        # Find primary key (first column)
-        pk_col = self._columns[0] if self._columns else None
+        pk_col = cols[0] if cols else None
         if not pk_col:
             return
-        pk_val = self._feature_data[fid][2].get(pk_col)
+        pk_val = feature_data[fid][2].get(pk_col)
         if pk_val is None:
             return
 
@@ -607,7 +892,8 @@ class MapViewerPanel(QWidget):
                     f'WHERE "{pk_col}" = %s',
                     (new_val, pk_val)
                 )
-            self._feature_data[fid][2][col] = new_val
+            self.db.conn.commit()
+            feature_data[fid][2][col] = new_val
             self._status.setText(
                 i18n.t("mv_saved", col=col, pk=pk_val))
         except Exception as e:
@@ -617,15 +903,48 @@ class MapViewerPanel(QWidget):
     # ── External API ──────────────────────────────────────────────────────
     def set_active_layer(self, schema: str, table: str, geom_col: str = ""):
         """Called from browser panel when user selects a layer."""
-        for i in range(self._layer_combo.count()):
-            d = self._layer_combo.itemData(i)
-            if (d and d["f_table_schema"] == schema
-                    and d["f_table_name"] == table):
-                self._layer_combo.setCurrentIndex(i)
-                self._load_map()
+        # Try to find the layer in the list first
+        # Use geom_col if given, else match on schema+table
+        for i in range(self._layer_list.count()):
+            lw_item = self._layer_list.item(i)
+            d = lw_item.data(Qt.ItemDataRole.UserRole)
+            if not d:
+                continue
+            if (d["schema"] == schema and d["table"] == table and
+                    (not geom_col or d["geom_col"] == geom_col)):
+                self._layer_list.setCurrentItem(lw_item)
                 return
-        if self.db.is_connected():
-            self._load_layers()
+
+        # Not in list yet — need to find the row in available_rows and add it
+        def _add_after_load(rows: list):
+            for r in rows:
+                if (r["f_table_schema"] == schema and
+                        r["f_table_name"] == table and
+                        (not geom_col or r["f_geometry_column"] == geom_col)):
+                    gcol = r["f_geometry_column"]
+                    srid = r.get("srid", 0)
+                    key  = self._layer_key(schema, table, gcol)
+                    existing = self._find_list_item(key)
+                    if existing:
+                        self._layer_list.setCurrentItem(existing)
+                        return
+                    lw_item = self._add_layer_to_list(schema, table, gcol, srid)
+                    self._layer_list.setCurrentItem(lw_item)
+                    self._load_layer_data(lw_item)
+                    return
+
+        if self._available_rows:
+            _add_after_load(self._available_rows)
+        elif self.db.is_connected():
+            # Trigger a refresh; when done, retry
+            worker = LayerListWorker(self.db)
+
+            def _on_done(rows):
+                self._available_rows = rows
+                _add_after_load(rows)
+
+            worker.done.connect(_on_done)
+            launch(worker)
 
     def refresh(self):
         self._load_layers()
