@@ -1180,11 +1180,14 @@ class MapViewerPanel(QWidget):
         lp_layout.setContentsMargins(4, 4, 4, 4)
         lp_layout.setSpacing(3)
 
-        # Neutral button style — overrides any global blue stylesheet
-        _btn = ("QPushButton{background:transparent;border:1px solid #888;"
-                "border-radius:3px;padding:0 5px;}"
-                "QPushButton:hover{background:rgba(128,128,128,0.18);}"
-                "QPushButton:pressed{background:rgba(128,128,128,0.32);}")
+        # Theme-adaptive button style: uses Qt palette so it works in light & dark
+        _btn = ("QPushButton{"
+                "background-color:palette(button);"
+                "color:palette(button-text);"
+                "border:1px solid palette(mid);"
+                "border-radius:3px;padding:1px 6px;}"
+                "QPushButton:hover{background-color:palette(light);}"
+                "QPushButton:pressed{background-color:palette(midlight);}")
 
         # "Layers" header with Add / Remove / Up / Down buttons
         header_row = QHBoxLayout()
