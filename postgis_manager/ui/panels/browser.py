@@ -8,7 +8,17 @@ from PyQt6.QtWidgets import (
     QAbstractItemView,
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QThread, pyqtSlot
-from PyQt6.QtGui import QColor, QBrush
+from PyQt6.QtGui import QColor, QBrush, QFont
+
+
+def _unicode_font() -> QFont:
+    """Return a font with good Unicode/Georgian coverage."""
+    # Preference order: Segoe UI (Win 8+), Sylfaen (Georgian), Arial Unicode MS
+    for family in ("Segoe UI", "Sylfaen", "Arial Unicode MS", "Noto Sans"):
+        f = QFont(family, 9)
+        if f.exactMatch() or QFont(family).exactMatch():
+            return f
+    return QFont()   # system default
 
 from ...db.connection import DBManager
 from ...utils import i18n
@@ -284,6 +294,7 @@ class LayerBrowserPanel(QWidget):
         layout.addWidget(info)
 
         tbl = QTableWidget(len(rows), len(cols))
+        tbl.setFont(_unicode_font())
         tbl.setHorizontalHeaderLabels(cols)
         tbl.setAlternatingRowColors(True)
         tbl.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)

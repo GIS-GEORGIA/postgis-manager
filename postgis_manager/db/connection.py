@@ -11,6 +11,10 @@ import psycopg2
 import psycopg2.extras
 import psycopg2.extensions
 
+# Force all text columns to Python str (Unicode) — must be called once globally
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
+
 
 class DBManager:
     """Thread-safe PostGIS connection manager."""
@@ -36,9 +40,14 @@ class DBManager:
                 user=user, password=password,
                 connect_timeout=timeout,
                 sslmode=ssl_mode,
+                options="-c client_encoding=UTF8",
             )
             self.conn.autocommit = True
-            self.conn.set_client_encoding("UTF8")
+            # Ensure per-connection Unicode decoding (belt-and-suspenders)
+            psycopg2.extensions.register_type(
+                psycopg2.extensions.UNICODE, self.conn)
+            psycopg2.extensions.register_type(
+                psycopg2.extensions.UNICODEARRAY, self.conn)
             self.params = dict(host=host, port=port, dbname=dbname,
                                user=user, password=password)
 

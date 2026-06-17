@@ -1008,6 +1008,12 @@ class AttributeTableWindow(QDialog):
         layout.addWidget(self._lbl)
 
         self.table = QTableWidget()
+        # Use a font with Georgian / full Unicode coverage
+        for _fam in ("Segoe UI", "Sylfaen", "Arial Unicode MS", "Noto Sans"):
+            _f = QFont(_fam, 9)
+            if _f.exactMatch():
+                self.table.setFont(_f)
+                break
         self.table.setAlternatingRowColors(True)
         self.table.setSelectionBehavior(
             QAbstractItemView.SelectionBehavior.SelectRows)
