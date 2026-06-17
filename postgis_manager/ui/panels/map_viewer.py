@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
     QGraphicsView, QGraphicsScene, QGraphicsItem,
     QGraphicsPathItem, QAbstractItemView,
     QFrame, QProgressBar, QListWidget, QListWidgetItem,
-    QPushButton, QDialog, QDialogButtonBox,
+    QPushButton, QDialog, QDialogButtonBox, QSizePolicy,
 )
 from PyQt6.QtCore import (
     Qt, QThread, pyqtSignal, QPointF,
@@ -484,6 +484,44 @@ class _AddLayerDialog(QDialog):
         return self._combo.currentData()
 
 
+# ── Floating attribute table window ──────────────────────────────────────
+class AttributeTableWindow(QDialog):
+    """Non-modal floating window that shows feature attributes."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent,
+                         Qt.WindowType.Window |
+                         Qt.WindowType.WindowStaysOnTopHint)
+        self.setWindowTitle("Attribute Table")
+        self.setMinimumSize(640, 300)
+        self.resize(800, 350)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
+
+        self._lbl = QLabel()
+        self._lbl.setStyleSheet("font-size:12px;color:#888;padding:2px 4px;")
+        layout.addWidget(self._lbl)
+
+        self.table = QTableWidget()
+        self.table.setAlternatingRowColors(True)
+        self.table.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.setEditTriggers(
+            QAbstractItemView.EditTrigger.DoubleClicked)
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.verticalHeader().setDefaultSectionSize(22)
+        layout.addWidget(self.table)
+
+    def set_layer_title(self, title: str):
+        self.setWindowTitle(f"Attributes — {title}")
+        self._lbl.setText(title)
+
+    def closeEvent(self, e):
+        # Hide instead of destroy so it can be re-shown
+        e.ignore()
+        self.hide()
+
+
 # ── Main panel ────────────────────────────────────────────────────────────
 class MapViewerPanel(QWidget):
     def __init__(self, db: DBManager, parent=None):
@@ -530,6 +568,13 @@ class MapViewerPanel(QWidget):
         self._act_zo.triggered.connect(lambda: self._canvas.zoom_out())
         tb.addAction(self._act_zo)
 
+        tb.addSeparator()
+
+        self._act_attr = QAction("📋 Attributes", self)
+        self._act_attr.setToolTip("Open floating attribute table")
+        self._act_attr.triggered.connect(self._show_attr_window)
+        tb.addAction(self._act_attr)
+
         root.addWidget(tb)
 
         # ── Progress bar ──────────────────────────────────────────────────
@@ -540,7 +585,7 @@ class MapViewerPanel(QWidget):
         self._progress.hide()
         root.addWidget(self._progress)
 
-        # ── Main splitter: layer panel | right area ────────────────────────
+        # ── Main splitter: layer panel | canvas ───────────────────────────
         h_splitter = QSplitter(Qt.Orientation.Horizontal)
 
         # Left: layer panel
@@ -552,17 +597,24 @@ class MapViewerPanel(QWidget):
         lp_layout.setSpacing(4)
 
         # Header row: "Layers" label + "+" + "-" buttons
+        _btn_style = ("QPushButton{background:#2979FF;color:#fff;border:none;"
+                      "border-radius:3px;font-weight:bold;font-size:14px;}"
+                      "QPushButton:hover{background:#1565C0;}")
         header_row = QHBoxLayout()
-        header_row.addWidget(QLabel("Layers"))
+        lbl_layers = QLabel("Layers")
+        lbl_layers.setStyleSheet("font-weight:600;")
+        header_row.addWidget(lbl_layers)
         header_row.addStretch()
         self._btn_add = QPushButton("+")
-        self._btn_add.setFixedSize(22, 22)
+        self._btn_add.setFixedSize(24, 24)
         self._btn_add.setToolTip("Add layer")
+        self._btn_add.setStyleSheet(_btn_style)
         self._btn_add.clicked.connect(self._on_add_layer)
         header_row.addWidget(self._btn_add)
         self._btn_remove = QPushButton("−")
-        self._btn_remove.setFixedSize(22, 22)
+        self._btn_remove.setFixedSize(24, 24)
         self._btn_remove.setToolTip("Remove selected layer")
+        self._btn_remove.setStyleSheet(_btn_style)
         self._btn_remove.clicked.connect(self._on_remove_layer)
         header_row.addWidget(self._btn_remove)
         lp_layout.addLayout(header_row)
@@ -576,37 +628,42 @@ class MapViewerPanel(QWidget):
 
         h_splitter.addWidget(layer_panel)
 
-        # Right: vertical splitter (canvas + attr table)
-        v_splitter = QSplitter(Qt.Orientation.Vertical)
-
         self._canvas = MapCanvas()
         self._canvas.feature_clicked.connect(self._on_feature_clicked)
-        v_splitter.addWidget(self._canvas)
-
-        # Attribute table
-        self._table = QTableWidget()
-        self._table.setAlternatingRowColors(True)
-        self._table.setSelectionBehavior(
-            QAbstractItemView.SelectionBehavior.SelectRows)
-        self._table.setEditTriggers(
-            QAbstractItemView.EditTrigger.DoubleClicked)
-        self._table.horizontalHeader().setStretchLastSection(True)
-        self._table.verticalHeader().setDefaultSectionSize(22)
-        self._table.itemSelectionChanged.connect(self._on_table_selection)
-        self._table.itemChanged.connect(self._on_cell_edit)
-        v_splitter.addWidget(self._table)
-
-        v_splitter.setSizes([480, 220])
-        h_splitter.addWidget(v_splitter)
+        h_splitter.addWidget(self._canvas)
         h_splitter.setSizes([200, 800])
 
         root.addWidget(h_splitter)
 
-        # ── Status bar ────────────────────────────────────────────────────
+        # ── Floating attribute table window (created lazily) ──────────────
+        self._attr_win: Optional[AttributeTableWindow] = None
+
+        # ── Status bar (minimal) ──────────────────────────────────────────
         self._status = QLabel()
         self._status.setStyleSheet(
             "padding: 2px 8px; font-size: 12px; color: #888;")
+        self._status.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         root.addWidget(self._status)
+
+    def _get_attr_win(self) -> AttributeTableWindow:
+        """Lazily create the floating attribute table window."""
+        if self._attr_win is None:
+            self._attr_win = AttributeTableWindow(None)   # no parent = top-level
+            self._attr_win.table.itemSelectionChanged.connect(
+                self._on_table_selection)
+            self._attr_win.table.itemChanged.connect(self._on_cell_edit)
+        return self._attr_win
+
+    @property
+    def _table(self) -> QTableWidget:
+        """Proxy property so all existing code still works via self._table."""
+        return self._get_attr_win().table
+
+    def _show_attr_window(self):
+        win = self._get_attr_win()
+        win.show()
+        win.raise_()
 
     # ── Layer list helpers ────────────────────────────────────────────────
     def _layer_key(self, schema: str, table: str, geom_col: str) -> str:
@@ -673,8 +730,7 @@ class MapViewerPanel(QWidget):
 
     def _on_layers_loaded(self, rows: list):
         self._available_rows = rows
-        self._status.setText(
-            i18n.t("mv_layers_found", n=len(rows)))
+        # No status update needed — the count is not useful to the user
 
     # ── Add / remove layer buttons ────────────────────────────────────────
     def _on_add_layer(self):
@@ -828,11 +884,23 @@ class MapViewerPanel(QWidget):
 
         self._table.blockSignals(False)
 
+        if self._attr_win and lw_item:
+            d = lw_item.data(Qt.ItemDataRole.UserRole)
+            if d:
+                self._attr_win.set_layer_title(
+                    f'{d["schema"]}.{d["table"]}  [{d["geom_col"]}]  '
+                    f'({len(data)} features)')
+
     # ── Layer list signals ────────────────────────────────────────────────
     def _on_layer_selected(self, current: Optional[QListWidgetItem],
                            previous: Optional[QListWidgetItem]):
         """User clicked a different layer in the list."""
         self._populate_attr_table(current)
+        if current and self._attr_win:
+            d = current.data(Qt.ItemDataRole.UserRole)
+            if d:
+                self._attr_win.set_layer_title(
+                    f'{d["schema"]}.{d["table"]}  [{d["geom_col"]}]')
 
     def _on_layer_check_changed(self, item: QListWidgetItem):
         """Checkbox toggled — redraw canvas."""
