@@ -1173,8 +1173,9 @@ class MapViewerPanel(QWidget):
         lp_layout.setContentsMargins(4, 4, 4, 4)
         lp_layout.setSpacing(3)
 
-        # "Layers" header with plain Add / Remove buttons
+        # "Layers" header with Add / Remove / Up / Down buttons
         header_row = QHBoxLayout()
+        header_row.setSpacing(2)
         lbl_layers = QLabel("Layers")
         lbl_layers.setStyleSheet("font-weight:600;")
         header_row.addWidget(lbl_layers)
@@ -1189,6 +1190,16 @@ class MapViewerPanel(QWidget):
         self._btn_remove.setToolTip("Remove selected layer")
         self._btn_remove.clicked.connect(self._on_remove_layer)
         header_row.addWidget(self._btn_remove)
+        self._btn_up = QPushButton("▲")
+        self._btn_up.setFixedSize(24, 24)
+        self._btn_up.setToolTip("Move layer up")
+        self._btn_up.clicked.connect(self._move_layer_up)
+        header_row.addWidget(self._btn_up)
+        self._btn_dn = QPushButton("▼")
+        self._btn_dn.setFixedSize(24, 24)
+        self._btn_dn.setToolTip("Move layer down")
+        self._btn_dn.clicked.connect(self._move_layer_down)
+        header_row.addWidget(self._btn_dn)
         lp_layout.addLayout(header_row)
 
         self._layer_list = QListWidget()
@@ -1267,6 +1278,27 @@ class MapViewerPanel(QWidget):
     def _on_pan_toggled(self, checked: bool):
         self._canvas.set_pan_mode(checked)
 
+    def _move_layer_up(self):
+        row = self._layer_list.currentRow()
+        if row <= 0:
+            return
+        self._swap_layers(row, row - 1)
+
+    def _move_layer_down(self):
+        row = self._layer_list.currentRow()
+        if row < 0 or row >= self._layer_list.count() - 1:
+            return
+        self._swap_layers(row, row + 1)
+
+    def _swap_layers(self, row_a: int, row_b: int):
+        lst = self._layer_list
+        lst.blockSignals(True)
+        item_a = lst.takeItem(row_a)
+        lst.insertItem(row_b, item_a)
+        lst.setCurrentRow(row_b)
+        lst.blockSignals(False)
+        self._canvas.draw_all(lst)
+
     # ── Basemap handlers ──────────────────────────────────────────────────
     def _on_basemap_changed(self, name: str):
         idx = self._basemap_combo.currentIndex()
@@ -1306,7 +1338,8 @@ class MapViewerPanel(QWidget):
             item.setFlags(
                 Qt.ItemFlag.ItemIsUserCheckable |
                 Qt.ItemFlag.ItemIsEnabled |
-                Qt.ItemFlag.ItemIsSelectable)
+                Qt.ItemFlag.ItemIsSelectable |
+                Qt.ItemFlag.ItemIsDragEnabled)
             item.setCheckState(Qt.CheckState.Checked)
             self._layer_list.blockSignals(True)
             self._layer_list.insertItem(0, item)
@@ -1371,7 +1404,8 @@ class MapViewerPanel(QWidget):
         lw_item.setFlags(
             Qt.ItemFlag.ItemIsUserCheckable |
             Qt.ItemFlag.ItemIsEnabled |
-            Qt.ItemFlag.ItemIsSelectable)
+            Qt.ItemFlag.ItemIsSelectable |
+            Qt.ItemFlag.ItemIsDragEnabled)
         lw_item.setCheckState(Qt.CheckState.Checked)
         lw_item.setIcon(_make_dot_icon(color))
         key = f"wfs::{url}::{type_name}"
@@ -1429,7 +1463,8 @@ class MapViewerPanel(QWidget):
         lw_item.setFlags(
             Qt.ItemFlag.ItemIsUserCheckable |
             Qt.ItemFlag.ItemIsEnabled |
-            Qt.ItemFlag.ItemIsSelectable
+            Qt.ItemFlag.ItemIsSelectable |
+            Qt.ItemFlag.ItemIsDragEnabled
         )
         lw_item.setCheckState(Qt.CheckState.Checked)
         lw_item.setIcon(_make_dot_icon(color))
