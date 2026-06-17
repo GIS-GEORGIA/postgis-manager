@@ -206,9 +206,15 @@ class DBSetupPanel(QWidget):
         tabs.addTab(self._build_env_tab(),        "Environment / GDAL")
         root.addWidget(tabs)
 
+    def _scrollable(self, inner: QWidget) -> QScrollArea:
+        sa = QScrollArea()
+        sa.setWidgetResizable(True)
+        sa.setWidget(inner)
+        return sa
+
     # ── Tab 1: Engine Discovery ───────────────────────────────────────────
 
-    def _build_engine_tab(self) -> QWidget:
+    def _build_engine_tab(self) -> QScrollArea:
         w = QWidget()
         lay = QVBoxLayout(w)
 
@@ -231,6 +237,8 @@ class DBSetupPanel(QWidget):
         t.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         t.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         t.itemSelectionChanged.connect(self._on_inst_selected)
+        t.setMinimumHeight(120)
+        t.setMaximumHeight(200)
         self._inst_table = t
         lay.addWidget(t)
 
@@ -309,8 +317,9 @@ class DBSetupPanel(QWidget):
         self._conn_result = QLabel("")
         fl.addRow("", self._conn_result)
         lay.addWidget(conn_box)
+        lay.addStretch()
 
-        return w
+        return self._scrollable(w)
 
     # ── Tab 2: Create Spatial DB ──────────────────────────────────────────
 
@@ -396,7 +405,7 @@ class DBSetupPanel(QWidget):
 
     # ── Tab 4: Environment ────────────────────────────────────────────────
 
-    def _build_env_tab(self) -> QWidget:
+    def _build_env_tab(self) -> QScrollArea:
         w = QWidget()
         lay = QVBoxLayout(w)
 
@@ -481,7 +490,7 @@ class DBSetupPanel(QWidget):
         lay.addWidget(QLabel("Output:"))
         lay.addWidget(self._env_log)
         lay.addStretch()
-        return w
+        return self._scrollable(w)
 
     def _wrap_hlay(self, hlay: QHBoxLayout) -> QWidget:
         w = QWidget()
