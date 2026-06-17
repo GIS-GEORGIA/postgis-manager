@@ -190,12 +190,6 @@ class MainWindow(QMainWindow):
         self._tb_disconnect.triggered.connect(self._disconnect)
         tb.addAction(self._tb_disconnect)
 
-        tb.addSeparator()
-
-        self._tb_new_conn = QAction("＋ New Connection", self)
-        self._tb_new_conn.triggered.connect(self._new_connection)
-        tb.addAction(self._tb_new_conn)
-
         self._tb_edit_conn = QAction("✏ Edit", self)
         self._tb_edit_conn.triggered.connect(self._edit_connection)
         tb.addAction(self._tb_edit_conn)
@@ -203,10 +197,6 @@ class MainWindow(QMainWindow):
         self._tb_del_conn = QAction("🗑 Delete", self)
         self._tb_del_conn.triggered.connect(self._delete_connection)
         tb.addAction(self._tb_del_conn)
-
-        self._tb_refresh = QAction("↻ Refresh", self)
-        self._tb_refresh.triggered.connect(self._refresh)
-        tb.addAction(self._tb_refresh)
 
         tb.addSeparator()
 
