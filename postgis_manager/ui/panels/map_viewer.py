@@ -1595,7 +1595,8 @@ class MapViewerPanel(QWidget):
 
     def _on_columns(self, cols: list, lw_item: QListWidgetItem):
         d = lw_item.data(Qt.ItemDataRole.UserRole)
-        if not d:
+        if not isinstance(d, dict) or not all(
+                k in d for k in ("schema", "table", "geom_col")):
             return
         key = self._layer_key(d["schema"], d["table"], d["geom_col"])
         self._layers_columns[key] = cols
@@ -1608,7 +1609,8 @@ class MapViewerPanel(QWidget):
         self._progress.hide()
 
         d = lw_item.data(Qt.ItemDataRole.UserRole)
-        if not d:
+        if not isinstance(d, dict) or not all(
+                k in d for k in ("schema", "table", "geom_col")):
             return
         key = self._layer_key(d["schema"], d["table"], d["geom_col"])
         self._layers_data[key] = data
@@ -1645,7 +1647,8 @@ class MapViewerPanel(QWidget):
             return
 
         d = lw_item.data(Qt.ItemDataRole.UserRole)
-        if not d:
+        if not isinstance(d, dict) or not all(
+                k in d for k in ("schema", "table", "geom_col")):
             self._table.blockSignals(False)
             return
 
