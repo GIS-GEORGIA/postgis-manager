@@ -24,6 +24,7 @@ from PyQt6.QtCore import (
 from PyQt6.QtGui import (
     QPainter, QPainterPath, QColor, QPen, QBrush,
     QWheelEvent, QMouseEvent, QAction, QTransform, QPixmap, QIcon, QImage,
+    QFont,
 )
 
 from ...db.connection import DBManager
