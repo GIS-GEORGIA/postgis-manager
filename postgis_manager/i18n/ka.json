@@ -1,13 +1,11 @@
 {
   "app_title": "PostGIS მენეჯერი",
   "app_subtitle": "GIS GEORGIA | გიორგი კაპანაძე",
-
   "menu_file": "ფაილი",
   "menu_connection": "კავშირი",
   "menu_tools": "ხელსაწყოები",
   "menu_view": "ხედი",
   "menu_help": "დახმარება",
-
   "action_new_connection": "ახალი კავშირი...",
   "action_edit_connection": "კავშირის რედაქტირება...",
   "action_delete_connection": "კავშირის წაშლა",
@@ -18,7 +16,6 @@
   "action_settings": "პარამეტრები",
   "action_about": "პროგრამის შესახებ",
   "action_credits": "ავტორები და მადლობა",
-
   "nav_grp_data": "მონაცემები",
   "nav_grp_import": "იმპ. / ექსპ.",
   "nav_grp_analysis": "სივრცული ანალიზი",
@@ -29,7 +26,6 @@
   "nav_grp_automation": "ავტომატიზაცია",
   "nav_grp_developer": "დეველოპერი",
   "nav_grp_extra": "დამატებები",
-
   "tab_browser": "ბრაუზერი",
   "tab_map_viewer": "რუკის მაჩვენებელი",
   "tab_sql": "SQL რედაქტორი",
@@ -57,7 +53,6 @@
   "tab_ai_assistant": "AI ასისტენტი",
   "tab_api_tester": "REST / OGC API",
   "tab_pointcloud": "პოინტ ქლაუდი",
-
   "qb_connections": "კავშირები",
   "qb_project_layers": "პროექტის შრეები",
   "qb_credentials": "ქრედენშიალები",
@@ -81,15 +76,13 @@
   "qb_fill_cred_fields": "შეავსეთ სახელი და მომხმარებელი.",
   "qb_cred_saved": "ქრედენშიალი შენახულია QGIS Auth Manager-ში.",
   "qb_cred_save_failed": "ქრედენშიალის შენახვა ვერ მოხერხდა. QGIS Auth Manager მიუწვდომელია.",
-
   "mv_select_layer": "აირჩიეთ ლეიერი...",
   "mv_layer": "ლეიერი",
   "mv_load": "რუკაზე ჩვენება",
   "mv_layers_found": "{n} გეომეტრიის ლეიერი ნაპოვნია",
   "mv_loading": "გეომეტრიები იტვირთება...",
-  "mv_loaded": "{n} ობიექტი ჩაიტვირთა",
+  "mv_loaded": "{n} მატ. ხედი ჩაიტვირთა.",
   "mv_saved": "შენახულია: {col} = … (id={pk})",
-
   "conn_host": "ჰოსტი:",
   "conn_port": "პორტი:",
   "conn_database": "მონაცემთა ბაზა:",
@@ -113,7 +106,6 @@
   "conn_topology_version": "Topology გაფართოება:",
   "conn_available": "ხელმისაწვდომია",
   "conn_not_available": "არ არის ხელმისაწვდომი",
-
   "browser_schemas": "სქემები",
   "browser_tables": "ცხრილები",
   "browser_views": "ხედები",
@@ -133,7 +125,6 @@
   "browser_drop_table": "ცხრილის წაშლა...",
   "browser_copy_name": "სახელის კოპირება",
   "browser_schema_import": "სქემის QGIS-ში იმპორტი",
-
   "attr_table_title": "ატრიბუტული ცხრილი — {schema}.{table}",
   "attr_filter_label": "WHERE",
   "attr_filter_apply": "ფილტრის გამოყენება (Ctrl+Enter)",
@@ -148,7 +139,6 @@
   "attr_page_next": "შემდეგი გვერდი",
   "attr_export_csv": "CSV-ში ექსპორტი",
   "attr_no_features": "ობიექტები ვერ მოიძებნა",
-
   "sql_run": "გაშვება (F5)",
   "sql_stop": "შეჩერება",
   "sql_clear": "გასუფთავება",
@@ -160,7 +150,6 @@
   "sql_error": "SQL შეცდომა",
   "sql_no_result": "შეკითხვა შესრულდა (შედეგი არ არის)",
   "sql_export": "შედეგების ექსპორტი",
-
   "import_title": "გეომონაცემების იმპორტი",
   "import_file": "ფაილის არჩევა",
   "import_target_schema": "სამიზნე სქემა:",
@@ -177,7 +166,6 @@
   "import_done": "იმპორტი დასრულდა: {n} ობიექტი",
   "import_skipped": "გამოტოვებულია: {n} ობიექტი",
   "import_error": "იმპორტის შეცდომა",
-
   "raster_title": "რასტრის იმპორტი",
   "raster_file": "რასტრის ფაილი:",
   "raster_schema": "სქემა:",
@@ -195,7 +183,6 @@
   "raster_preview": "გადახედვა",
   "raster_progress": "რასტრი იმპორტდება...",
   "raster_done": "რასტრის იმპორტი დასრულდა",
-
   "routing_title": "pgRouting",
   "routing_edge_table": "Edge ცხრილი:",
   "routing_source_col": "Source სვეტი:",
@@ -211,7 +198,6 @@
   "routing_isochrone": "იზოქრონა / სავარჯიშო მანძილი",
   "routing_max_cost": "მაქს. Cost:",
   "routing_equi_cost": "Cost ნაბიჯები:",
-
   "topology_title": "ტოპოლოგიის რედაქტორი",
   "topology_schema": "ტოპოლოგიის სქემა:",
   "topology_tolerance": "ტოლერანსი:",
@@ -221,7 +207,6 @@
   "topology_errors": "ტოპოლოგიური შეცდომები",
   "topology_fix": "შეცდომების გასწორება",
   "topology_summary": "შეჯამება",
-
   "chainage_title": "ხაზური მიმართება / ჩეინაჯი",
   "chainage_line_layer": "ხაზოვანი შრე:",
   "chainage_interval": "ინტერვალი (მ):",
@@ -230,7 +215,6 @@
   "chainage_point_result": "წერტილების გამომავალი ცხრილი:",
   "chainage_run": "ჩეინაჯ წერტილების გენერაცია",
   "chainage_m_values": "M-მნიშვნელობების მინიჭება",
-
   "export_title": "ექსპორტი",
   "export_format": "ფორმატი:",
   "export_format_gpkg": "GeoPackage",
@@ -244,7 +228,6 @@
   "export_srid": "სამიზნე SRID:",
   "export_start": "ექსპორტი",
   "export_done": "ექსპორტი დასრულდა: {path}",
-
   "style_title": "DB სტილების მენეჯერი",
   "style_save": "სტილის DB-ში შენახვა",
   "style_load": "სტილის DB-დან ჩატვირთვა",
@@ -253,7 +236,6 @@
   "style_default": "ნაგულისხმევად დაყენება",
   "style_layer": "შრე:",
   "style_styles": "შენახული სტილები:",
-
   "version_title": "ვერსიების კონტროლი (pgVersion)",
   "version_revision": "რევიზია:",
   "version_log_msg": "კომენტარი:",
@@ -263,7 +245,6 @@
   "version_revert": "უკან დაბრუნება",
   "version_history": "ისტორია",
   "version_branch": "ფილიალი:",
-
   "geo_title": "გეოდამუშავება",
   "geo_function": "PostGIS ფუნქცია:",
   "geo_input_layer": "შეყვანის შრე:",
@@ -272,14 +253,12 @@
   "geo_buffer_dist": "ბუფერის მანძილი:",
   "geo_simplify_tol": "გამარტივების ტოლერანსი:",
   "geo_result_srid": "შედეგის SRID:",
-
   "citydb_title": "3DCityDB ხელსაწყოები",
   "citydb_schema": "CityDB სქემა:",
   "citydb_feature_type": "ობიექტის ტიპი:",
   "citydb_lod": "დეტალიზაციის დონე (LoD):",
   "citydb_load": "ობიექტების ჩატვირთვა",
   "citydb_bbox": "Bounding Box ფილტრი:",
-
   "settings_title": "პარამეტრები",
   "settings_language": "ენა:",
   "settings_theme": "თემა:",
@@ -293,18 +272,15 @@
   "settings_max_rows": "მაქს. სტრიქონები ატრიბუტულ ცხრილში:",
   "settings_apply": "გამოყენება",
   "settings_reset": "ნაგულისხმევი პარამეტრები",
-
   "confirm_delete_all": "შრის {schema}.{table} ყველა ობიექტი წაიშლება სამუდამოდ.\n\nეს ოპერაცია შეუქცევადია! გაგრძელება?",
   "confirm_drop_table": "ცხრილი {schema}.{table} წაიშლება სამუდამოდ.\n\nეს ოპერაცია შეუქცევადია! გაგრძელება?",
   "confirm_delete_n": "{n} ობიექტი წაიშლება. გაგრძელება?",
-
   "about_title": "PostGIS მენეჯერის შესახებ",
   "about_version": "ვერსია:",
   "about_description": "PostGIS Manager არის ჰიბრიდული QGIS ფლაგინი და დამოუკიდებელი პროგრამა PostGIS მონაცემთა ბაზების სამართავად. პროგრამა გთავაზობთ ვექტორული/რასტრული მონაცემების იმპორტ-ექსპორტს, ატრიბუტების რედაქტირებას, ტოპოლოგიას, მარშრუტიზაციას და სხვა.",
   "about_license": "ლიცენზია: GNU General Public License v2+",
   "about_github": "კოდი: https://github.com/GIS-GEORGIA/postgis-manager",
   "about_team": "შეიქმნა: GIS GEORGIA | გიორგი კაპანაძე",
-
   "log_connected": "დაუკავშირდა {dbname}-ს — {host}:{port}",
   "log_disconnected": "კავშირი გაწყვეტილია",
   "log_error": "შეცდომა",
@@ -312,21 +288,17 @@
   "log_info": "ინფო",
   "log_success": "წარმატება",
   "log_clear": "ლოგის გასუფთავება",
-
   "err_not_connected": "ბაზა არ არის დაკავშირებული.",
   "err_no_layer_selected": "პირველ რიგში შეარჩიეთ შრე.",
   "err_invalid_sql": "SQL შეკითხვა არასწორია.",
   "err_file_not_found": "ფაილი ვერ მოიძებნა: {path}",
   "err_permission": "არასაკმარისი უფლებები ბაზაში.",
-
   "status_ready": "მზადაა",
   "status_connecting": "დაკავშირება...",
   "status_loading": "იტვირთება...",
   "status_running": "სრულდება...",
   "status_done": "დასრულდა",
-
   "tab_instances": "ინსტანსები",
-
   "inst_title": "ინსტანსების მართვა",
   "inst_runtime": "გაშვების გარემო",
   "inst_scan": "კონტეინერების სკანირება",
@@ -339,7 +311,6 @@
   "inst_col_image": "იმიჯი",
   "inst_col_status": "სტატუსი",
   "inst_col_ports": "პორტები",
-
   "cfg_export_title": "კონფიგურაციის ექსპორტი",
   "cfg_import_title": "კონფიგურაციის იმპორტი",
   "cfg_include_passwords": "პაროლების ჩართვა ექსპორტში?",
@@ -350,9 +321,7 @@
   "cfg_import_mode": "იმპორტის რეჟიმი:",
   "cfg_merge": "შერწყმა (ახალი კავშირების დამატება)",
   "cfg_replace": "ჩანაცვლება (ყველა პარამეტრის გადაწერა)",
-
   "tab_network_scan": "ქსელის სკანირება",
-
   "scan_title": "ქსელის სკანერი — PostgreSQL / PostGIS ინსტანსების ძებნა",
   "scan_params": "სკანირების პარამეტრები",
   "scan_range": "IP დიაპაზონი / CIDR",
@@ -383,9 +352,7 @@
   "scan_status_stopped": "სკანირება გაჩერებულია",
   "scan_err_no_range": "შეიყვანეთ IP დიაპაზონი ან CIDR (მაგ. 192.168.1.0/24)",
   "scan_err_no_selection": "აირჩიეთ სულ მცირე ერთი მწკრივი შედეგების ცხრილში.",
-
   "tab_validation": "ვალიდაცია",
-
   "val_title": "გეომეტრიის ვალიდაცია",
   "val_layer": "ლეიერი",
   "val_no_layer": "(აირჩიეთ ლეიერი ბრაუზერში)",
@@ -411,7 +378,6 @@
   "val_total_issues": "სულ {n} პრობლემა ნაპოვნია.",
   "val_issues_found": "პრობლემები",
   "val_select_at_least_one": "აირჩიეთ სულ მცირე ერთი შემოწმება.",
-
   "ver_title": "მწკრივების ვერსიონირება (pgVersion)",
   "ver_active_layer": "ვერსიონირებული ლეიერი",
   "ver_layer": "ლეიერი:",
@@ -438,7 +404,6 @@
   "ver_diff_to": "საბოლოო რევ:",
   "ver_diff_enter_revs": "შეიყვანეთ შედარებისთვის რევიზიის ნომრები.",
   "ver_diff_result": "სხვაობის შედეგი",
-
   "qb_title": "ვიზუალური მოთხოვნის ამაგები",
   "qb_schema": "სქემა:",
   "qb_table": "ცხრილი:",
@@ -456,9 +421,7 @@
   "qb_generated_sql": "გენერირებული SQL (რედაქტირებადი)",
   "qb_no_table": "ჯერ აირჩიეთ სქემა და ცხრილი.",
   "qb_result": "{n} მწკრივი დაბრუნდა {ms} ms-ში",
-
   "tab_dashboard": "სტატისტიკა",
-
   "dash_title": "მონაცემთა ბაზის სტატისტიკა",
   "dash_db_size": "ბაზის ზომა",
   "dash_connections": "კავშირები",
@@ -471,7 +434,6 @@
   "dash_unused_indexes": "გამოუყენებელი ინდექსები",
   "dash_not_connected": "სტატისტიკის სანახავად დაუკავშირდით ბაზას.",
   "dash_updated": "სტატისტიკა: {db}",
-
   "cdb_detect": "3DCityDB-ის ძიება",
   "cdb_not_found": "3DCityDB სქემა ვერ მოიძებნა. დააჭირეთ 'ძიება'.",
   "cdb_not_connected": "ჯერ დაუკავშირდით ბაზას.",
@@ -487,14 +449,11 @@
   "cdb_tpl_address": "მისამართები",
   "cdb_tpl_ext_refs": "გარე მიმართვები",
   "cdb_results": "შედეგები",
-
   "result_rows": "მწკრივი",
   "action_run": "გაშვება",
-
   "tab_table_designer": "ცხრილის დიზაინერი",
   "tab_function_browser": "ფუნქციები",
   "tab_backup": "ბექაფი / აღდგენა",
-
   "td_title": "ცხრილის დიზაინერი",
   "td_tab_create": "ცხრილის შექმნა",
   "td_tab_alter": "ცხრილის შეცვლა",
@@ -543,7 +502,6 @@
   "td_analyze_done": "ANALYZE დასრულდა.",
   "td_cluster_done": "CLUSTER დასრულდა.",
   "td_reindex_done": "REINDEX დასრულდა.",
-
   "fb_title": "ფუნქციებისა და პროცედურების ბრაუზერი",
   "fb_search": "ფუნქციის სახელის ძიება...",
   "fb_load": "ჩატვირთვა",
@@ -559,7 +517,6 @@
   "fb_not_connected": "ფუნქციების სანახავად დაუკავშირდით ბაზას.",
   "fb_loaded": "{n} ფუნქცია ჩაიტვირთა.",
   "fb_exec_ok": "წარმატებით შესრულდა (შედეგი არ არის).",
-
   "bak_title": "ბექაფი და აღდგენა",
   "bak_backup": "ბექაფი (pg_dump)",
   "bak_restore": "აღდგენა (pg_restore / psql)",
@@ -587,11 +544,9 @@
   "bak_choose_file": "ფაილის არჩევა",
   "bak_confirm_restore_title": "აღდგენის დადასტურება",
   "bak_confirm_restore": "აღვადგინოთ ბაზა '{db}'?\n\nეს შეიძლება გადაწეროს არსებული მონაცემები.",
-
   "tab_schema_roles": "სქემა / როლები",
   "tab_matviews": "მატ. ხედები",
   "tab_raster_tools": "რასტერის ხელსაწყოები",
-
   "srm_title": "სქემებისა და როლების მენეჯერი",
   "srm_tab_schemas": "სქემები",
   "srm_tab_roles": "როლები / მომხმარებლები",
@@ -643,7 +598,6 @@
   "srm_fill_required": "აირჩიეთ როლი, ობიექტი და სულ მცირე ერთი უფლება.",
   "srm_granted": "უფლებები მინიჭებულია.",
   "srm_revoked": "უფლებები გაუქმებულია.",
-
   "mv_title": "მატერიალიზებული ხედები",
   "mv_list": "მატერიალიზებული ხედები",
   "mv_name": "სახელი",
@@ -655,14 +609,12 @@
   "mv_create": "მატ. ხედის შექმნა",
   "mv_with_data": "მონაცემებით (WITH DATA)",
   "mv_preview_data": "გადახედვა (200 მწკრივი)",
-  "mv_loaded": "{n} მატ. ხედი ჩაიტვირთა.",
   "mv_refreshed": "მატ. ხედი განახლდა.",
   "mv_dropped": "მატ. ხედი წაიშალა.",
   "mv_created": "მატ. ხედი შეიქმნა.",
   "mv_select_one": "ჯერ აირჩიეთ მატ. ხედი.",
   "mv_fill_required": "შეავსეთ სქემა, სახელი და SQL.",
   "mv_confirm_drop": "წავშალოთ '{schema}'.'{name}'?\n\nეს ვერ დაუბრუნდება.",
-
   "rt_title": "რასტერის ხელსაწყოები",
   "rt_select_layer": "რასტერის ფენა",
   "rt_band": "ბენდი",
@@ -694,5 +646,6 @@
   "rt_target_srid": "სამიზნე SRID:",
   "rt_run_reproject": "პროექციის გაყვანა",
   "rt_reproject_done": "{n} ტაილი ჩაიწერა → {table}.",
-  "rt_tables_loaded": "{n} რასტერის ცხრილი მოიძებნა."
+  "rt_tables_loaded": "{n} რასტერის ცხრილი მოიძებნა.",
+  "tab_publishing": "გამოქვეყნება"
 }

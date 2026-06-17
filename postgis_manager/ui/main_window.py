@@ -40,6 +40,7 @@ from .panels.matview_panel import MatViewPanel
 from .panels.raster_tools import RasterToolsPanel
 from .panels.map_viewer import MapViewerPanel
 from .panels.qgis_bridge_panel import QGISBridgePanel
+from .panels.publishing_panel import PublishingPanel
 from .panels.db_setup_panel import DBSetupPanel
 from .panels.security_panel import SecurityPanel
 from .panels.audit_panel import AuditPanel
@@ -403,6 +404,9 @@ class MainWindow(QMainWindow):
         # ── Connectivity ──────────────────────────────────────────────────────
         self._nav.add_group(i18n.t("nav_grp_connect"))
 
+        self.publishing_panel = PublishingPanel(self.db, self)
+        _add(self.publishing_panel, "📡", "tab_publishing")
+
         self.qgis_bridge = QGISBridgePanel(self.db, iface=self.iface, parent=self)
         self.qgis_bridge.connect_to.connect(self._connect_from_bridge)
         _add(self.qgis_bridge, "🔗", "tab_qgis_bridge")
@@ -550,6 +554,7 @@ class MainWindow(QMainWindow):
             self.developer_panel,
             self.ai_panel,
             self.pointcloud_panel,
+            self.publishing_panel,
         ]
         for panel in set_conn_panels:
             try:

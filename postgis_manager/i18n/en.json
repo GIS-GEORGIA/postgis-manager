@@ -1,13 +1,11 @@
 {
   "app_title": "PostGIS Manager",
   "app_subtitle": "GIS GEORGIA | Giorgi Kapanadze",
-
   "menu_file": "File",
   "menu_connection": "Connection",
   "menu_tools": "Tools",
   "menu_view": "View",
   "menu_help": "Help",
-
   "action_new_connection": "New Connection...",
   "action_edit_connection": "Edit Connection...",
   "action_delete_connection": "Delete Connection",
@@ -18,7 +16,6 @@
   "action_settings": "Settings",
   "action_about": "About",
   "action_credits": "Credits & Attributions",
-
   "nav_grp_data": "Data",
   "nav_grp_import": "Import / Export",
   "nav_grp_analysis": "Spatial Analysis",
@@ -29,7 +26,6 @@
   "nav_grp_automation": "Automation",
   "nav_grp_developer": "Developer",
   "nav_grp_extra": "Extra",
-
   "tab_browser": "Browser",
   "tab_map_viewer": "Map Viewer",
   "tab_sql": "SQL Editor",
@@ -57,7 +53,6 @@
   "tab_ai_assistant": "AI Assistant",
   "tab_api_tester": "REST / OGC API",
   "tab_pointcloud": "Point Cloud",
-
   "qb_connections": "Connections",
   "qb_project_layers": "Project Layers",
   "qb_credentials": "Credentials",
@@ -81,15 +76,13 @@
   "qb_fill_cred_fields": "Please fill in Name and Username fields.",
   "qb_cred_saved": "Credential saved to QGIS Auth Manager.",
   "qb_cred_save_failed": "Failed to save credential. QGIS Auth Manager may be unavailable.",
-
   "mv_select_layer": "Select a layer...",
   "mv_layer": "Layer",
   "mv_load": "Load on map",
   "mv_layers_found": "{n} geometry layers found",
   "mv_loading": "Loading geometries...",
-  "mv_loaded": "{n} features loaded",
+  "mv_loaded": "{n} materialized view(s) loaded.",
   "mv_saved": "Saved: {col} = … (id={pk})",
-
   "conn_host": "Host:",
   "conn_port": "Port:",
   "conn_database": "Database:",
@@ -113,7 +106,6 @@
   "conn_topology_version": "Topology extension:",
   "conn_available": "available",
   "conn_not_available": "not available",
-
   "browser_schemas": "Schemas",
   "browser_tables": "Tables",
   "browser_views": "Views",
@@ -133,7 +125,6 @@
   "browser_drop_table": "Drop table...",
   "browser_copy_name": "Copy full name",
   "browser_schema_import": "Import full schema to QGIS",
-
   "attr_table_title": "Attribute Table — {schema}.{table}",
   "attr_filter_label": "WHERE",
   "attr_filter_apply": "Apply Filter (Ctrl+Enter)",
@@ -148,7 +139,6 @@
   "attr_page_next": "Next page",
   "attr_export_csv": "Export to CSV",
   "attr_no_features": "No features found",
-
   "sql_run": "Run (F5)",
   "sql_stop": "Stop",
   "sql_clear": "Clear",
@@ -160,7 +150,6 @@
   "sql_error": "Query Error",
   "sql_no_result": "Query executed (no result set)",
   "sql_export": "Export Results",
-
   "import_title": "Import Geodata",
   "import_file": "Select File",
   "import_target_schema": "Target Schema:",
@@ -177,7 +166,6 @@
   "import_done": "Import complete: {n} features imported",
   "import_skipped": "Skipped: {n} features",
   "import_error": "Import error",
-
   "raster_title": "Raster Import",
   "raster_file": "Raster File:",
   "raster_schema": "Schema:",
@@ -195,7 +183,6 @@
   "raster_preview": "Preview",
   "raster_progress": "Importing raster...",
   "raster_done": "Raster import complete",
-
   "routing_title": "pgRouting",
   "routing_edge_table": "Edge Table:",
   "routing_source_col": "Source Column:",
@@ -211,7 +198,6 @@
   "routing_isochrone": "Isochrone / Driving Distance",
   "routing_max_cost": "Max Cost:",
   "routing_equi_cost": "Equi-cost steps:",
-
   "topology_title": "Topology Editor",
   "topology_schema": "Topology Schema:",
   "topology_tolerance": "Tolerance:",
@@ -221,7 +207,6 @@
   "topology_errors": "Topology Errors",
   "topology_fix": "Fix Errors",
   "topology_summary": "Summary",
-
   "chainage_title": "Linear Referencing / Chainage",
   "chainage_line_layer": "Line Layer:",
   "chainage_interval": "Interval (m):",
@@ -230,7 +215,6 @@
   "chainage_point_result": "Point Output Table:",
   "chainage_run": "Generate Chainage Points",
   "chainage_m_values": "Assign M-Values",
-
   "export_title": "Export",
   "export_format": "Format:",
   "export_format_gpkg": "GeoPackage",
@@ -244,7 +228,6 @@
   "export_srid": "Target SRID:",
   "export_start": "Export",
   "export_done": "Export complete: {path}",
-
   "style_title": "DB Style Manager",
   "style_save": "Save Style to DB",
   "style_load": "Load Style from DB",
@@ -253,7 +236,6 @@
   "style_default": "Set as Default",
   "style_layer": "Layer:",
   "style_styles": "Saved Styles:",
-
   "version_title": "Version Control (pgVersion)",
   "version_revision": "Revision:",
   "version_log_msg": "Log Message:",
@@ -263,7 +245,6 @@
   "version_revert": "Revert",
   "version_history": "History",
   "version_branch": "Branch:",
-
   "geo_title": "Geoprocessing",
   "geo_function": "PostGIS Function:",
   "geo_input_layer": "Input Layer:",
@@ -272,14 +253,12 @@
   "geo_buffer_dist": "Buffer Distance:",
   "geo_simplify_tol": "Simplify Tolerance:",
   "geo_result_srid": "Result SRID:",
-
   "citydb_title": "3DCityDB Tools",
   "citydb_schema": "CityDB Schema:",
   "citydb_feature_type": "Feature Type:",
   "citydb_lod": "Level of Detail (LoD):",
   "citydb_load": "Load Features",
   "citydb_bbox": "Bounding Box Filter:",
-
   "settings_title": "Settings",
   "settings_language": "Language:",
   "settings_theme": "Theme:",
@@ -293,18 +272,15 @@
   "settings_max_rows": "Max rows in attribute table:",
   "settings_apply": "Apply",
   "settings_reset": "Reset Defaults",
-
   "confirm_delete_all": "All features in {schema}.{table} will be deleted permanently.\n\nThis action cannot be undone. Continue?",
   "confirm_drop_table": "Table {schema}.{table} will be dropped permanently.\n\nThis action cannot be undone. Continue?",
   "confirm_delete_n": "{n} feature(s) will be deleted. Continue?",
-
   "about_title": "About PostGIS Manager",
   "about_version": "Version:",
   "about_description": "PostGIS Manager is a hybrid QGIS plugin and standalone application for managing PostGIS databases. It provides a comprehensive set of tools for data import/export, attribute editing, topology, routing, and more.",
   "about_license": "License: GNU General Public License v2+",
   "about_github": "Source: https://github.com/GIS-GEORGIA/postgis-manager",
   "about_team": "Developed by: GIS GEORGIA | Giorgi Kapanadze",
-
   "log_connected": "Connected to {dbname} on {host}:{port}",
   "log_disconnected": "Disconnected",
   "log_error": "Error",
@@ -312,21 +288,17 @@
   "log_info": "Info",
   "log_success": "Success",
   "log_clear": "Clear Log",
-
   "err_not_connected": "No active database connection.",
   "err_no_layer_selected": "Please select a layer first.",
   "err_invalid_sql": "Invalid SQL query.",
   "err_file_not_found": "File not found: {path}",
   "err_permission": "Insufficient database permissions.",
-
   "status_ready": "Ready",
   "status_connecting": "Connecting...",
   "status_loading": "Loading...",
   "status_running": "Running...",
   "status_done": "Done",
-
   "tab_instances": "Instances",
-
   "inst_title": "Instance Manager",
   "inst_runtime": "Runtime",
   "inst_scan": "Scan containers",
@@ -339,7 +311,6 @@
   "inst_col_image": "Image",
   "inst_col_status": "Status",
   "inst_col_ports": "Ports",
-
   "cfg_export_title": "Export Configuration",
   "cfg_import_title": "Import Configuration",
   "cfg_include_passwords": "Include passwords in export?",
@@ -350,9 +321,7 @@
   "cfg_import_mode": "Import mode:",
   "cfg_merge": "Merge (add new connections)",
   "cfg_replace": "Replace (overwrite all settings)",
-
   "tab_network_scan": "Network Scan",
-
   "scan_title": "Network Scanner — Find PostgreSQL / PostGIS Instances",
   "scan_params": "Scan Parameters",
   "scan_range": "IP range / CIDR",
@@ -383,9 +352,7 @@
   "scan_status_stopped": "Scan stopped by user",
   "scan_err_no_range": "Enter an IP range or CIDR (e.g. 192.168.1.0/24)",
   "scan_err_no_selection": "Select at least one row in the results table.",
-
   "tab_validation": "Validation",
-
   "val_title": "Geometry Validation",
   "val_layer": "Layer",
   "val_no_layer": "(select a layer in browser)",
@@ -411,11 +378,10 @@
   "val_total_issues": "{n} total issue(s) found.",
   "val_issues_found": "Issues found",
   "val_select_at_least_one": "Select at least one check to run.",
-
   "ver_title": "Row-Level Versioning (pgVersion)",
   "ver_active_layer": "Versioned Layer",
   "ver_layer": "Layer:",
-  "ver_no_layer": "(select a layer in browser)",
+  "ver_no_layer": "Select a layer first.",
   "ver_init": "Enable versioning",
   "ver_init_confirm": "Enable pgVersion row-level versioning on {table}?\n\nThis will modify the table structure.",
   "ver_init_done": "Versioning enabled successfully.",
@@ -438,8 +404,6 @@
   "ver_diff_to": "To rev:",
   "ver_diff_enter_revs": "Enter revision numbers to compare.",
   "ver_diff_result": "Diff output",
-  "ver_no_layer": "Select a layer first.",
-
   "qb_title": "Visual Query Builder",
   "qb_schema": "Schema:",
   "qb_table": "Table:",
@@ -457,9 +421,7 @@
   "qb_generated_sql": "Generated SQL (editable)",
   "qb_no_table": "Select a schema and table first.",
   "qb_result": "{n} rows returned in {ms} ms",
-
   "tab_dashboard": "Dashboard",
-
   "dash_title": "Database Dashboard",
   "dash_db_size": "DB Size",
   "dash_connections": "Connections",
@@ -472,7 +434,6 @@
   "dash_unused_indexes": "Unused Indexes",
   "dash_not_connected": "Connect to a database to view statistics.",
   "dash_updated": "Statistics for: {db}",
-
   "cdb_detect": "Detect 3DCityDB",
   "cdb_not_found": "No 3DCityDB schema detected. Click 'Detect' to search.",
   "cdb_not_connected": "Connect to a database first.",
@@ -488,14 +449,11 @@
   "cdb_tpl_address": "Addresses",
   "cdb_tpl_ext_refs": "External References",
   "cdb_results": "Results",
-
   "result_rows": "row(s)",
   "action_run": "Run",
-
   "tab_table_designer": "Table Designer",
   "tab_function_browser": "Functions",
   "tab_backup": "Backup / Restore",
-
   "td_title": "Table Designer",
   "td_tab_create": "Create Table",
   "td_tab_alter": "Alter Table",
@@ -544,7 +502,6 @@
   "td_analyze_done": "ANALYZE completed.",
   "td_cluster_done": "CLUSTER completed.",
   "td_reindex_done": "REINDEX completed.",
-
   "fb_title": "Function & Procedure Browser",
   "fb_search": "Search function name...",
   "fb_load": "Load",
@@ -560,7 +517,6 @@
   "fb_not_connected": "Connect to a database to browse functions.",
   "fb_loaded": "{n} function(s) loaded.",
   "fb_exec_ok": "Executed successfully (no result set).",
-
   "bak_title": "Backup & Restore",
   "bak_backup": "Backup (pg_dump)",
   "bak_restore": "Restore (pg_restore / psql)",
@@ -588,11 +544,9 @@
   "bak_choose_file": "Choose file",
   "bak_confirm_restore_title": "Confirm Restore",
   "bak_confirm_restore": "Restore into database '{db}'?\n\nThis may overwrite existing data.",
-
   "tab_schema_roles": "Schema / Roles",
   "tab_matviews": "Mat. Views",
   "tab_raster_tools": "Raster Tools",
-
   "srm_title": "Schema & Role Manager",
   "srm_tab_schemas": "Schemas",
   "srm_tab_roles": "Roles / Users",
@@ -644,7 +598,6 @@
   "srm_fill_required": "Select role, object and at least one privilege.",
   "srm_granted": "Privileges granted.",
   "srm_revoked": "Privileges revoked.",
-
   "mv_title": "Materialized Views",
   "mv_list": "Materialized Views",
   "mv_name": "Name",
@@ -656,16 +609,14 @@
   "mv_create": "Create Materialized View",
   "mv_with_data": "WITH DATA",
   "mv_preview_data": "Preview (200 rows)",
-  "mv_loaded": "{n} materialized view(s) loaded.",
   "mv_refreshed": "Materialized view refreshed.",
   "mv_dropped": "Materialized view dropped.",
   "mv_created": "Materialized view created.",
   "mv_select_one": "Select a materialized view first.",
   "mv_fill_required": "Fill in schema, name and SQL.",
   "mv_confirm_drop": "Drop materialized view '{schema}'.'{name}'?\n\nThis cannot be undone.",
-
   "rt_title": "Raster Tools",
-  "rt_select_layer": "Raster Layer",
+  "rt_select_layer": "Select a raster layer first.",
   "rt_band": "Band",
   "rt_tab_stats": "Statistics",
   "rt_tab_histogram": "Histogram",
@@ -691,10 +642,10 @@
   "rt_run_algebra": "Run Map Algebra",
   "rt_algebra_done": "{n} tile(s) written to {table}.",
   "rt_fill_required": "Fill in all fields.",
-  "rt_select_layer": "Select a raster layer first.",
   "rt_reproject_desc": "ST_Transform — reproject raster to a new SRID.",
   "rt_target_srid": "Target SRID:",
   "rt_run_reproject": "Run Reproject",
   "rt_reproject_done": "{n} tile(s) written to {table}.",
-  "rt_tables_loaded": "{n} raster table(s) found."
+  "rt_tables_loaded": "{n} raster table(s) found.",
+  "tab_publishing": "Publishing"
 }
