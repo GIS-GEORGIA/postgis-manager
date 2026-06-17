@@ -647,5 +647,6 @@
   "rt_run_reproject": "Run Reproject",
   "rt_reproject_done": "{n} tile(s) written to {table}.",
   "rt_tables_loaded": "{n} raster table(s) found.",
-  "tab_publishing": "Publishing"
+  "tab_publishing": "Publishing",
+  "tab_health": "DB Health"
 }

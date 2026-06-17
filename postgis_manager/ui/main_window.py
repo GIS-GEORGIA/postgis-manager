@@ -41,6 +41,7 @@ from .panels.raster_tools import RasterToolsPanel
 from .panels.map_viewer import MapViewerPanel
 from .panels.qgis_bridge_panel import QGISBridgePanel
 from .panels.publishing_panel import PublishingPanel
+from .panels.health_panel import HealthPanel
 from .panels.db_setup_panel import DBSetupPanel
 from .panels.security_panel import SecurityPanel
 from .panels.audit_panel import AuditPanel
@@ -326,6 +327,9 @@ class MainWindow(QMainWindow):
         self.map_viewer = MapViewerPanel(self.db, self)
         self.map_viewer.project_changed.connect(self._mark_dirty)
         _add(self.map_viewer, "🗺", "tab_map_viewer")
+
+        self.health_panel = HealthPanel(self.db, self)
+        _add(self.health_panel, "❤", "tab_health")
 
         self.sql_editor = SQLEditorPanel(self.db, self)
         _add(self.sql_editor, "⌨", "tab_sql")

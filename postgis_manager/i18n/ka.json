@@ -647,5 +647,6 @@
   "rt_run_reproject": "პროექციის გაყვანა",
   "rt_reproject_done": "{n} ტაილი ჩაიწერა → {table}.",
   "rt_tables_loaded": "{n} რასტერის ცხრილი მოიძებნა.",
-  "tab_publishing": "გამოქვეყნება"
+  "tab_publishing": "გამოქვეყნება",
+  "tab_health": "DB ჯანმრთელობა"
 }
