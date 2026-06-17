@@ -38,6 +38,7 @@ class DBManager:
                 sslmode=ssl_mode,
             )
             self.conn.autocommit = True
+            self.conn.set_client_encoding("UTF8")
             self.params = dict(host=host, port=port, dbname=dbname,
                                user=user, password=password)
 

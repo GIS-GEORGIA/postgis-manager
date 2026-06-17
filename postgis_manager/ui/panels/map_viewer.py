@@ -1015,11 +1015,71 @@ class AttributeTableWindow(QDialog):
             QAbstractItemView.EditTrigger.DoubleClicked)
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.verticalHeader().setDefaultSectionSize(22)
+
+        # Right-click context menu
+        self.table.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self._show_context_menu)
+
         layout.addWidget(self.table)
+
+        # Bottom status: row count
+        self._row_lbl = QLabel()
+        self._row_lbl.setStyleSheet("font-size:11px;color:#666;padding:2px 4px;")
+        layout.addWidget(self._row_lbl)
+
+    def _show_context_menu(self, pos):
+        from PyQt6.QtWidgets import QMenu, QApplication
+        item = self.table.itemAt(pos)
+        menu = QMenu(self.table)
+
+        act_copy_cell = menu.addAction("📋 Copy cell")
+        act_copy_row  = menu.addAction("📋 Copy row (tab-separated)")
+        menu.addSeparator()
+        act_copy_all  = menu.addAction("📋 Copy all rows")
+
+        chosen = menu.exec(self.table.viewport().mapToGlobal(pos))
+
+        if chosen == act_copy_cell:
+            if item:
+                QApplication.clipboard().setText(item.text())
+
+        elif chosen == act_copy_row:
+            row = self.table.currentRow()
+            if row < 0 and item:
+                row = item.row()
+            if row >= 0:
+                cols = self.table.columnCount()
+                headers = [self.table.horizontalHeaderItem(c).text()
+                           if self.table.horizontalHeaderItem(c) else ""
+                           for c in range(cols)]
+                values  = [(self.table.item(row, c).text()
+                            if self.table.item(row, c) else "")
+                           for c in range(cols)]
+                text = "\t".join(headers) + "\n" + "\t".join(values)
+                QApplication.clipboard().setText(text)
+
+        elif chosen == act_copy_all:
+            cols = self.table.columnCount()
+            rows = self.table.rowCount()
+            headers = [self.table.horizontalHeaderItem(c).text()
+                       if self.table.horizontalHeaderItem(c) else ""
+                       for c in range(cols)]
+            lines = ["\t".join(headers)]
+            for r in range(rows):
+                line = "\t".join(
+                    (self.table.item(r, c).text()
+                     if self.table.item(r, c) else "")
+                    for c in range(cols))
+                lines.append(line)
+            QApplication.clipboard().setText("\n".join(lines))
 
     def set_layer_title(self, title: str):
         self.setWindowTitle(f"Attributes — {title}")
         self._lbl.setText(title)
+
+    def update_row_count(self, n: int):
+        self._row_lbl.setText(f"{n} row{'s' if n != 1 else ''}")
 
     def closeEvent(self, e):
         # Hide instead of destroy so it can be re-shown
@@ -1570,6 +1630,7 @@ class MapViewerPanel(QWidget):
                 self._attr_win.set_layer_title(
                     f'{d["schema"]}.{d["table"]}  [{d["geom_col"]}]  '
                     f'({len(data)} features)')
+                self._attr_win.update_row_count(len(data))
 
     # ── Layer list signals ────────────────────────────────────────────────
     def _on_layer_selected(self, current: Optional[QListWidgetItem],
