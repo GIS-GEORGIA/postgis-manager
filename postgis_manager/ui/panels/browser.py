@@ -67,8 +67,15 @@ class LayerBrowserPanel(QWidget):
         self._title.setStyleSheet("font-weight: bold; font-size: 13px;")
         header.addWidget(self._title)
         header.addStretch()
-        self._refresh_btn = QPushButton("↻")
-        self._refresh_btn.setFixedWidth(30)
+        self._refresh_btn = QPushButton("↻ Refresh")
+        self._refresh_btn.setToolTip("Refresh layers from database")
+        self._refresh_btn.setFixedHeight(26)
+        self._refresh_btn.setStyleSheet(
+            "QPushButton { background: transparent; border: 1px solid #888; "
+            "border-radius: 3px; padding: 0 6px; }"
+            "QPushButton:hover { background: rgba(128,128,128,0.2); }"
+            "QPushButton:pressed { background: rgba(128,128,128,0.35); }"
+        )
         self._refresh_btn.clicked.connect(self.refresh)
         header.addWidget(self._refresh_btn)
         layout.addLayout(header)
