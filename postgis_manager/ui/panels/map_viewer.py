@@ -1840,6 +1840,86 @@ class MapViewerPanel(QWidget):
     def refresh(self):
         self._load_layers()
 
+    # ── SQL → Map ─────────────────────────────────────────────────────────
+
+    def add_query_result(self, features: list, attr_cols: list, label: str) -> None:
+        """Add SQL query result geometries as a temporary layer.
+
+        features: list of (geojson_str, attrs_dict) from GeoQueryWorker
+        """
+        import json as _json
+
+        # Remove previous SQL result layer if exists
+        for i in range(self._layer_list.count()):
+            item = self._layer_list.item(i)
+            d = item.data(Qt.ItemDataRole.UserRole)
+            if isinstance(d, dict) and d.get("type") == "sql_result":
+                key = d.get("key", "")
+                self._layers_data.pop(key, None)
+                self._layers_columns.pop(key, None)
+                self._layer_list.takeItem(i)
+                break
+
+        if not features:
+            self._status.setText("No geometry features in result.")
+            return
+
+        # Parse GeoJSON → QPainterPath
+        parsed = []
+        for geojson_str, attrs in features:
+            if not geojson_str:
+                continue
+            try:
+                geom = _json.loads(geojson_str)
+                path, gtype = _geojson_to_path(geom)
+                parsed.append((path, gtype, attrs))
+            except Exception:
+                continue
+
+        if not parsed:
+            self._status.setText("Could not parse geometry from result.")
+            return
+
+        color   = "#f39c12"   # orange — distinct from regular PostGIS layers
+        key     = "sql_result::query"
+        short   = label[:40] + ("…" if len(label) > 40 else "")
+        lw_item = QListWidgetItem(f"⚡ {short}")
+        lw_item.setFlags(
+            Qt.ItemFlag.ItemIsUserCheckable |
+            Qt.ItemFlag.ItemIsEnabled |
+            Qt.ItemFlag.ItemIsSelectable |
+            Qt.ItemFlag.ItemIsDragEnabled
+        )
+        lw_item.setCheckState(Qt.CheckState.Checked)
+        lw_item.setIcon(_make_dot_icon(color))
+        lw_item.setData(Qt.ItemDataRole.UserRole, {
+            "type":     "sql_result",
+            "schema":   "sql",
+            "table":    "result",
+            "geom_col": "geom",
+            "srid":     4326,
+            "color":    color,
+            "features": parsed,
+            "key":      key,
+        })
+
+        self._layer_list.blockSignals(True)
+        self._layer_list.insertItem(0, lw_item)  # top of stack
+        self._layer_list.blockSignals(False)
+        self._layer_list.setCurrentItem(lw_item)
+
+        self._layers_data[key]    = parsed
+        self._layers_columns[key] = list(attr_cols)
+
+        self._canvas.draw_all(self._layer_list)
+
+        # Fit view to the result extent
+        from PyQt6.QtCore import QTimer as _QTimer
+        _QTimer.singleShot(100, lambda: self._canvas.fit_extent())
+
+        self._status.setText(
+            f"✓ {len(parsed)} features from SQL query added to map")
+
     # ── Project save / restore ────────────────────────────────────────────
 
     def get_map_state(self) -> dict:

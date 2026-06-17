@@ -332,6 +332,12 @@ class MainWindow(QMainWindow):
         _add(self.health_panel, "❤", "tab_health")
 
         self.sql_editor = SQLEditorPanel(self.db, self)
+        self.sql_editor.show_on_map.connect(
+            lambda feats, cols, lbl: (
+                self._show_page(self._stack.indexOf(self.map_viewer)),
+                self.map_viewer.add_query_result(feats, cols, lbl)
+            )
+        )
         _add(self.sql_editor, "⌨", "tab_sql")
 
         self.query_builder = QueryBuilderPanel(self.db, self)

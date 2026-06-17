@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
     QTableWidget, QTableWidgetItem, QPushButton,
     QLabel, QComboBox, QFileDialog, QMessageBox, QHeaderView,
-    QAbstractItemView, QCompleter, QPlainTextEdit,
+    QAbstractItemView, QCompleter, QPlainTextEdit, QFrame,
 )
 from PyQt6.QtGui import (
     QFont, QSyntaxHighlighter, QTextCharFormat, QColor,
@@ -236,15 +236,99 @@ class CompletionLoader(QThread):
 
 # ── Main panel ─────────────────────────────────────────────────────────────
 
+# ── Geometry column detection ──────────────────────────────────────────────
+
+_GEO_NAMES = frozenset({
+    "geom", "geometry", "the_geom", "shape", "wkb_geometry",
+    "geomfromtext", "geo", "geog", "geography", "point",
+    "line", "polygon", "multipolygon", "multilinestring", "multipoint",
+})
+
+def _is_geo_col(col_name: str, sample_value) -> bool:
+    """Return True if this column looks like a PostGIS geometry."""
+    if col_name.lower() in _GEO_NAMES:
+        return True
+    if col_name.lower().startswith("st_"):
+        return True
+    if isinstance(sample_value, str) and len(sample_value) > 20:
+        stripped = sample_value.strip()
+        # WKB hex — all hex chars, typically starts with 0 or 1
+        if all(c in "0123456789abcdefABCDEF" for c in stripped[:20]):
+            return True
+        # WKT
+        if any(stripped.upper().startswith(k) for k in (
+                "POINT", "LINESTRING", "POLYGON", "MULTI",
+                "GEOMETRYCOLLECTION", "SRID=")):
+            return True
+    return False
+
+
+class GeoQueryWorker(QThread):
+    """Re-runs SQL wrapping geometry cols with ST_AsGeoJSON."""
+    done  = pyqtSignal(list, list)   # features: [(geojson_str, attrs)], col_names
+    error = pyqtSignal(str)
+
+    def __init__(self, db: DBManager, sql: str, geo_cols: list[str], attr_cols: list[str]):
+        super().__init__()
+        self.db       = db
+        self.sql      = sql
+        self.geo_cols = geo_cols
+        self.attr_cols = attr_cols
+
+    def run(self):
+        try:
+            import psycopg2
+            conn = psycopg2.connect(**self.db.params,
+                                    options="-c client_encoding=UTF8")
+            cur  = conn.cursor()
+
+            # Build SELECT: ST_AsGeoJSON for each geo col, rest as-is
+            selects = []
+            for col in self.geo_cols:
+                selects.append(f'ST_AsGeoJSON("{col}", 6) AS "_geojson_{col}"')
+            for col in self.attr_cols:
+                selects.append(f'"{col}"')
+
+            wrapped = (f"SELECT {', '.join(selects)} "
+                       f"FROM ({self.sql}) AS _sql_result LIMIT 50000")
+            cur.execute(wrapped)
+            desc  = [d[0] for d in cur.description]
+            rows  = cur.fetchall()
+            cur.close()
+            conn.close()
+
+            features = []
+            for row in rows:
+                rd = dict(zip(desc, row))
+                # one feature per geometry column (use first geo col)
+                geojson_str = rd.get(f"_geojson_{self.geo_cols[0]}")
+                if geojson_str is None:
+                    continue
+                attrs = {c: rd.get(c) for c in self.attr_cols}
+                features.append((geojson_str, attrs))
+
+            self.done.emit(features, self.attr_cols)
+        except Exception as e:
+            self.error.emit(str(e))
+
+
 class SQLEditorPanel(QWidget):
+    # Emitted when user clicks "Show on Map"
+    # payload: list of (geojson_str, attrs_dict), list of attr col names
+    show_on_map = pyqtSignal(list, list, str)
+
     def __init__(self, db: DBManager, parent=None):
         super().__init__(parent)
         self.db = db
         self._history: list[str] = list(config.get("sql_history", []))
         self._worker: QueryWorker | None = None
+        self._geo_worker: GeoQueryWorker | None = None
         self._comp_loader: CompletionLoader | None = None
         self._active_schema = ""
         self._active_table = ""
+        self._last_sql = ""
+        self._detected_geo_cols: list[str] = []
+        self._detected_attr_cols: list[str] = []
         self._build_ui()
         for entry in self._history:
             self._history_combo.addItem(entry[:60].replace("\n", " "))
@@ -324,8 +408,32 @@ class SQLEditorPanel(QWidget):
         res_layout = QVBoxLayout(result_widget)
         res_layout.setContentsMargins(0, 4, 0, 0)
 
+        # result status + map button row
+        status_row = QHBoxLayout()
         self._result_label = QLabel("")
-        res_layout.addWidget(self._result_label)
+        status_row.addWidget(self._result_label, 1)
+
+        self._map_banner = QFrame()
+        self._map_banner.setStyleSheet(
+            "QFrame{background:#1a3a1a;border:1px solid #2e7d32;"
+            "border-radius:4px;padding:2px;}")
+        banner_lay = QHBoxLayout(self._map_banner)
+        banner_lay.setContentsMargins(8, 2, 4, 2)
+        self._map_banner_lbl = QLabel("🗺  Geometry column detected:")
+        self._map_banner_lbl.setStyleSheet("color:#81c784;font-weight:bold;")
+        self._btn_show_map = QPushButton("Show on Map")
+        self._btn_show_map.setStyleSheet(
+            "QPushButton{background:#2e7d32;color:#fff;border:none;"
+            "border-radius:3px;padding:2px 10px;font-weight:bold;}"
+            "QPushButton:hover{background:#388e3c;}"
+            "QPushButton:disabled{background:#444;color:#777;}")
+        self._btn_show_map.clicked.connect(self._request_show_on_map)
+        banner_lay.addWidget(self._map_banner_lbl)
+        banner_lay.addWidget(self._btn_show_map)
+        self._map_banner.hide()
+        status_row.addWidget(self._map_banner)
+
+        res_layout.addLayout(status_row)
 
         self._result_table = QTableWidget()
         self._result_table.setAlternatingRowColors(True)
@@ -396,6 +504,10 @@ class SQLEditorPanel(QWidget):
     def _on_result(self, cols, rows, ms: float):
         self._run_btn.setEnabled(True)
         self._stop_btn.setEnabled(False)
+        self._map_banner.hide()
+        self._detected_geo_cols = []
+        self._detected_attr_cols = []
+
         if cols and rows is not None:
             n = len(rows)
             self._result_label.setText(
@@ -403,11 +515,39 @@ class SQLEditorPanel(QWidget):
             self._result_table.setRowCount(n)
             self._result_table.setColumnCount(len(cols))
             self._result_table.setHorizontalHeaderLabels(cols)
+
+            # detect geometry columns from first non-null row
+            first_vals = {}
+            for row in rows:
+                for c, col in enumerate(cols):
+                    if row[c] is not None and col not in first_vals:
+                        first_vals[col] = row[c]
+                if len(first_vals) == len(cols):
+                    break
+
+            geo_cols  = []
+            attr_cols = []
+            for col in cols:
+                sample = first_vals.get(col)
+                if _is_geo_col(col, sample):
+                    geo_cols.append(col)
+                else:
+                    attr_cols.append(col)
+
             for r, row in enumerate(rows):
                 for c, val in enumerate(row):
-                    self._result_table.setItem(
-                        r, c, QTableWidgetItem(
-                            str(val) if val is not None else ""))
+                    display = str(val) if val is not None else ""
+                    # truncate WKB blobs for display
+                    if len(display) > 60 and cols[c] in geo_cols:
+                        display = display[:30] + "…"
+                    self._result_table.setItem(r, c, QTableWidgetItem(display))
+
+            if geo_cols:
+                self._detected_geo_cols  = geo_cols
+                self._detected_attr_cols = attr_cols
+                names = ", ".join(geo_cols)
+                self._map_banner_lbl.setText(f"🗺  Geometry detected: {names}")
+                self._map_banner.show()
         else:
             self._result_label.setText(
                 i18n.t("sql_no_result") + f"  ({ms:.1f} ms)")
@@ -422,6 +562,34 @@ class SQLEditorPanel(QWidget):
         self._result_label.setText(f"Error: {error}")
         if self.parent() and hasattr(self.parent(), "log"):
             self.parent().log(f"SQL Error: {error}", "error")
+
+    def _request_show_on_map(self):
+        if not self._detected_geo_cols:
+            return
+        sql = self._editor.toPlainText().strip()
+        if not sql:
+            return
+        self._btn_show_map.setEnabled(False)
+        self._btn_show_map.setText("Loading…")
+        label = sql[:60].replace("\n", " ")
+        w = GeoQueryWorker(self.db, sql,
+                           self._detected_geo_cols,
+                           self._detected_attr_cols)
+        w.done.connect(lambda feats, cols:
+                       self._on_geo_ready(feats, cols, label))
+        w.error.connect(self._on_geo_error)
+        self._geo_worker = w
+        w.start()
+
+    def _on_geo_ready(self, features: list, attr_cols: list, label: str):
+        self._btn_show_map.setEnabled(True)
+        self._btn_show_map.setText("Show on Map")
+        self.show_on_map.emit(features, attr_cols, label)
+
+    def _on_geo_error(self, error: str):
+        self._btn_show_map.setEnabled(True)
+        self._btn_show_map.setText("Show on Map")
+        self._result_label.setText(f"Map error: {error}")
 
     def _stop_query(self):
         if self._worker and self._worker.isRunning():
