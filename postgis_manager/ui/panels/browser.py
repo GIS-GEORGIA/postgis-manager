@@ -4,7 +4,8 @@ from __future__ import annotations
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTreeWidget, QTreeWidgetItem,
     QPushButton, QLineEdit, QLabel, QMenu, QSizePolicy, QMessageBox,
-    QApplication,
+    QApplication, QDialog, QTableWidget, QTableWidgetItem,
+    QAbstractItemView,
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QThread, pyqtSlot
 from PyQt6.QtGui import QColor, QBrush
@@ -227,11 +228,111 @@ class LayerBrowserPanel(QWidget):
 
     def _on_item_double_clicked(self, item: QTreeWidgetItem, col: int):
         data = item.data(0, Qt.ItemDataRole.UserRole)
-        if not data or data.get("type") != "layer":
+        if not data or data.get("type") not in ("layer", "table", "view"):
             return
-        parent = self.parent()
-        from ..attribute_table import AttributeTableDialog
-        dlg = AttributeTableDialog(self.db, data["schema"], data["table"], parent)
+        schema = data.get("schema", "")
+        table  = data.get("table", "")
+        if not schema or not table:
+            return
+        self._open_attr_table(schema, table)
+
+    def _open_attr_table(self, schema: str, table: str):
+        """Open a simple floating attribute table for the given table."""
+        LIMIT = 2000
+        try:
+            with self.db.conn.cursor() as cur:
+                cur.execute(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_schema = %s AND table_name = %s "
+                    "ORDER BY ordinal_position LIMIT 60",
+                    (schema, table))
+                cols = [r[0] for r in cur.fetchall()]
+
+                if not cols:
+                    QMessageBox.information(
+                        self, "Attribute Table",
+                        f"No columns found for {schema}.{table}")
+                    return
+
+                # Exclude geometry/raster columns
+                cols = [c for c in cols
+                        if c not in ("geom", "geometry", "wkb_geometry",
+                                     "rast", "the_geom", "shape")]
+
+                col_sql = ", ".join(f'"{c}"' for c in cols)
+                cur.execute(
+                    f'SELECT {col_sql} FROM "{schema}"."{table}" LIMIT {LIMIT}')
+                rows = cur.fetchall()
+        except Exception as e:
+            self.db.conn.rollback()
+            QMessageBox.critical(self, "Error", str(e))
+            return
+
+        dlg = QDialog(self.window())
+        dlg.setWindowTitle(f"Attributes — {schema}.{table}  ({len(rows)} rows)")
+        dlg.setMinimumSize(700, 400)
+        dlg.resize(900, 500)
+        dlg.setWindowFlag(Qt.WindowType.Window)
+
+        layout = QVBoxLayout(dlg)
+        layout.setContentsMargins(4, 4, 4, 4)
+
+        info = QLabel(
+            f"{schema}.{table}   {len(rows)} row{'s' if len(rows) != 1 else ''}"
+            + (f"  (limit {LIMIT})" if len(rows) == LIMIT else ""))
+        info.setStyleSheet("font-size:11px;color:#888;padding:2px;")
+        layout.addWidget(info)
+
+        tbl = QTableWidget(len(rows), len(cols))
+        tbl.setHorizontalHeaderLabels(cols)
+        tbl.setAlternatingRowColors(True)
+        tbl.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        tbl.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        tbl.horizontalHeader().setStretchLastSection(True)
+        tbl.verticalHeader().setDefaultSectionSize(22)
+
+        for r, row in enumerate(rows):
+            for c, val in enumerate(row):
+                text = "" if val is None else str(val)
+                tbl.setItem(r, c, QTableWidgetItem(text))
+
+        # Right-click copy
+        tbl.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+
+        def _ctx(pos):
+            item = tbl.itemAt(pos)
+            menu = QMenu(tbl)
+            act_cell = menu.addAction("📋 Copy cell")
+            act_row  = menu.addAction("📋 Copy row")
+            act_all  = menu.addAction("📋 Copy all")
+            chosen = menu.exec(tbl.viewport().mapToGlobal(pos))
+            if chosen == act_cell and item:
+                QApplication.clipboard().setText(item.text())
+            elif chosen == act_row:
+                ri = tbl.currentRow()
+                if ri >= 0:
+                    vals = [(tbl.item(ri, ci).text()
+                             if tbl.item(ri, ci) else "")
+                            for ci in range(tbl.columnCount())]
+                    QApplication.clipboard().setText(
+                        "\t".join(cols) + "\n" + "\t".join(vals))
+            elif chosen == act_all:
+                lines = ["\t".join(cols)]
+                for ri in range(tbl.rowCount()):
+                    lines.append("\t".join(
+                        (tbl.item(ri, ci).text()
+                         if tbl.item(ri, ci) else "")
+                        for ci in range(tbl.columnCount())))
+                QApplication.clipboard().setText("\n".join(lines))
+
+        tbl.customContextMenuRequested.connect(_ctx)
+        layout.addWidget(tbl)
+
+        close_btn = QPushButton("Close")
+        close_btn.setFixedHeight(26)
+        close_btn.clicked.connect(dlg.close)
+        layout.addWidget(close_btn)
+
         dlg.show()
 
     def _context_menu(self, pos):
