@@ -693,8 +693,9 @@ class MapCanvas(QGraphicsView):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setBackgroundBrush(QBrush(QColor("#1A1F2E")))
         self.setFrameShape(QFrame.Shape.NoFrame)
-        self._panning   = False
-        self._pan_start = QPointF()
+        self._panning    = False
+        self._pan_start  = QPointF()
+        self._pan_mode   = False     # True = always-pan on LMB
         self._items: list[FeatureItem] = []
         self._selected_fid: int = -1
 
@@ -869,15 +870,27 @@ class MapCanvas(QGraphicsView):
         self._items.clear()
 
     # ── Mouse events ──────────────────────────────────────────────────────
+    def set_pan_mode(self, enabled: bool):
+        self._pan_mode = enabled
+        if enabled:
+            self.setCursor(Qt.CursorShape.OpenHandCursor)
+        else:
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+            self._panning = False
+
     def wheelEvent(self, e: QWheelEvent):
         factor = 1.25 if e.angleDelta().y() > 0 else 0.8
         self.scale(factor, factor)
         self._schedule_wms()
 
     def mousePressEvent(self, e: QMouseEvent):
-        if e.button() == Qt.MouseButton.MiddleButton or (
-                e.button() == Qt.MouseButton.LeftButton and
-                e.modifiers() & Qt.KeyboardModifier.AltModifier):
+        start_pan = (
+            e.button() == Qt.MouseButton.MiddleButton or
+            (e.button() == Qt.MouseButton.LeftButton and
+             e.modifiers() & Qt.KeyboardModifier.AltModifier) or
+            (e.button() == Qt.MouseButton.LeftButton and self._pan_mode)
+        )
+        if start_pan:
             self._panning = True
             self._pan_start = e.position()
             self.setCursor(Qt.CursorShape.ClosedHandCursor)
@@ -901,7 +914,9 @@ class MapCanvas(QGraphicsView):
     def mouseReleaseEvent(self, e: QMouseEvent):
         if self._panning:
             self._panning = False
-            self.setCursor(Qt.CursorShape.ArrowCursor)
+            self.setCursor(
+                Qt.CursorShape.OpenHandCursor if self._pan_mode
+                else Qt.CursorShape.ArrowCursor)
         super().mouseReleaseEvent(e)
 
     def zoom_in(self):
@@ -1034,16 +1049,28 @@ class MapViewerPanel(QWidget):
         tb.setMovable(False)
 
         self._act_fit = QAction("⊞ Fit", self)
+        self._act_fit.setToolTip("Fit all features in view")
         self._act_fit.triggered.connect(lambda: self._canvas.fit_extent())
         tb.addAction(self._act_fit)
 
         self._act_zi = QAction("＋", self)
+        self._act_zi.setToolTip("Zoom in")
         self._act_zi.triggered.connect(lambda: self._canvas.zoom_in())
         tb.addAction(self._act_zi)
 
         self._act_zo = QAction("－", self)
+        self._act_zo.setToolTip("Zoom out")
         self._act_zo.triggered.connect(lambda: self._canvas.zoom_out())
         tb.addAction(self._act_zo)
+
+        # Pan toggle (checkable)
+        self._act_pan = QAction("🖐 Pan", self)
+        self._act_pan.setToolTip(
+            "Pan mode — drag map with left mouse button\n"
+            "(Alt+drag always pans regardless of mode)")
+        self._act_pan.setCheckable(True)
+        self._act_pan.toggled.connect(self._on_pan_toggled)
+        tb.addAction(self._act_pan)
 
         tb.addSeparator()
 
@@ -1051,21 +1078,6 @@ class MapViewerPanel(QWidget):
         self._act_attr.setToolTip("Open floating attribute table")
         self._act_attr.triggered.connect(self._show_attr_window)
         tb.addAction(self._act_attr)
-
-        tb.addSeparator()
-
-        tb.addWidget(QLabel(" Basemap: "))
-        self._basemap_combo = QComboBox()
-        self._basemap_combo.setMinimumWidth(140)
-        for name in PREDEFINED_BASEMAPS:
-            self._basemap_combo.addItem(name)
-        self._basemap_combo.currentTextChanged.connect(self._on_basemap_changed)
-        tb.addWidget(self._basemap_combo)
-
-        self._act_svc = QAction("🗺 Add Service", self)
-        self._act_svc.setToolTip("Add WMS, WFS or XYZ tile service")
-        self._act_svc.triggered.connect(self._add_service)
-        tb.addAction(self._act_svc)
 
         root.addWidget(tb)
 
@@ -1080,33 +1092,28 @@ class MapViewerPanel(QWidget):
         # ── Main splitter: layer panel | canvas ───────────────────────────
         h_splitter = QSplitter(Qt.Orientation.Horizontal)
 
-        # Left: layer panel
+        # ── Left: layer panel ─────────────────────────────────────────────
         layer_panel = QWidget()
-        layer_panel.setMinimumWidth(160)
-        layer_panel.setMaximumWidth(300)
+        layer_panel.setMinimumWidth(170)
+        layer_panel.setMaximumWidth(320)
         lp_layout = QVBoxLayout(layer_panel)
         lp_layout.setContentsMargins(4, 4, 4, 4)
-        lp_layout.setSpacing(4)
+        lp_layout.setSpacing(3)
 
-        # Header row: "Layers" label + "+" + "-" buttons
-        _btn_style = ("QPushButton{background:#2979FF;color:#fff;border:none;"
-                      "border-radius:3px;font-weight:bold;font-size:14px;}"
-                      "QPushButton:hover{background:#1565C0;}")
+        # "Layers" header with plain Add / Remove buttons
         header_row = QHBoxLayout()
         lbl_layers = QLabel("Layers")
         lbl_layers.setStyleSheet("font-weight:600;")
         header_row.addWidget(lbl_layers)
         header_row.addStretch()
-        self._btn_add = QPushButton("+")
-        self._btn_add.setFixedSize(24, 24)
-        self._btn_add.setToolTip("Add layer")
-        self._btn_add.setStyleSheet(_btn_style)
+        self._btn_add = QPushButton("+ Add")
+        self._btn_add.setFixedHeight(24)
+        self._btn_add.setToolTip("Add PostGIS layer")
         self._btn_add.clicked.connect(self._on_add_layer)
         header_row.addWidget(self._btn_add)
-        self._btn_remove = QPushButton("−")
-        self._btn_remove.setFixedSize(24, 24)
+        self._btn_remove = QPushButton("− Remove")
+        self._btn_remove.setFixedHeight(24)
         self._btn_remove.setToolTip("Remove selected layer")
-        self._btn_remove.setStyleSheet(_btn_style)
         self._btn_remove.clicked.connect(self._on_remove_layer)
         header_row.addWidget(self._btn_remove)
         lp_layout.addLayout(header_row)
@@ -1118,28 +1125,47 @@ class MapViewerPanel(QWidget):
         self._layer_list.itemChanged.connect(self._on_layer_check_changed)
         lp_layout.addWidget(self._layer_list)
 
-        _wfs_style = ("QPushButton{background:#00897B;color:#fff;border:none;"
-                      "border-radius:3px;font-size:11px;padding:3px 6px;}"
-                      "QPushButton:hover{background:#00695C;}")
         self._btn_wfs = QPushButton("🌐 Add WFS Layer")
-        self._btn_wfs.setToolTip("Load features from a WFS service")
-        self._btn_wfs.setStyleSheet(_wfs_style)
+        self._btn_wfs.setToolTip("Load vector features from a WFS service")
+        self._btn_wfs.setFixedHeight(24)
         self._btn_wfs.clicked.connect(self._add_wfs_layer)
         lp_layout.addWidget(self._btn_wfs)
+
+        # ── Basemap section (separator + controls) ────────────────────────
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setFrameShadow(QFrame.Shadow.Sunken)
+        lp_layout.addWidget(sep)
+
+        bm_header = QHBoxLayout()
+        bm_header.addWidget(QLabel("🗺 Basemap"))
+        bm_header.addStretch()
+        self._btn_add_svc = QPushButton("+ Service")
+        self._btn_add_svc.setFixedHeight(22)
+        self._btn_add_svc.setToolTip("Add WMS, WFS or custom XYZ tile service")
+        self._btn_add_svc.clicked.connect(self._add_service)
+        bm_header.addWidget(self._btn_add_svc)
+        lp_layout.addLayout(bm_header)
+
+        self._basemap_combo = QComboBox()
+        for name in PREDEFINED_BASEMAPS:
+            self._basemap_combo.addItem(name)
+        self._basemap_combo.currentTextChanged.connect(self._on_basemap_changed)
+        lp_layout.addWidget(self._basemap_combo)
 
         h_splitter.addWidget(layer_panel)
 
         self._canvas = MapCanvas()
         self._canvas.feature_clicked.connect(self._on_feature_clicked)
         h_splitter.addWidget(self._canvas)
-        h_splitter.setSizes([200, 800])
+        h_splitter.setSizes([210, 800])
 
         root.addWidget(h_splitter)
 
         # ── Floating attribute table window (created lazily) ──────────────
         self._attr_win: Optional[AttributeTableWindow] = None
 
-        # ── Status bar (minimal) ──────────────────────────────────────────
+        # ── Status bar ────────────────────────────────────────────────────
         self._status = QLabel()
         self._status.setStyleSheet(
             "padding: 2px 8px; font-size: 12px; color: #888;")
@@ -1166,26 +1192,61 @@ class MapViewerPanel(QWidget):
         win.show()
         win.raise_()
 
+    def _on_pan_toggled(self, checked: bool):
+        self._canvas.set_pan_mode(checked)
+
     # ── Basemap handlers ──────────────────────────────────────────────────
     def _on_basemap_changed(self, name: str):
         idx = self._basemap_combo.currentIndex()
         user_data = self._basemap_combo.itemData(idx)
         if isinstance(user_data, dict):
-            # Custom WMS entry
             self._canvas.set_wms_basemap(
                 user_data["url"], user_data["layer"],
                 user_data.get("styles", ""))
-            return
-        if isinstance(user_data, str):
-            # Custom XYZ entry
+            self._upsert_basemap_list_item(name, "wms")
+        elif isinstance(user_data, str):
             self._canvas.set_tile_basemap(user_data)
-            return
-        # Predefined entry
-        url = PREDEFINED_BASEMAPS.get(name)
-        if url is None:
-            self._canvas.clear_basemap()
+            self._upsert_basemap_list_item(name, "xyz")
         else:
-            self._canvas.set_tile_basemap(url)
+            url = PREDEFINED_BASEMAPS.get(name)
+            if url is None:
+                self._canvas.clear_basemap()
+                self._remove_basemap_list_item()
+            else:
+                self._canvas.set_tile_basemap(url)
+                self._upsert_basemap_list_item(name, "xyz")
+
+    def _upsert_basemap_list_item(self, name: str, bm_type: str):
+        """Create or update the basemap entry at position 0 of the layer list."""
+        item = self._find_basemap_list_item()
+        if item is None:
+            item = QListWidgetItem()
+            item.setFlags(
+                Qt.ItemFlag.ItemIsUserCheckable |
+                Qt.ItemFlag.ItemIsEnabled |
+                Qt.ItemFlag.ItemIsSelectable)
+            item.setCheckState(Qt.CheckState.Checked)
+            self._layer_list.blockSignals(True)
+            self._layer_list.insertItem(0, item)
+            self._layer_list.blockSignals(False)
+        icon_px = QPixmap(14, 14)
+        icon_px.fill(QColor("#607D8B"))
+        item.setIcon(QIcon(icon_px))
+        item.setText(f"🗺 {name}")
+        item.setData(Qt.ItemDataRole.UserRole,
+                     {"type": "basemap", "name": name, "bm_type": bm_type})
+
+    def _remove_basemap_list_item(self):
+        item = self._find_basemap_list_item()
+        if item is not None:
+            self._layer_list.takeItem(self._layer_list.row(item))
+
+    def _find_basemap_list_item(self) -> Optional[QListWidgetItem]:
+        for i in range(self._layer_list.count()):
+            d = self._layer_list.item(i).data(Qt.ItemDataRole.UserRole)
+            if isinstance(d, dict) and d.get("type") == "basemap":
+                return self._layer_list.item(i)
+        return None
 
     def _add_service(self):
         dlg = _ServiceDialog(self)
@@ -1356,6 +1417,14 @@ class MapViewerPanel(QWidget):
         if not item:
             return
         d = item.data(Qt.ItemDataRole.UserRole)
+        if isinstance(d, dict) and d.get("type") == "basemap":
+            # Removing basemap item → reset combo to "None"
+            self._basemap_combo.blockSignals(True)
+            self._basemap_combo.setCurrentText("None")
+            self._basemap_combo.blockSignals(False)
+            self._canvas.clear_basemap()
+            self._layer_list.takeItem(self._layer_list.row(item))
+            return
         if d:
             key = self._layer_key(d["schema"], d["table"], d["geom_col"])
             self._layers_data.pop(key, None)
@@ -1484,15 +1553,27 @@ class MapViewerPanel(QWidget):
     def _on_layer_selected(self, current: Optional[QListWidgetItem],
                            previous: Optional[QListWidgetItem]):
         """User clicked a different layer in the list."""
+        if current:
+            d = current.data(Qt.ItemDataRole.UserRole)
+            if isinstance(d, dict) and d.get("type") == "basemap":
+                return   # basemap row — no attribute table
         self._populate_attr_table(current)
         if current and self._attr_win:
             d = current.data(Qt.ItemDataRole.UserRole)
-            if d:
+            if d and "geom_col" in d:
                 self._attr_win.set_layer_title(
                     f'{d["schema"]}.{d["table"]}  [{d["geom_col"]}]')
 
     def _on_layer_check_changed(self, item: QListWidgetItem):
-        """Checkbox toggled — redraw canvas."""
+        """Checkbox toggled — redraw canvas or toggle basemap visibility."""
+        d = item.data(Qt.ItemDataRole.UserRole)
+        if isinstance(d, dict) and d.get("type") == "basemap":
+            if item.checkState() == Qt.CheckState.Checked:
+                # Re-apply the current basemap
+                self._on_basemap_changed(self._basemap_combo.currentText())
+            else:
+                self._canvas.clear_basemap()
+            return
         self._canvas.draw_all(self._layer_list)
 
     # ── Sync: canvas ↔ table ──────────────────────────────────────────────
