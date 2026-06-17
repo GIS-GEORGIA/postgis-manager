@@ -1795,10 +1795,10 @@ class MapViewerPanel(QWidget):
         for i in range(self._layer_list.count()):
             lw_item = self._layer_list.item(i)
             d = lw_item.data(Qt.ItemDataRole.UserRole)
-            if not d:
+            if not isinstance(d, dict) or "schema" not in d:
                 continue
             if (d["schema"] == schema and d["table"] == table and
-                    (not geom_col or d["geom_col"] == geom_col)):
+                    (not geom_col or d.get("geom_col") == geom_col)):
                 self._layer_list.setCurrentItem(lw_item)
                 return
 
