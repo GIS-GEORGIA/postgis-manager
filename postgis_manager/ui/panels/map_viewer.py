@@ -1,7 +1,11 @@
 """Map Viewer panel — renders PostGIS geometries with attribute table."""
 
 from __future__ import annotations
+import json
+import math
 import struct
+import urllib.request
+import urllib.parse
 from typing import Optional
 
 from PyQt6.QtWidgets import (
@@ -11,18 +15,378 @@ from PyQt6.QtWidgets import (
     QGraphicsPathItem, QAbstractItemView,
     QFrame, QProgressBar, QListWidget, QListWidgetItem,
     QPushButton, QDialog, QDialogButtonBox, QSizePolicy,
+    QLineEdit, QFormLayout, QGroupBox, QRadioButton, QButtonGroup,
+    QTabWidget, QScrollArea, QTextEdit, QCheckBox,
 )
 from PyQt6.QtCore import (
-    Qt, QThread, pyqtSignal, QPointF,
+    Qt, QThread, pyqtSignal, QPointF, QRectF, QObject, QTimer,
 )
 from PyQt6.QtGui import (
     QPainter, QPainterPath, QColor, QPen, QBrush,
-    QWheelEvent, QMouseEvent, QAction, QTransform, QPixmap, QIcon,
+    QWheelEvent, QMouseEvent, QAction, QTransform, QPixmap, QIcon, QImage,
 )
 
 from ...db.connection import DBManager
 from ...utils import i18n
 from ...utils.workers import launch
+
+
+# ── Tile / Mercator math ──────────────────────────────────────────────────
+_MAX_MERC = 20037508.342789244   # EPSG:3857 world half-extent in metres
+_EARTH_R  = 6378137.0
+
+# Predefined basemaps (name → XYZ URL template or None)
+PREDEFINED_BASEMAPS: dict[str, Optional[str]] = {
+    "None":             None,
+    "OpenStreetMap":    "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "CartoDB Light":    "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+    "CartoDB Dark":     "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+    "CartoDB Voyager":  "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+    "Stadia Alidade":   "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}.png",
+}
+
+
+def _geo_to_merc(lon: float, lat: float) -> tuple[float, float]:
+    lat = max(-85.0511, min(85.0511, lat))
+    x = math.radians(lon) * _EARTH_R
+    y = math.log(math.tan(math.pi / 4 + math.radians(lat) / 2)) * _EARTH_R
+    return x, y
+
+
+def _zoom_for_ppm(pixels_per_meter: float) -> int:
+    """Best OSM zoom level for given scene scale (pixels per metre)."""
+    if pixels_per_meter <= 0:
+        return 2
+    z = math.log2(max(1e-15, pixels_per_meter) * 2 * _MAX_MERC / 256)
+    return max(0, min(19, round(z)))
+
+
+def _tile_scene_rect(tx: int, ty: int, tz: int) -> QRectF:
+    """QRectF in scene coords (y negated) for XYZ tile."""
+    n = 1 << tz
+    w = 2 * _MAX_MERC / n
+    x_min = -_MAX_MERC + tx * w
+    y_max_merc = _MAX_MERC - ty * w
+    return QRectF(x_min, -y_max_merc, w, w)   # scene y = −merc_y
+
+
+def _tiles_for_scene_rect(scene_rect: QRectF, tz: int) -> list[tuple[int, int, int]]:
+    """All (tx,ty,tz) tiles that intersect the given scene QRectF."""
+    n = 1 << tz
+    w = 2 * _MAX_MERC / n
+    xmin = scene_rect.left()
+    xmax = scene_rect.right()
+    # scene top is the most-negative y → maps to largest merc_y (north)
+    ymax_merc = -scene_rect.top()
+    ymin_merc = -scene_rect.bottom()
+    tx0 = max(0, int((xmin + _MAX_MERC) / w))
+    tx1 = min(n - 1, int((xmax + _MAX_MERC) / w))
+    ty0 = max(0, int((_MAX_MERC - ymax_merc) / w))
+    ty1 = min(n - 1, int((_MAX_MERC - ymin_merc) / w))
+    return [(tx, ty, tz)
+            for ty in range(ty0, ty1 + 1)
+            for tx in range(tx0, tx1 + 1)]
+
+
+# ── Async tile cache (background thread, no Qt network needed) ────────────
+class TileFetchWorker(QThread):
+    """Fetches a single tile in a background thread."""
+    done = pyqtSignal(int, int, int, QPixmap)   # tx, ty, tz, pixmap
+
+    def __init__(self, tx: int, ty: int, tz: int, url: str):
+        super().__init__()
+        self.tx, self.ty, self.tz = tx, ty, tz
+        self.url = url
+
+    def run(self):
+        try:
+            req = urllib.request.Request(
+                self.url, headers={"User-Agent": "PostGIS-Manager/1.0"})
+            with urllib.request.urlopen(req, timeout=10) as r:
+                data = r.read()
+            px = QPixmap()
+            px.loadFromData(data)
+            if not px.isNull():
+                self.done.emit(self.tx, self.ty, self.tz, px)
+        except Exception:
+            pass
+
+
+class TileCache(QObject):
+    """Manages async XYZ tile downloads and caches the results."""
+    tile_ready = pyqtSignal()
+
+    MAX_CACHE = 512
+    MAX_PARALLEL = 8
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._url_template: str = ""
+        self._cache: dict[tuple, QPixmap] = {}
+        self._pending: set[tuple] = set()
+        self._workers: list[TileFetchWorker] = []
+
+    def set_template(self, template: str):
+        if template != self._url_template:
+            self._url_template = template
+            self._cache.clear()
+            self._pending.clear()
+
+    def get(self, tx: int, ty: int, tz: int) -> Optional[QPixmap]:
+        key = (tx, ty, tz)
+        px = self._cache.get(key)
+        if px:
+            return px
+        if key not in self._pending and self._url_template:
+            if len(self._pending) < self.MAX_PARALLEL:
+                self._pending.add(key)
+                url = self._url_template.format(z=tz, x=tx, y=ty)
+                w = TileFetchWorker(tx, ty, tz, url)
+                w.done.connect(self._on_done)
+                w.finished.connect(lambda ww=w: self._workers.remove(ww)
+                                   if ww in self._workers else None)
+                self._workers.append(w)
+                w.start()
+        return None
+
+    def _on_done(self, tx: int, ty: int, tz: int, px: QPixmap):
+        self._pending.discard((tx, ty, tz))
+        if len(self._cache) >= self.MAX_CACHE:
+            # evict oldest (dict insertion-order in Python 3.7+)
+            oldest = next(iter(self._cache))
+            del self._cache[oldest]
+        self._cache[(tx, ty, tz)] = px
+        self.tile_ready.emit()
+
+    def clear(self):
+        self._cache.clear()
+        self._pending.clear()
+
+
+# ── WMS fetcher ───────────────────────────────────────────────────────────
+class WMSFetcher(QThread):
+    """Fetches a WMS GetMap image for a given EPSG:3857 bounding box."""
+    done = pyqtSignal(QPixmap, float, float, float, float)  # px, xmin,ymin,xmax,ymax
+
+    def __init__(self, url: str, layer: str, styles: str,
+                 xmin: float, ymin: float, xmax: float, ymax: float,
+                 width: int, height: int):
+        super().__init__()
+        self.url, self.layer, self.styles = url, layer, styles
+        self.xmin, self.ymin, self.xmax, self.ymax = xmin, ymin, xmax, ymax
+        self.width, self.height = width, height
+
+    def run(self):
+        try:
+            params = {
+                "SERVICE": "WMS", "VERSION": "1.3.0", "REQUEST": "GetMap",
+                "LAYERS": self.layer, "STYLES": self.styles,
+                "CRS": "EPSG:3857",
+                "BBOX": f"{self.xmin},{self.ymin},{self.xmax},{self.ymax}",
+                "WIDTH": str(self.width), "HEIGHT": str(self.height),
+                "FORMAT": "image/png", "TRANSPARENT": "TRUE",
+            }
+            full_url = self.url.rstrip("?") + "?" + urllib.parse.urlencode(params)
+            req = urllib.request.Request(
+                full_url, headers={"User-Agent": "PostGIS-Manager/1.0"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                data = r.read()
+            px = QPixmap()
+            px.loadFromData(data)
+            if not px.isNull():
+                self.done.emit(px, self.xmin, self.ymin, self.xmax, self.ymax)
+        except Exception:
+            pass
+
+
+# ── WFS load worker ───────────────────────────────────────────────────────
+class WFSLoadWorker(QThread):
+    """Fetches WFS GetFeature (GeoJSON), returns features like MapLoadWorker."""
+    progress = pyqtSignal(int)
+    features = pyqtSignal(list)
+    columns  = pyqtSignal(list)
+    error    = pyqtSignal(str)
+
+    LIMIT = 5000
+
+    def __init__(self, url: str, type_name: str, max_features: int = 5000):
+        super().__init__()
+        self.url = url.rstrip("?")
+        self.type_name = type_name
+        self.max_features = max_features
+
+    def run(self):
+        try:
+            params = {
+                "SERVICE": "WFS", "VERSION": "2.0.0", "REQUEST": "GetFeature",
+                "TYPENAMES": self.type_name,
+                "OUTPUTFORMAT": "application/json",
+                "COUNT": str(self.max_features),
+                "SRSNAME": "EPSG:4326",
+            }
+            full_url = self.url + "?" + urllib.parse.urlencode(params)
+            req = urllib.request.Request(
+                full_url, headers={"User-Agent": "PostGIS-Manager/1.0"})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                data = json.loads(r.read())
+
+            features_json = data.get("features", [])
+            if not features_json:
+                self.features.emit([])
+                return
+
+            # Collect all property keys from first 10 features
+            col_set: dict[str, None] = {}
+            for f in features_json[:10]:
+                for k in f.get("properties", {}).keys():
+                    col_set[k] = None
+            cols = list(col_set.keys())
+            self.columns.emit(cols)
+
+            result = []
+            total = len(features_json)
+            for i, feat in enumerate(features_json):
+                geom_json = feat.get("geometry")
+                if not geom_json:
+                    continue
+                path, gtype = _geojson_to_path(geom_json)
+                if path.isEmpty():
+                    continue
+                # Encode as a fake "wkb" placeholder — we store the path directly
+                attrs = {k: feat.get("properties", {}).get(k) for k in cols}
+                result.append((path, gtype, attrs))   # path instead of wkb bytes
+                if i % 200 == 0:
+                    self.progress.emit(int(i / max(total, 1) * 100))
+
+            self.progress.emit(100)
+            self.features.emit(result)
+        except Exception as e:
+            self.error.emit(str(e))
+
+
+def _geojson_to_path(geom: dict) -> tuple[QPainterPath, str]:
+    """Convert a GeoJSON geometry (in EPSG:4326) to (QPainterPath, gtype)."""
+    gtype = geom.get("type", "Unknown").upper()
+    coords = geom.get("coordinates", [])
+    path = QPainterPath()
+
+    if gtype == "POINT":
+        x, y = _geo_to_merc(*coords[:2])
+        path.addEllipse(QPointF(x, -y), 4, 4)
+    elif gtype == "LINESTRING":
+        _ring_to_path(coords, path, move=True)
+    elif gtype == "POLYGON":
+        for ring in coords:
+            sub = QPainterPath()
+            _ring_to_path(ring, sub, move=True)
+            sub.closeSubpath()
+            path.addPath(sub)
+    elif gtype in ("MULTIPOINT", "MULTILINESTRING", "MULTIPOLYGON",
+                   "GEOMETRYCOLLECTION"):
+        inner_type = gtype[5:] if gtype.startswith("MULTI") else ""
+        parts = geom.get("geometries", coords) if gtype == "GEOMETRYCOLLECTION" else coords
+        for part in parts:
+            if gtype == "GEOMETRYCOLLECTION":
+                sub, _ = _geojson_to_path(part)
+            else:
+                sub, _ = _geojson_to_path({"type": inner_type, "coordinates": part})
+            path.addPath(sub)
+
+    return path, gtype
+
+
+def _ring_to_path(coords, path: QPainterPath, move: bool = False):
+    for i, c in enumerate(coords):
+        x, y = _geo_to_merc(*c[:2])
+        if i == 0 and move:
+            path.moveTo(x, -y)
+        else:
+            path.lineTo(x, -y)
+
+
+# ── Add-service dialog ────────────────────────────────────────────────────
+class _ServiceDialog(QDialog):
+    """Dialog to add a WMS, WFS, or custom XYZ tile service."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Add Map Service")
+        self.setMinimumWidth(460)
+        layout = QVBoxLayout(self)
+
+        # Service type tabs
+        tabs = QTabWidget()
+
+        # ── XYZ tile tab ──
+        xyz_w = QWidget()
+        xyz_l = QFormLayout(xyz_w)
+        self._xyz_url = QLineEdit()
+        self._xyz_url.setPlaceholderText(
+            "https://tile.openstreetmap.org/{z}/{x}/{y}.png")
+        self._xyz_name = QLineEdit()
+        self._xyz_name.setPlaceholderText("My Basemap")
+        xyz_l.addRow("URL template:", self._xyz_url)
+        xyz_l.addRow("Name:", self._xyz_name)
+        tabs.addTab(xyz_w, "XYZ Tiles")
+
+        # ── WMS tab ──
+        wms_w = QWidget()
+        wms_l = QFormLayout(wms_w)
+        self._wms_url = QLineEdit()
+        self._wms_url.setPlaceholderText("https://example.com/wms")
+        self._wms_layer = QLineEdit()
+        self._wms_layer.setPlaceholderText("layer_name")
+        self._wms_styles = QLineEdit()
+        self._wms_name = QLineEdit()
+        self._wms_name.setPlaceholderText("My WMS")
+        wms_l.addRow("URL:", self._wms_url)
+        wms_l.addRow("Layer:", self._wms_layer)
+        wms_l.addRow("Styles:", self._wms_styles)
+        wms_l.addRow("Name:", self._wms_name)
+        tabs.addTab(wms_w, "WMS")
+
+        # ── WFS tab ──
+        wfs_w = QWidget()
+        wfs_l = QFormLayout(wfs_w)
+        self._wfs_url = QLineEdit()
+        self._wfs_url.setPlaceholderText("https://example.com/wfs")
+        self._wfs_type = QLineEdit()
+        self._wfs_type.setPlaceholderText("namespace:TypeName")
+        self._wfs_name = QLineEdit()
+        self._wfs_name.setPlaceholderText("My WFS Layer")
+        wfs_l.addRow("URL:", self._wfs_url)
+        wfs_l.addRow("TypeName:", self._wfs_type)
+        wfs_l.addRow("Name:", self._wfs_name)
+        tabs.addTab(wfs_w, "WFS")
+
+        layout.addWidget(tabs)
+        self._tabs = tabs
+
+        btns = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok |
+            QDialogButtonBox.StandardButton.Cancel)
+        btns.accepted.connect(self.accept)
+        btns.rejected.connect(self.reject)
+        layout.addWidget(btns)
+
+    def result_data(self) -> dict:
+        """Return {'type': 'xyz'|'wms'|'wfs', ...} depending on active tab."""
+        idx = self._tabs.currentIndex()
+        if idx == 0:
+            return {"type": "xyz",
+                    "url": self._xyz_url.text().strip(),
+                    "name": self._xyz_name.text().strip() or "Custom XYZ"}
+        elif idx == 1:
+            return {"type": "wms",
+                    "url": self._wms_url.text().strip(),
+                    "layer": self._wms_layer.text().strip(),
+                    "styles": self._wms_styles.text().strip(),
+                    "name": self._wms_name.text().strip() or "WMS Layer"}
+        else:
+            return {"type": "wfs",
+                    "url": self._wfs_url.text().strip(),
+                    "type_name": self._wfs_type.text().strip(),
+                    "name": self._wfs_name.text().strip() or "WFS Layer"}
 
 
 # ── Colours by geometry type ──────────────────────────────────────────────
@@ -219,7 +583,8 @@ class MapLoadWorker(QThread):
             self.columns.emit(cols)
 
             col_sql = ", ".join(f'"{c}"' for c in cols) if cols else "NULL as _no_cols"
-            target_srid = 4326
+            # Render in EPSG:3857 (Web Mercator) so tile basemaps align
+            target_srid = 3857
 
             sql = f"""
                 SELECT
@@ -312,6 +677,7 @@ class FeatureItem(QGraphicsPathItem):
 # ── Map Canvas ────────────────────────────────────────────────────────────
 class MapCanvas(QGraphicsView):
     feature_clicked = pyqtSignal(int)   # fid
+    viewport_changed = pyqtSignal()     # emitted after zoom/pan
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -331,6 +697,103 @@ class MapCanvas(QGraphicsView):
         self._pan_start = QPointF()
         self._items: list[FeatureItem] = []
         self._selected_fid: int = -1
+
+        # ── Basemap state ─────────────────────────────────────────────────
+        self._tile_cache = TileCache(self)
+        self._tile_cache.tile_ready.connect(self.viewport().update)
+        self._tile_url: str = ""          # empty = no tile basemap
+
+        # WMS state
+        self._wms_url: str = ""
+        self._wms_layer: str = ""
+        self._wms_styles: str = ""
+        self._wms_pixmap: Optional[QPixmap] = None
+        self._wms_rect: Optional[QRectF] = None   # scene coords of last WMS image
+        self._wms_worker: Optional[WMSFetcher] = None
+        self._wms_timer = QTimer(self)
+        self._wms_timer.setSingleShot(True)
+        self._wms_timer.timeout.connect(self._fetch_wms)
+
+    # ── Basemap control ───────────────────────────────────────────────────
+    def set_tile_basemap(self, url: str):
+        """Set XYZ tile basemap URL template (empty string to disable)."""
+        self._tile_url = url
+        self._tile_cache.set_template(url)
+        self._wms_url = ""
+        self._wms_pixmap = None
+        self.viewport().update()
+
+    def set_wms_basemap(self, url: str, layer: str, styles: str = ""):
+        """Set WMS basemap."""
+        self._tile_url = ""
+        self._tile_cache.set_template("")
+        self._wms_url = url
+        self._wms_layer = layer
+        self._wms_styles = styles
+        self._wms_pixmap = None
+        self._wms_rect = None
+        self._schedule_wms()
+
+    def clear_basemap(self):
+        self._tile_url = ""
+        self._tile_cache.set_template("")
+        self._wms_url = ""
+        self._wms_pixmap = None
+        self._wms_rect = None
+        self.viewport().update()
+
+    def _schedule_wms(self):
+        """Debounce WMS fetch — wait 400 ms after last viewport change."""
+        if self._wms_url:
+            self._wms_timer.start(400)
+
+    def _fetch_wms(self):
+        if not self._wms_url:
+            return
+        vp = self.viewport().rect()
+        scene_tl = self.mapToScene(vp.topLeft())
+        scene_br = self.mapToScene(vp.bottomRight())
+        # scene y = −merc_y, so north = −scene_top, south = −scene_bottom
+        xmin = scene_tl.x()
+        xmax = scene_br.x()
+        ymin = -scene_br.y()   # south in merc
+        ymax = -scene_tl.y()   # north in merc
+        if xmax <= xmin or ymax <= ymin:
+            return
+        if self._wms_worker and self._wms_worker.isRunning():
+            return
+        self._wms_worker = WMSFetcher(
+            self._wms_url, self._wms_layer, self._wms_styles,
+            xmin, ymin, xmax, ymax,
+            vp.width(), vp.height())
+        self._wms_worker.done.connect(self._on_wms_done)
+        launch(self._wms_worker)
+
+    def _on_wms_done(self, px: QPixmap,
+                     xmin: float, ymin: float, xmax: float, ymax: float):
+        self._wms_pixmap = px
+        # scene rect (y negated): top = −ymax, height = ymax−ymin
+        self._wms_rect = QRectF(xmin, -ymax, xmax - xmin, ymax - ymin)
+        self.viewport().update()
+
+    # ── drawBackground ────────────────────────────────────────────────────
+    def drawBackground(self, painter: QPainter, rect: QRectF):
+        painter.fillRect(rect, QBrush(QColor("#1A1F2E")))
+
+        # XYZ tiles
+        if self._tile_url:
+            scale = self.transform().m11()   # pixels per scene unit (metre)
+            tz = _zoom_for_ppm(scale)
+            for tx, ty, tz_ in _tiles_for_scene_rect(rect, tz):
+                px = self._tile_cache.get(tx, ty, tz_)
+                if px:
+                    tile_r = _tile_scene_rect(tx, ty, tz_)
+                    painter.drawPixmap(tile_r, px, QRectF(px.rect()))
+
+        # WMS image
+        elif self._wms_pixmap and self._wms_rect:
+            painter.drawPixmap(self._wms_rect, self._wms_pixmap,
+                               QRectF(self._wms_pixmap.rect()))
 
     def load_features(self, feature_data: list):
         self._scene.clear()
@@ -365,9 +828,13 @@ class MapCanvas(QGraphicsView):
                 continue
             features = data.get("features", [])
             color = data.get("color", None)
-            for fid, (wkb, gtype, _attrs) in enumerate(features):
+            for fid, feat in enumerate(features):
+                raw, gtype, _attrs = feat[0], feat[1], feat[2]
                 try:
-                    path, resolved = _wkb_to_path(wkb)
+                    if isinstance(raw, QPainterPath):
+                        path = raw      # WFS pre-parsed path
+                    else:
+                        path, gtype = _wkb_to_path(raw)
                     if path.isEmpty():
                         continue
                     fi = FeatureItem(path, gtype, fid, layer_color=color)
@@ -405,6 +872,7 @@ class MapCanvas(QGraphicsView):
     def wheelEvent(self, e: QWheelEvent):
         factor = 1.25 if e.angleDelta().y() > 0 else 0.8
         self.scale(factor, factor)
+        self._schedule_wms()
 
     def mousePressEvent(self, e: QMouseEvent):
         if e.button() == Qt.MouseButton.MiddleButton or (
@@ -436,8 +904,17 @@ class MapCanvas(QGraphicsView):
             self.setCursor(Qt.CursorShape.ArrowCursor)
         super().mouseReleaseEvent(e)
 
-    def zoom_in(self):  self.scale(1.5, 1.5)
-    def zoom_out(self): self.scale(1/1.5, 1/1.5)
+    def zoom_in(self):
+        self.scale(1.5, 1.5)
+        self._schedule_wms()
+
+    def zoom_out(self):
+        self.scale(1 / 1.5, 1 / 1.5)
+        self._schedule_wms()
+
+    def scrollContentsBy(self, dx: int, dy: int):
+        super().scrollContentsBy(dx, dy)
+        self._schedule_wms()
 
 
 # ── Add-layer dialog ──────────────────────────────────────────────────────
@@ -575,6 +1052,21 @@ class MapViewerPanel(QWidget):
         self._act_attr.triggered.connect(self._show_attr_window)
         tb.addAction(self._act_attr)
 
+        tb.addSeparator()
+
+        tb.addWidget(QLabel(" Basemap: "))
+        self._basemap_combo = QComboBox()
+        self._basemap_combo.setMinimumWidth(140)
+        for name in PREDEFINED_BASEMAPS:
+            self._basemap_combo.addItem(name)
+        self._basemap_combo.currentTextChanged.connect(self._on_basemap_changed)
+        tb.addWidget(self._basemap_combo)
+
+        self._act_svc = QAction("🗺 Add Service", self)
+        self._act_svc.setToolTip("Add WMS, WFS or XYZ tile service")
+        self._act_svc.triggered.connect(self._add_service)
+        tb.addAction(self._act_svc)
+
         root.addWidget(tb)
 
         # ── Progress bar ──────────────────────────────────────────────────
@@ -626,6 +1118,15 @@ class MapViewerPanel(QWidget):
         self._layer_list.itemChanged.connect(self._on_layer_check_changed)
         lp_layout.addWidget(self._layer_list)
 
+        _wfs_style = ("QPushButton{background:#00897B;color:#fff;border:none;"
+                      "border-radius:3px;font-size:11px;padding:3px 6px;}"
+                      "QPushButton:hover{background:#00695C;}")
+        self._btn_wfs = QPushButton("🌐 Add WFS Layer")
+        self._btn_wfs.setToolTip("Load features from a WFS service")
+        self._btn_wfs.setStyleSheet(_wfs_style)
+        self._btn_wfs.clicked.connect(self._add_wfs_layer)
+        lp_layout.addWidget(self._btn_wfs)
+
         h_splitter.addWidget(layer_panel)
 
         self._canvas = MapCanvas()
@@ -664,6 +1165,94 @@ class MapViewerPanel(QWidget):
         win = self._get_attr_win()
         win.show()
         win.raise_()
+
+    # ── Basemap handlers ──────────────────────────────────────────────────
+    def _on_basemap_changed(self, name: str):
+        idx = self._basemap_combo.currentIndex()
+        user_data = self._basemap_combo.itemData(idx)
+        if isinstance(user_data, dict):
+            # Custom WMS entry
+            self._canvas.set_wms_basemap(
+                user_data["url"], user_data["layer"],
+                user_data.get("styles", ""))
+            return
+        if isinstance(user_data, str):
+            # Custom XYZ entry
+            self._canvas.set_tile_basemap(user_data)
+            return
+        # Predefined entry
+        url = PREDEFINED_BASEMAPS.get(name)
+        if url is None:
+            self._canvas.clear_basemap()
+        else:
+            self._canvas.set_tile_basemap(url)
+
+    def _add_service(self):
+        dlg = _ServiceDialog(self)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        data = dlg.result_data()
+        if not data.get("url"):
+            return
+
+        stype = data["type"]
+        if stype == "xyz":
+            # Add as a custom basemap entry in the combo
+            name = data["name"]
+            self._basemap_combo.addItem(name, data["url"])
+            self._basemap_combo.setCurrentText(name)
+            self._canvas.set_tile_basemap(data["url"])
+        elif stype == "wms":
+            name = data["name"]
+            self._basemap_combo.addItem(name, data)
+            self._basemap_combo.setCurrentText(name)
+            self._canvas.set_wms_basemap(
+                data["url"], data["layer"], data.get("styles", ""))
+        elif stype == "wfs":
+            self._load_wfs_layer(
+                data["url"], data["type_name"], data["name"])
+
+    def _add_wfs_layer(self):
+        """Open service dialog pre-set to WFS tab."""
+        dlg = _ServiceDialog(self)
+        dlg._tabs.setCurrentIndex(2)   # WFS tab
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        data = dlg.result_data()
+        if data["type"] == "wfs" and data.get("url"):
+            self._load_wfs_layer(data["url"], data["type_name"], data["name"])
+
+    def _load_wfs_layer(self, url: str, type_name: str, name: str):
+        color = self._next_color()
+        lw_item = QListWidgetItem(f"🌐 {name}")
+        lw_item.setFlags(
+            Qt.ItemFlag.ItemIsUserCheckable |
+            Qt.ItemFlag.ItemIsEnabled |
+            Qt.ItemFlag.ItemIsSelectable)
+        lw_item.setCheckState(Qt.CheckState.Checked)
+        lw_item.setIcon(_make_dot_icon(color))
+        key = f"wfs::{url}::{type_name}"
+        lw_item.setData(Qt.ItemDataRole.UserRole, {
+            "schema": "wfs", "table": type_name, "geom_col": "geometry",
+            "srid": 3857, "color": color, "features": [], "key": key,
+        })
+        self._layer_list.blockSignals(True)
+        self._layer_list.addItem(lw_item)
+        self._layer_list.blockSignals(False)
+        self._layer_list.setCurrentItem(lw_item)
+
+        self._progress.show()
+        self._progress.setValue(0)
+        self._status.setText(f"Loading WFS: {type_name}…")
+
+        worker = WFSLoadWorker(url, type_name)
+        worker.progress.connect(self._progress.setValue)
+        worker.columns.connect(
+            lambda cols, item=lw_item: self._on_columns(cols, item))
+        worker.features.connect(
+            lambda data, item=lw_item: self._on_features(data, item))
+        worker.error.connect(self._on_error)
+        launch(worker)
 
     # ── Layer list helpers ────────────────────────────────────────────────
     def _layer_key(self, schema: str, table: str, geom_col: str) -> str:
