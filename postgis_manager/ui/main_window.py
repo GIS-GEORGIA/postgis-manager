@@ -1,19 +1,20 @@
 """Main application window — works as standalone QMainWindow and as QGIS panel."""
 
 from __future__ import annotations
+import os
 from typing import Optional
 
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
     QStatusBar, QToolBar, QApplication,
     QLabel, QComboBox, QSizePolicy, QMessageBox, QDialog,
-    QStackedWidget, QFrame,
+    QStackedWidget, QFrame, QFileDialog,
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize
 from PyQt6.QtGui import QFont, QAction
 
 from ..db.connection import DBManager
-from ..utils import i18n, theme, config
+from ..utils import i18n, theme, config, project as _project
 from .panels.browser import LayerBrowserPanel
 from .panels.sql_editor import SQLEditorPanel
 from .panels.raster_import import RasterImportPanel
@@ -91,6 +92,8 @@ class MainWindow(QMainWindow):
         self.iface = iface
         self.db = DBManager()
         self._connect_worker: Optional[ConnectWorker] = None
+        self._project_path: Optional[str] = None
+        self._project_dirty: bool = False
 
         self._apply_config()
         self._setup_ui()
@@ -133,6 +136,33 @@ class MainWindow(QMainWindow):
     def _build_menubar(self):
         mb = self.menuBar()
         self._menu_file = mb.addMenu("")
+
+        self._action_new_project = QAction("🗋  New Project", self)
+        self._action_new_project.setShortcut("Ctrl+Shift+N")
+        self._action_new_project.triggered.connect(self._new_project)
+        self._menu_file.addAction(self._action_new_project)
+
+        self._action_open_project = QAction("📂  Open Project…", self)
+        self._action_open_project.setShortcut("Ctrl+O")
+        self._action_open_project.triggered.connect(self._open_project)
+        self._menu_file.addAction(self._action_open_project)
+
+        self._action_save_project = QAction("💾  Save Project", self)
+        self._action_save_project.setShortcut("Ctrl+S")
+        self._action_save_project.triggered.connect(self._save_project)
+        self._menu_file.addAction(self._action_save_project)
+
+        self._action_save_project_as = QAction("💾  Save Project As…", self)
+        self._action_save_project_as.setShortcut("Ctrl+Shift+S")
+        self._action_save_project_as.triggered.connect(self._save_project_as)
+        self._menu_file.addAction(self._action_save_project_as)
+
+        # Recent projects submenu
+        self._menu_recent = self._menu_file.addMenu("📋  Recent Projects")
+        self._refresh_recent_menu()
+
+        self._menu_file.addSeparator()
+
         self._action_quit = QAction(self)
         self._action_quit.triggered.connect(self.close)
         self._menu_file.addAction(self._action_quit)
@@ -293,6 +323,7 @@ class MainWindow(QMainWindow):
         self._nav.add_group(i18n.t("nav_grp_data"))
 
         self.map_viewer = MapViewerPanel(self.db, self)
+        self.map_viewer.project_changed.connect(self._mark_dirty)
         _add(self.map_viewer, "🗺", "tab_map_viewer")
 
         self.sql_editor = SQLEditorPanel(self.db, self)
@@ -530,6 +561,12 @@ class MainWindow(QMainWindow):
             self.sql_editor.refresh_completions()
         except Exception as e:
             self.log(f"Completions warning: {e}", "warn")
+
+        # Restore pending project map state (set when project was opened before connect)
+        pending = getattr(self, "_pending_map_state", None)
+        if pending:
+            self._pending_map_state = None
+            self.map_viewer.restore_map_state(pending)
 
     def _on_connect_error(self, error: str):
         self._set_conn_status("disconnected")
@@ -775,6 +812,133 @@ class MainWindow(QMainWindow):
         CreditsDialog(self, path).exec()
 
     def closeEvent(self, event):
+        if self._project_dirty:
+            reply = QMessageBox.question(
+                self, "Save Project?",
+                "პროექტი შეინახოთ დახურვამდე?",
+                QMessageBox.StandardButton.Save |
+                QMessageBox.StandardButton.Discard |
+                QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Save,
+            )
+            if reply == QMessageBox.StandardButton.Cancel:
+                event.ignore()
+                return
+            if reply == QMessageBox.StandardButton.Save:
+                self._save_project()
         config.set("window_geometry", self.saveGeometry().toHex().data().decode())
         self.db.disconnect()
         super().closeEvent(event)
+
+    # ── Project helpers ───────────────────────────────────────────────────
+
+    def _project_title(self) -> None:
+        name = (os.path.basename(self._project_path)
+                if self._project_path else "Untitled Project")
+        dirty = " *" if self._project_dirty else ""
+        self.setWindowTitle(f"PostGIS Manager — {name}{dirty}")
+
+    def _mark_dirty(self) -> None:
+        self._project_dirty = True
+        self._project_title()
+
+    def _refresh_recent_menu(self) -> None:
+        self._menu_recent.clear()
+        recent = _project.get_recent()
+        if not recent:
+            a = self._menu_recent.addAction("(empty)")
+            a.setEnabled(False)
+            return
+        for path in recent:
+            a = self._menu_recent.addAction(os.path.basename(path))
+            a.setToolTip(path)
+            a.triggered.connect(lambda _checked, p=path: self._load_project_file(p))
+
+    def _current_project_data(self) -> dict:
+        conn_name = ""
+        if self.db.is_connected():
+            idx = self._conn_combo.currentIndex()
+            profile = self._conn_combo.itemData(idx)
+            if isinstance(profile, dict):
+                conn_name = profile.get("name", "")
+        return {
+            "connection": conn_name,
+            "map_viewer": self.map_viewer.get_map_state(),
+        }
+
+    def _new_project(self) -> None:
+        if self._project_dirty:
+            reply = QMessageBox.question(
+                self, "Save Project?", "პროექტი შეინახოთ?",
+                QMessageBox.StandardButton.Save |
+                QMessageBox.StandardButton.Discard |
+                QMessageBox.StandardButton.Cancel,
+            )
+            if reply == QMessageBox.StandardButton.Cancel:
+                return
+            if reply == QMessageBox.StandardButton.Save:
+                self._save_project()
+        self._project_path = None
+        self._project_dirty = False
+        self.map_viewer.restore_map_state({"basemap": "None", "layers": [], "extent": None})
+        self.setWindowTitle("PostGIS Manager — Untitled Project")
+
+    def _open_project(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Open Project", "",
+            _project.PROJECT_FILTER)
+        if path:
+            self._load_project_file(path)
+
+    def _load_project_file(self, path: str) -> None:
+        try:
+            data = _project.load(path)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Cannot open project:\n{e}")
+            return
+
+        self._project_path = path
+        self._project_dirty = False
+        _project.add_recent(path)
+        self._refresh_recent_menu()
+
+        # Connect to the saved connection if not already connected
+        conn_name = data.get("connection", "")
+        if conn_name and not self.db.is_connected():
+            idx = self._conn_combo.findText(conn_name)
+            if idx >= 0:
+                self._conn_combo.setCurrentIndex(idx)
+                self._connect_selected()
+
+        map_state = data.get("map_viewer", {})
+        if map_state:
+            if self.db.is_connected():
+                self.map_viewer.restore_map_state(map_state)
+            else:
+                # Restore after connection succeeds
+                self._pending_map_state = map_state
+
+        self._project_title()
+
+    def _save_project(self) -> None:
+        if not self._project_path:
+            self._save_project_as()
+            return
+        try:
+            _project.save(self._project_path, self._current_project_data())
+            _project.add_recent(self._project_path)
+            self._refresh_recent_menu()
+            self._project_dirty = False
+            self._project_title()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Cannot save project:\n{e}")
+
+    def _save_project_as(self) -> None:
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save Project As", "",
+            _project.PROJECT_FILTER)
+        if path:
+            if not path.endswith(_project.PROJECT_EXT):
+                path += _project.PROJECT_EXT
+            self._project_path = path
+            self._save_project()

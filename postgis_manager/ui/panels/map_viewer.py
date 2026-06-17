@@ -1096,6 +1096,8 @@ class AttributeTableWindow(QDialog):
 
 # ── Main panel ────────────────────────────────────────────────────────────
 class MapViewerPanel(QWidget):
+    project_changed = pyqtSignal()   # emitted when layer stack changes
+
     def __init__(self, db: DBManager, parent=None):
         super().__init__(parent)
         self.db = db
@@ -1556,6 +1558,7 @@ class MapViewerPanel(QWidget):
         lw_item = self._add_layer_to_list(schema, table, geom_col, srid)
         self._layer_list.setCurrentItem(lw_item)
         self._load_layer_data(lw_item)
+        self.project_changed.emit()
 
     def _on_remove_layer(self):
         item = self._layer_list.currentItem()
@@ -1579,6 +1582,7 @@ class MapViewerPanel(QWidget):
         self._canvas.draw_all(self._layer_list)
         self._table.clearContents()
         self._table.setRowCount(0)
+        self.project_changed.emit()
 
     # ── Load data for a layer item ────────────────────────────────────────
     def _load_layer_data(self, lw_item: QListWidgetItem):
@@ -1835,3 +1839,80 @@ class MapViewerPanel(QWidget):
 
     def refresh(self):
         self._load_layers()
+
+    # ── Project save / restore ────────────────────────────────────────────
+
+    def get_map_state(self) -> dict:
+        """Return a JSON-serialisable dict describing current viewer state."""
+        layers = []
+        for i in range(self._layer_list.count()):
+            item = self._layer_list.item(i)
+            d = item.data(Qt.ItemDataRole.UserRole)
+            if not isinstance(d, dict):
+                continue
+            if d.get("type") == "basemap":
+                continue  # stored separately
+            layers.append({
+                "schema":   d.get("schema", ""),
+                "table":    d.get("table", ""),
+                "geom_col": d.get("geom_col", ""),
+                "srid":     d.get("srid", 0),
+                "color":    d.get("color", "#3498db"),
+                "visible":  item.checkState() == Qt.CheckState.Checked,
+            })
+
+        # canvas viewport extent in scene (EPSG:3857) coordinates
+        vp = self._canvas.viewport().rect()
+        tl = self._canvas.mapToScene(vp.topLeft())
+        br = self._canvas.mapToScene(vp.bottomRight())
+        extent = {"x": tl.x(), "y": tl.y(),
+                  "w": br.x() - tl.x(), "h": br.y() - tl.y()}
+
+        return {
+            "basemap": self._basemap_combo.currentText(),
+            "layers":  layers,
+            "extent":  extent,
+        }
+
+    def restore_map_state(self, state: dict) -> None:
+        """Restore layer stack and basemap from a previously saved state dict."""
+        # Clear existing layers
+        self._layer_list.blockSignals(True)
+        self._layer_list.clear()
+        self._layer_list.blockSignals(False)
+        self._layers_data.clear()
+        self._layers_columns.clear()
+
+        # Restore basemap first
+        basemap_name = state.get("basemap", "None")
+        idx = self._basemap_combo.findText(basemap_name)
+        if idx >= 0:
+            self._basemap_combo.setCurrentIndex(idx)
+        else:
+            self._basemap_combo.setCurrentText("None")
+
+        # Restore layers (bottom-of-list first = drawn first)
+        for layer in state.get("layers", []):
+            schema   = layer.get("schema", "")
+            table    = layer.get("table", "")
+            geom_col = layer.get("geom_col", "")
+            srid     = layer.get("srid", 0)
+            color    = layer.get("color")
+            visible  = layer.get("visible", True)
+            if not schema or not table:
+                continue
+            lw_item = self._add_layer_to_list(schema, table, geom_col, srid, color)
+            lw_item.setCheckState(
+                Qt.CheckState.Checked if visible else Qt.CheckState.Unchecked)
+            if self.db.is_connected():
+                self._load_layer_data(lw_item)
+
+        # Restore viewport extent after a short delay (let canvas settle)
+        extent = state.get("extent")
+        if extent:
+            from PyQt6.QtCore import QTimer, QRectF
+            from PyQt6.QtCore import Qt as _Qt
+            def _apply_extent():
+                r = QRectF(extent["x"], extent["y"], extent["w"], extent["h"])
+                self._canvas.fitInView(r, _Qt.AspectRatioMode.KeepAspectRatio)
+            QTimer.singleShot(200, _apply_extent)
