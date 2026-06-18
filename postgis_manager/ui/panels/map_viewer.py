@@ -880,6 +880,7 @@ class MapCanvas(QGraphicsView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._scene = QGraphicsScene(self)
+        self._scene.setSceneRect(-20000000, -20000000, 40000000, 40000000)
         self.setScene(self._scene)
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.setDragMode(QGraphicsView.DragMode.NoDrag)
