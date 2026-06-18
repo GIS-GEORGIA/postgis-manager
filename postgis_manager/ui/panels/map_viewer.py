@@ -1461,9 +1461,12 @@ class MapCanvas(QGraphicsView):
         if self._panning:
             delta = e.position() - self._pan_start
             self._pan_start = e.position()
-            self.setTransformationAnchor(QGraphicsView.ViewportAnchor.NoAnchor)
-            self.translate(delta.x(), delta.y())
-            self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+            # Convert pixel delta → scene units, then shift the scene center
+            sx = self.transform().m11() or 1.0
+            sy = self.transform().m22() or 1.0
+            center = self.mapToScene(self.viewport().rect().center())
+            self.centerOn(center.x() - delta.x() / sx,
+                          center.y() - delta.y() / sy)
             e.accept()
             return
         super().mouseMoveEvent(e)
