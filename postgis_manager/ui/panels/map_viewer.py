@@ -1461,10 +1461,9 @@ class MapCanvas(QGraphicsView):
         if self._panning:
             delta = e.position() - self._pan_start
             self._pan_start = e.position()
-            self.horizontalScrollBar().setValue(
-                self.horizontalScrollBar().value() - int(delta.x()))
-            self.verticalScrollBar().setValue(
-                self.verticalScrollBar().value() - int(delta.y()))
+            self.setTransformationAnchor(QGraphicsView.ViewportAnchor.NoAnchor)
+            self.translate(delta.x(), delta.y())
+            self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
             e.accept()
             return
         super().mouseMoveEvent(e)
@@ -2280,22 +2279,21 @@ class MapViewerPanel(QWidget):
 
         # ── Bottom bar: status + coordinates ─────────────────────────────
         bottom_bar = QWidget()
+        bottom_bar.setFixedHeight(22)
         bb_lay = QHBoxLayout(bottom_bar)
-        bb_lay.setContentsMargins(0, 0, 0, 0)
+        bb_lay.setContentsMargins(4, 0, 4, 0)
         bb_lay.setSpacing(4)
 
         self._status = QLabel()
-        self._status.setStyleSheet(
-            "padding: 2px 8px; font-size: 12px; color: #888;")
+        self._status.setStyleSheet("font-size: 11px; color: #888;")
         self._status.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         bb_lay.addWidget(self._status, 1)
 
-        self._coord_lbl = QLabel("Lon: — , Lat: —")
+        self._coord_lbl = QLabel("Lon: — Lat: —")
         self._coord_lbl.setStyleSheet(
-            "padding: 2px 8px; font-size: 11px; color: #555; "
-            "font-family: monospace;")
-        self._coord_lbl.setFixedWidth(230)
+            "font-size: 11px; color: #555; font-family: monospace;")
+        self._coord_lbl.setFixedWidth(190)
         self._coord_lbl.setAlignment(
             Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         bb_lay.addWidget(self._coord_lbl)
