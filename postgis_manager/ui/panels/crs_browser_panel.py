@@ -127,7 +127,7 @@ class CRSBrowserPanel(QWidget):
         for i in range(3):
             self._table.horizontalHeader().setSectionResizeMode(
                 i, QHeaderView.ResizeMode.ResizeToContents)
-        self._table.currentRowChanged.connect(self._on_select)
+        self._table.itemSelectionChanged.connect(self._on_select)
         splitter.addWidget(self._table)
 
         # Detail pane
@@ -264,7 +264,8 @@ class CRSBrowserPanel(QWidget):
         self._search_btn.setEnabled(True)
         self._status.setText(f"Error: {msg[:60]}")
 
-    def _on_select(self, row: int):
+    def _on_select(self):
+        row = self._table.currentRow()
         if row < 0 or row >= len(self._rows):
             return
         srid, auth, auth_srid, srtext, proj4 = self._rows[row]
