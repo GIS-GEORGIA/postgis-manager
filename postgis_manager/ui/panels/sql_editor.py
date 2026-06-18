@@ -6,6 +6,8 @@ from PyQt6.QtWidgets import (
     QTableWidget, QTableWidgetItem, QPushButton,
     QLabel, QComboBox, QFileDialog, QMessageBox, QHeaderView,
     QAbstractItemView, QCompleter, QPlainTextEdit, QFrame,
+    QDialog, QDialogButtonBox, QListWidget, QListWidgetItem,
+    QLineEdit, QTextEdit as _QTextEdit,
 )
 from PyQt6.QtGui import (
     QFont, QSyntaxHighlighter, QTextCharFormat, QColor,
@@ -320,7 +322,12 @@ class SQLEditorPanel(QWidget):
     def __init__(self, db: DBManager, parent=None):
         super().__init__(parent)
         self.db = db
-        self._history: list[str] = list(config.get("sql_history", []))
+        raw_hist = config.get("sql_history", [])
+        # migrate old plain-string entries to {sql, ts} dicts
+        self._history: list[dict] = [
+            h if isinstance(h, dict) else {"sql": h, "ts": "", "pinned": False}
+            for h in raw_hist
+        ]
         self._worker: QueryWorker | None = None
         self._geo_worker: GeoQueryWorker | None = None
         self._comp_loader: CompletionLoader | None = None
@@ -331,7 +338,8 @@ class SQLEditorPanel(QWidget):
         self._detected_attr_cols: list[str] = []
         self._build_ui()
         for entry in self._history:
-            self._history_combo.addItem(entry[:60].replace("\n", " "))
+            sql = entry["sql"] if isinstance(entry, dict) else entry
+            self._history_combo.addItem(sql[:60].replace("\n", " "))
 
     def _build_ui(self):
         layout = QVBoxLayout(self)
@@ -443,12 +451,34 @@ class SQLEditorPanel(QWidget):
             QHeaderView.ResizeMode.Interactive)
         self._result_table.setEditTriggers(
             QAbstractItemView.EditTrigger.NoEditTriggers)
+        # Column header right-click → stats
+        self._result_table.horizontalHeader().setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu)
+        self._result_table.horizontalHeader().customContextMenuRequested.connect(
+            self._show_result_col_stats)
         res_layout.addWidget(self._result_table)
 
         exp_row = QHBoxLayout()
-        self._export_btn = QPushButton("💾 Export results to CSV")
+        self._export_btn = QPushButton("💾 Export CSV")
+        self._export_btn.setToolTip("Export results to CSV file")
         self._export_btn.clicked.connect(self._export_csv)
         exp_row.addWidget(self._export_btn)
+
+        self._export_xlsx_btn = QPushButton("📊 Export Excel")
+        self._export_xlsx_btn.setToolTip("Export results to Excel .xlsx file")
+        self._export_xlsx_btn.clicked.connect(self._export_xlsx)
+        exp_row.addWidget(self._export_xlsx_btn)
+
+        self._fmt_btn = QPushButton("✨ Format SQL")
+        self._fmt_btn.setToolTip("Auto-format / pretty-print the SQL query")
+        self._fmt_btn.clicked.connect(self._format_sql)
+        exp_row.addWidget(self._fmt_btn)
+
+        self._history_btn = QPushButton("🕐 History")
+        self._history_btn.setToolTip("Browse query history with timestamps")
+        self._history_btn.clicked.connect(self._show_history_panel)
+        exp_row.addWidget(self._history_btn)
+
         exp_row.addStretch()
         res_layout.addLayout(exp_row)
         splitter.addWidget(result_widget)
@@ -491,9 +521,14 @@ class SQLEditorPanel(QWidget):
         self._run_btn.setEnabled(False)
         self._stop_btn.setEnabled(True)
         self._result_label.setText("Running...")
-        if not self._history or self._history[0] != sql:
-            self._history.insert(0, sql)
-            self._history = self._history[:50]
+        import datetime as _dt
+        first_sql = self._history[0]["sql"] if self._history else None
+        if first_sql != sql:
+            entry = {"sql": sql,
+                     "ts": _dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                     "pinned": False}
+            self._history.insert(0, entry)
+            self._history = self._history[:100]
             self._history_combo.insertItem(0, sql[:60].replace("\n", " "))
             config.set("sql_history", self._history)
         self._worker = QueryWorker(self.db, sql)
@@ -639,7 +674,11 @@ class SQLEditorPanel(QWidget):
 
     def _load_history(self, idx: int):
         if 0 <= idx < len(self._history):
-            self._editor.setPlainText(self._history[idx])
+            entry = self._history[idx]
+            sql = entry["sql"] if isinstance(entry, dict) else entry
+            self._editor.setPlainText(sql)
+
+    # ── Export ────────────────────────────────────────────────────────────
 
     def _export_csv(self):
         import csv as csv_mod
@@ -660,3 +699,275 @@ class SQLEditorPanel(QWidget):
                     for c in range(cols)
                 ])
         QMessageBox.information(self, "Done", f"Exported to {path}")
+
+    def _export_xlsx(self):
+        try:
+            import openpyxl
+            from openpyxl.styles import Font, PatternFill, Alignment
+        except ImportError:
+            QMessageBox.warning(
+                self, "Missing dependency",
+                "openpyxl is required for Excel export.\n\n"
+                "Install with:  pip install openpyxl")
+            return
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Export Excel", "result.xlsx",
+            "Excel Workbook (*.xlsx)")
+        if not path:
+            return
+        rows = self._result_table.rowCount()
+        cols = self._result_table.columnCount()
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Query Results"
+
+        hdr_fill = PatternFill("solid", fgColor="2E4057")
+        hdr_font = Font(bold=True, color="FFFFFF")
+        for c in range(cols):
+            h = self._result_table.horizontalHeaderItem(c)
+            cell = ws.cell(row=1, column=c + 1,
+                           value=h.text() if h else f"col{c}")
+            cell.font = hdr_font
+            cell.fill = hdr_fill
+            cell.alignment = Alignment(horizontal="center")
+
+        for r in range(rows):
+            for c in range(cols):
+                item = self._result_table.item(r, c)
+                val = item.text() if item else ""
+                try:
+                    val = float(val) if "." in val else int(val)
+                except (ValueError, TypeError):
+                    pass
+                ws.cell(row=r + 2, column=c + 1, value=val)
+
+        for col_cells in ws.columns:
+            max_len = max(
+                (len(str(cell.value or "")) for cell in col_cells), default=8)
+            ws.column_dimensions[col_cells[0].column_letter].width = min(
+                max_len + 2, 40)
+
+        wb.save(path)
+        QMessageBox.information(self, "Done", f"Exported to {path}")
+
+    # ── Format SQL ────────────────────────────────────────────────────────
+
+    def _format_sql(self):
+        sql = self._editor.toPlainText().strip()
+        if not sql:
+            return
+        try:
+            import sqlparse
+            formatted = sqlparse.format(
+                sql,
+                reindent=True,
+                keyword_case="upper",
+                identifier_case="lower",
+                strip_comments=False,
+                indent_width=4,
+            )
+            self._editor.setPlainText(formatted)
+            return
+        except ImportError:
+            pass
+        # Fallback: simple keyword uppercasing without sqlparse
+        import re
+        keywords = (
+            "select from where join left right inner outer on as and or not "
+            "in is null like between order by group having limit offset "
+            "insert into values update set delete create table index view drop "
+            "with union all distinct case when then else end exists returning "
+            "truncate cascade vacuum analyze explain begin commit rollback"
+        ).split()
+        result = sql
+        for kw in keywords:
+            result = re.sub(
+                r'\b' + re.escape(kw) + r'\b', kw.upper(), result,
+                flags=re.IGNORECASE)
+        self._editor.setPlainText(result)
+
+    # ── Result column stats ───────────────────────────────────────────────
+
+    def _show_result_col_stats(self, pos):
+        col = self._result_table.horizontalHeader().logicalIndexAt(pos)
+        if col < 0:
+            return
+        h = self._result_table.horizontalHeaderItem(col)
+        col_name = h.text() if h else f"col {col}"
+        rows = self._result_table.rowCount()
+        numeric, text_vals, null_n = [], [], 0
+        for r in range(rows):
+            item = self._result_table.item(r, col)
+            val = item.text() if item else ""
+            if not val or val in ("None", "NULL"):
+                null_n += 1
+            else:
+                try:
+                    numeric.append(float(val))
+                except ValueError:
+                    text_vals.append(val)
+        lines = [
+            f"<b>Column:</b> {col_name}",
+            f"<b>Total rows:</b> {rows}",
+            f"<b>Null / empty:</b> {null_n}",
+            f"<b>Non-null:</b> {len(numeric) + len(text_vals)}",
+        ]
+        if numeric:
+            avg = sum(numeric) / len(numeric)
+            lines += [
+                f"<b>Min:</b> {min(numeric):.6g}",
+                f"<b>Max:</b> {max(numeric):.6g}",
+                f"<b>Sum:</b> {sum(numeric):.6g}",
+                f"<b>Average:</b> {avg:.6g}",
+            ]
+        if text_vals:
+            lines.append(f"<b>Unique text values:</b> {len(set(text_vals))}")
+        QMessageBox.information(
+            self, f"Stats — {col_name}", "<br>".join(lines))
+
+    # ── History panel ─────────────────────────────────────────────────────
+
+    def _show_history_panel(self):
+        dlg = _HistoryDialog(self._history, parent=self)
+        if dlg.exec() and dlg.selected_sql():
+            self._editor.setPlainText(dlg.selected_sql())
+        self._history = dlg.history()
+        config.set("sql_history", self._history)
+
+
+# ── History Dialog ────────────────────────────────────────────────────────
+
+class _HistoryDialog(QDialog):
+    """Full history browser: search, pin, delete, preview."""
+
+    def __init__(self, history: list[dict], parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Query History")
+        self.resize(820, 520)
+        self._history = [
+            h if isinstance(h, dict)
+            else {"sql": h, "ts": "", "pinned": False}
+            for h in history
+        ]
+        self._selected_sql: str = ""
+        self._build_ui()
+        self._populate()
+
+    def _build_ui(self):
+        lay = QVBoxLayout(self)
+
+        # Search bar
+        search_row = QHBoxLayout()
+        self._search = QLineEdit()
+        self._search.setPlaceholderText("🔍 Search history…")
+        self._search.textChanged.connect(self._filter)
+        search_row.addWidget(self._search, 1)
+        pin_btn = QPushButton("📌 Pin selected")
+        pin_btn.clicked.connect(self._pin_selected)
+        search_row.addWidget(pin_btn)
+        del_btn = QPushButton("🗑 Delete selected")
+        del_btn.clicked.connect(self._delete_selected)
+        search_row.addWidget(del_btn)
+        clear_btn = QPushButton("🗑 Clear all")
+        clear_btn.clicked.connect(self._clear_all)
+        search_row.addWidget(clear_btn)
+        lay.addLayout(search_row)
+
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+
+        # List
+        self._list = QListWidget()
+        self._list.currentRowChanged.connect(self._on_select)
+        self._list.itemDoubleClicked.connect(lambda _: self.accept())
+        splitter.addWidget(self._list)
+
+        # Preview
+        right = QWidget()
+        rl = QVBoxLayout(right)
+        rl.setContentsMargins(0, 0, 0, 0)
+        self._ts_lbl = QLabel()
+        self._ts_lbl.setStyleSheet("color:#888;font-size:11px;padding:2px 4px;")
+        rl.addWidget(self._ts_lbl)
+        self._preview = _QTextEdit()
+        self._preview.setReadOnly(True)
+        self._preview.setFont(QFont("Courier New", 10))
+        rl.addWidget(self._preview)
+        splitter.addWidget(right)
+        splitter.setSizes([300, 520])
+
+        lay.addWidget(splitter, 1)
+
+        bb = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok |
+            QDialogButtonBox.StandardButton.Cancel)
+        bb.accepted.connect(self._use_selected)
+        bb.rejected.connect(self.reject)
+        lay.addWidget(bb)
+
+    def _populate(self, query: str = ""):
+        self._list.clear()
+        self._visible_indices: list[int] = []
+        for i, entry in enumerate(self._history):
+            sql = entry.get("sql", "")
+            if query and query.lower() not in sql.lower():
+                continue
+            pinned = entry.get("pinned", False)
+            ts = entry.get("ts", "")
+            preview = sql[:80].replace("\n", " ")
+            label = ("📌 " if pinned else "") + preview
+            item = QListWidgetItem(label)
+            if pinned:
+                item.setForeground(QColor("#f39c12"))
+            self._list.addItem(item)
+            self._visible_indices.append(i)
+
+    def _filter(self, text: str):
+        self._populate(text)
+
+    def _on_select(self, row: int):
+        if row < 0 or row >= len(self._visible_indices):
+            return
+        idx = self._visible_indices[row]
+        entry = self._history[idx]
+        self._preview.setPlainText(entry.get("sql", ""))
+        ts = entry.get("ts", "")
+        self._ts_lbl.setText(f"Executed: {ts}" if ts else "")
+
+    def _pin_selected(self):
+        row = self._list.currentRow()
+        if row < 0 or row >= len(self._visible_indices):
+            return
+        idx = self._visible_indices[row]
+        self._history[idx]["pinned"] = not self._history[idx].get("pinned", False)
+        self._populate(self._search.text())
+
+    def _delete_selected(self):
+        row = self._list.currentRow()
+        if row < 0 or row >= len(self._visible_indices):
+            return
+        idx = self._visible_indices[row]
+        self._history.pop(idx)
+        self._populate(self._search.text())
+
+    def _clear_all(self):
+        from PyQt6.QtWidgets import QMessageBox
+        if QMessageBox.question(
+                self, "Clear history", "Delete all query history?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        ) == QMessageBox.StandardButton.Yes:
+            self._history = [h for h in self._history
+                             if h.get("pinned", False)]
+            self._populate(self._search.text())
+
+    def _use_selected(self):
+        row = self._list.currentRow()
+        if row >= 0 and row < len(self._visible_indices):
+            idx = self._visible_indices[row]
+            self._selected_sql = self._history[idx].get("sql", "")
+        self.accept()
+
+    def selected_sql(self) -> str:
+        return self._selected_sql
+
+    def history(self) -> list[dict]:
+        return self._history

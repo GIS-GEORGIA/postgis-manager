@@ -44,13 +44,41 @@ class RefreshWorker(QThread):
 
     def run(self):
         try:
+            import psycopg2
+            conn = psycopg2.connect(**self.db.params)
+            cur  = conn.cursor()
+
+            # Row counts for all user tables
+            cur.execute("""
+                SELECT schemaname, relname, n_live_tup
+                FROM pg_stat_user_tables
+            """)
+            row_counts = {(r[0], r[1]): r[2] for r in cur.fetchall()}
+
+            # Column info: schema.table → [(col, type)]
+            cur.execute("""
+                SELECT table_schema, table_name, column_name, udt_name
+                FROM information_schema.columns
+                WHERE table_schema NOT IN ('pg_catalog','information_schema')
+                ORDER BY table_schema, table_name, ordinal_position
+                LIMIT 20000
+            """)
+            col_info: dict = {}
+            for s, t, c, typ in cur.fetchall():
+                col_info.setdefault((s, t), []).append((c, typ))
+
+            cur.close()
+            conn.close()
+
             result = {}
             for schema in self.db.get_schemas():
                 result[schema] = {
-                    "geom":    self.db.get_geometry_layers(schema),
-                    "rasters": self.db.get_raster_layers(schema),
-                    "views":   self.db.get_views(schema),
-                    "tables":  self.db.get_all_tables(schema),
+                    "geom":      self.db.get_geometry_layers(schema),
+                    "rasters":   self.db.get_raster_layers(schema),
+                    "views":     self.db.get_views(schema),
+                    "tables":    self.db.get_all_tables(schema),
+                    "row_counts": row_counts,
+                    "col_info":   col_info,
                 }
             self.done.emit(result)
         except Exception as e:
@@ -152,6 +180,9 @@ class LayerBrowserPanel(QWidget):
             f.setBold(True)
             schema_item.setFont(0, f)
 
+            row_counts = contents.get("row_counts", {})
+            col_info   = contents.get("col_info", {})
+
             geom_layers = contents.get("geom", [])
             if geom_layers:
                 vec_group = QTreeWidgetItem(schema_item, ["🗺  Layers"])
@@ -161,14 +192,21 @@ class LayerBrowserPanel(QWidget):
                         continue
                     gt = (geom_type or "GEOMETRY").upper().split("(")[0].split(" ")[0]
                     color = GEOM_COLORS.get(gt, "#CCCCCC")
+                    n_rows = row_counts.get((schema, name), "?")
                     item = QTreeWidgetItem(
                         vec_group,
-                        [f"⬡  {name}  [{gt}]  EPSG:{srid}"])
+                        [f"⬡  {name}  [{gt}]  EPSG:{srid}  ({n_rows} rows)"])
                     item.setForeground(0, QBrush(QColor(color)))
                     item.setData(0, Qt.ItemDataRole.UserRole, {
                         "type": "layer", "schema": schema, "table": name,
                         "geom_col": geom_col, "srid": srid, "geom_type": gt,
                     })
+                    # Columns as children
+                    for col_name, col_type in col_info.get((schema, name), []):
+                        ci = QTreeWidgetItem(item, [f"   ⬦ {col_name}  {col_type}"])
+                        ci.setForeground(0, QBrush(QColor("#888888")))
+                        ci.setData(0, Qt.ItemDataRole.UserRole,
+                                   {"type": "column", "col": col_name, "dtype": col_type})
                 vec_group.setExpanded(True)
 
             rasters = contents.get("rasters", [])

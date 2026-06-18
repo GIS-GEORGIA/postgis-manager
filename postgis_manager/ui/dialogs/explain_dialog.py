@@ -1,15 +1,20 @@
-"""EXPLAIN ANALYZE visual dialog — parses JSON plan, shows tree + stats."""
+"""EXPLAIN ANALYZE visual dialog — parses JSON plan, shows tree + graph + stats."""
 
 from __future__ import annotations
 import json
+import math
 import psycopg2
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QTreeWidget, QTreeWidgetItem,
     QPushButton, QLabel, QTextEdit, QSplitter, QWidget,
-    QHeaderView, QProgressBar, QMessageBox,
+    QHeaderView, QProgressBar, QMessageBox, QTabWidget,
+    QGraphicsView, QGraphicsScene, QGraphicsItem,
+    QGraphicsRectItem, QGraphicsTextItem, QGraphicsPathItem,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QColor, QFont, QBrush
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QRectF, QPointF
+from PyQt6.QtGui import (
+    QColor, QFont, QBrush, QPainter, QPen, QPainterPath,
+)
 
 from ...db.connection import DBManager
 
@@ -112,6 +117,121 @@ def _build_tree(parent_item: QTreeWidgetItem, node: dict, max_time: float):
         _build_tree(item, child, max_time)
 
 
+# ── Graph canvas ─────────────────────────────────────────────────────────
+
+_NODE_W = 200
+_NODE_H = 60
+_GAP_X  = 40
+_GAP_Y  = 80
+
+
+def _layout_nodes(node: dict, depth: int = 0, pos: list = None) -> list[dict]:
+    """Returns flat list of {node, depth, x, y} with simple recursive layout."""
+    if pos is None:
+        pos = [0]
+    x = pos[0]
+    pos[0] += 1
+    result = [{"node": node, "col": x, "depth": depth}]
+    for child in node.get("Plans", []):
+        result += _layout_nodes(child, depth + 1, pos)
+    return result
+
+
+class PlanGraphView(QGraphicsView):
+    def __init__(self):
+        super().__init__()
+        self._scene = QGraphicsScene()
+        self.setScene(self._scene)
+        self.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+        self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        self.setStyleSheet("background: #263238;")
+
+    def wheelEvent(self, e):
+        factor = 1.15 if e.angleDelta().y() > 0 else 1 / 1.15
+        self.scale(factor, factor)
+
+    def load(self, root_node: dict, max_time: float):
+        self._scene.clear()
+        items_by_id: dict[int, QRectF] = {}
+
+        flat = _layout_nodes(root_node)
+        # compute positions: depth → y, col → x
+        for entry in flat:
+            col   = entry["col"]
+            depth = entry["depth"]
+            x = col  * (_NODE_W + _GAP_X)
+            y = depth * (_NODE_H + _GAP_Y)
+            entry["x"] = x
+            entry["y"] = y
+            entry["id"] = id(entry["node"])
+
+        # draw edges first (z=-1)
+        id_to_rect: dict[int, tuple] = {e["id"]: (e["x"], e["y"]) for e in flat}
+
+        def draw_edges(node, parent_pos=None):
+            nid   = id(node)
+            nx, ny = id_to_rect[nid]
+            cx = nx + _NODE_W / 2
+            cy = ny + _NODE_H / 2
+            if parent_pos:
+                px, py = parent_pos
+                path = QPainterPath(QPointF(px, py))
+                path.cubicTo(
+                    QPointF(px, py + _GAP_Y / 2),
+                    QPointF(cx, cy - _GAP_Y / 2),
+                    QPointF(cx, cy)
+                )
+                pi = QGraphicsPathItem(path)
+                pen = QPen(QColor("#607D8B"), 1.5)
+                pen.setCosmetic(True)
+                pi.setPen(pen)
+                pi.setZValue(-1)
+                self._scene.addItem(pi)
+            for child in node.get("Plans", []):
+                draw_edges(child, (cx, cy))
+
+        draw_edges(root_node)
+
+        # draw nodes
+        for entry in flat:
+            node   = entry["node"]
+            x, y   = entry["x"], entry["y"]
+            ntype  = node.get("Node Type", "?")
+            t_ms   = node.get("Actual Total Time", 0) * (node.get("Actual Loops", 1) or 1)
+            rows   = node.get("Actual Rows", 0)
+            pct    = t_ms / max_time if max_time > 0 else 0
+            color  = _cost_color(pct)
+
+            # box
+            rect = QRectF(x, y, _NODE_W, _NODE_H)
+            box  = self._scene.addRect(rect, QPen(color, 1.5), QBrush(QColor(38, 50, 56)))
+
+            # header strip
+            hdr = QRectF(x, y, _NODE_W, 22)
+            self._scene.addRect(hdr, QPen(Qt.PenStyle.NoPen), QBrush(color.darker(120)))
+
+            # type label
+            ti = QGraphicsTextItem(ntype)
+            ti.setDefaultTextColor(QColor("#ECEFF1"))
+            ti.setFont(QFont("Arial", 8, QFont.Weight.Bold))
+            ti.setPos(x + 4, y + 2)
+            self._scene.addItem(ti)
+
+            # stats
+            rel = node.get("Relation Name", "")
+            detail = f"{rel}  " if rel else ""
+            detail += f"{t_ms:.1f}ms  rows={rows}"
+            di = QGraphicsTextItem(detail)
+            di.setDefaultTextColor(QColor("#B0BEC5"))
+            di.setFont(QFont("Arial", 7))
+            di.setPos(x + 4, y + 24)
+            self._scene.addItem(di)
+
+        r = self._scene.itemsBoundingRect()
+        self.fitInView(r.adjusted(-20, -20, 20, 20), Qt.AspectRatioMode.KeepAspectRatio)
+
+
 # ── Dialog ────────────────────────────────────────────────────────────────
 
 class ExplainDialog(QDialog):
@@ -149,8 +269,8 @@ class ExplainDialog(QDialog):
             card_row.addWidget(c)
         lay.addLayout(card_row)
 
-        # splitter: tree | raw JSON
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+        # tabs: Tree | Graph | JSON
+        self._tabs = QTabWidget()
 
         # plan tree
         self._tree = QTreeWidget()
@@ -165,17 +285,19 @@ class ExplainDialog(QDialog):
                 i, QHeaderView.ResizeMode.ResizeToContents)
         self._tree.setAlternatingRowColors(True)
         self._tree.setFont(QFont("Courier New", 10))
-        splitter.addWidget(self._tree)
+        self._tabs.addTab(self._tree, "🌲 Tree")
+
+        # graph view
+        self._graph_view = PlanGraphView()
+        self._tabs.addTab(self._graph_view, "🔷 Graph")
 
         # raw JSON
         self._json_view = QTextEdit()
         self._json_view.setReadOnly(True)
         self._json_view.setFont(QFont("Courier New", 10))
-        self._json_view.setMaximumWidth(380)
-        splitter.addWidget(self._json_view)
-        splitter.setSizes([720, 380])
+        self._tabs.addTab(self._json_view, "{} JSON")
 
-        lay.addWidget(splitter, 1)
+        lay.addWidget(self._tabs, 1)
 
         # progress bar (shown while running)
         self._progress = QProgressBar()
@@ -239,6 +361,9 @@ class ExplainDialog(QDialog):
         self._status.setText(
             self._status.text()
             + "   🟢 fast  🟡 medium  🔴 slow (relative to slowest node)")
+
+        # graph
+        self._graph_view.load(root_node, max_time or 1)
 
         # raw JSON
         self._json_view.setPlainText(json.dumps(plan, indent=2))
