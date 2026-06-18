@@ -1268,15 +1268,18 @@ class MapCanvas(QGraphicsView):
 
     def set_mode(self, mode: str):
         self._mode = mode
-        cursors = {
-            self.MODE_SELECT:       Qt.CursorShape.ArrowCursor,
-            self.MODE_PAN:          Qt.CursorShape.OpenHandCursor,
-            self.MODE_MEASURE:      Qt.CursorShape.CrossCursor,
-            self.MODE_DRAW_POINT:   Qt.CursorShape.CrossCursor,
-            self.MODE_DRAW_LINE:    Qt.CursorShape.CrossCursor,
-            self.MODE_DRAW_POLYGON: Qt.CursorShape.CrossCursor,
-        }
-        self.setCursor(cursors.get(mode, Qt.CursorShape.ArrowCursor))
+        if mode == self.MODE_PAN:
+            self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+        else:
+            self.setDragMode(QGraphicsView.DragMode.NoDrag)
+            cursors = {
+                self.MODE_SELECT:       Qt.CursorShape.ArrowCursor,
+                self.MODE_MEASURE:      Qt.CursorShape.CrossCursor,
+                self.MODE_DRAW_POINT:   Qt.CursorShape.CrossCursor,
+                self.MODE_DRAW_LINE:    Qt.CursorShape.CrossCursor,
+                self.MODE_DRAW_POLYGON: Qt.CursorShape.CrossCursor,
+            }
+            self.setCursor(cursors.get(mode, Qt.CursorShape.ArrowCursor))
         if mode != self.MODE_MEASURE:
             self._clear_measure()
         if mode not in (self.MODE_DRAW_POINT, self.MODE_DRAW_LINE,
@@ -1428,18 +1431,14 @@ class MapCanvas(QGraphicsView):
                 e.accept()
                 return
 
-        want_pan = (
-            e.button() == Qt.MouseButton.MiddleButton or
-            (e.button() == Qt.MouseButton.LeftButton and
-             bool(e.modifiers() & Qt.KeyboardModifier.AltModifier)) or
-            (e.button() == Qt.MouseButton.LeftButton and
-             self._mode == self.MODE_PAN)
-        )
-        if want_pan:
+        # Middle-button pan: temporarily enable ScrollHandDrag
+        if e.button() == Qt.MouseButton.MiddleButton:
+            self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
             self._panning = True
-            self._pan_start = e.position()
-            self.setCursor(Qt.CursorShape.ClosedHandCursor)
-            e.accept()
+            fake = QMouseEvent(e.type(), e.position(), e.globalPosition(),
+                               Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton,
+                               e.modifiers())
+            super().mousePressEvent(fake)
             return
         if e.button() == Qt.MouseButton.LeftButton:
             hit = self._scene.itemAt(scene_pos, QTransform())
@@ -1460,25 +1459,18 @@ class MapCanvas(QGraphicsView):
         if self._mode in (self.MODE_DRAW_LINE, self.MODE_DRAW_POLYGON):
             self._update_draw_preview(scene_pos)
 
-        if self._panning:
-            delta = e.position() - self._pan_start
-            self._pan_start = e.position()
-            self.horizontalScrollBar().setValue(
-                self.horizontalScrollBar().value() - int(delta.x()))
-            self.verticalScrollBar().setValue(
-                self.verticalScrollBar().value() - int(delta.y()))
-            e.accept()
-            return
         super().mouseMoveEvent(e)
 
     def mouseReleaseEvent(self, e: QMouseEvent):
-        if self._panning and e.button() in (
-                Qt.MouseButton.LeftButton, Qt.MouseButton.MiddleButton):
+        if self._panning and e.button() == Qt.MouseButton.MiddleButton:
             self._panning = False
-            cur = (Qt.CursorShape.OpenHandCursor if self._mode == self.MODE_PAN
-                   else Qt.CursorShape.ArrowCursor)
-            self.setCursor(cur)
-            e.accept()
+            if self._mode != self.MODE_PAN:
+                self.setDragMode(QGraphicsView.DragMode.NoDrag)
+                self.setCursor(Qt.CursorShape.ArrowCursor)
+            fake = QMouseEvent(e.type(), e.position(), e.globalPosition(),
+                               Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton,
+                               e.modifiers())
+            super().mouseReleaseEvent(fake)
             return
         super().mouseReleaseEvent(e)
 
