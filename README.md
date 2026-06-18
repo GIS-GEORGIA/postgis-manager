@@ -97,7 +97,7 @@ qgis_plugin/            ← Thin QGIS 4.x / Qt6 plugin wrapper
   plugin.py             ← classFactory, initGui, unload
   processing_provider.py ← QGIS Processing algorithms
   algorithms/           ← processing algorithms
-  metadata.txt          ← supportsQt6=True, qgisMinimumVersion=3.34
+  metadata.txt          ← supportsQt6=True, qgisMinimumVersion=4.0
 
 standalone/             ← Standalone launcher
   app.py                ← QApplication + MainWindow

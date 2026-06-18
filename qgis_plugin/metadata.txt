@@ -1,6 +1,6 @@
 [general]
 name=PostGIS Manager
-qgisMinimumVersion=3.34
+qgisMinimumVersion=4.0
 qgisMaximumVersion=4.99
 description=Unique spatial-database GIS toolkit for PostGIS — geometry editor on canvas, CRS audit, spatial join GUI, data-quality scoring, pgRouting network wizard, WFS, GPX import, thematic classification and snapshot diff. Not a pgAdmin clone.
 version=1.1.0
