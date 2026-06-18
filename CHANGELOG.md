@@ -2,6 +2,47 @@
 
 All notable changes to PostGIS Manager are documented here.
 
+## [1.1.0] — 2026-06-18
+
+### Strategic refocus — unique GIS tools, not a generic DB clone
+
+PostGIS Manager doubled down on workflows QGIS and pgAdmin both lack. Generic
+database-admin panels that overlapped pgAdmin were removed; a suite of
+spatial-database-as-a-GIS-workspace tools was added.
+
+#### New unique GIS panels
+- **Map Viewer + Geometry Editor** — render PostGIS layers on a built-in canvas;
+  draw point/line/polygon and INSERT geometry directly into the table via
+  `ST_GeomFromText` + `ST_Transform`
+- **CRS Browser & Reproject** — search `spatial_ref_sys`, inspect WKT/Proj4,
+  reproject a whole layer in place
+- **CRS Audit** — scan every geometry column, compare declared vs. actual SRID,
+  flag mismatches, one-click `UpdateGeometrySRID` fix
+- **Spatial Join GUI** — 7 predicates + KNN nearest, no SQL required, SQL preview
+- **Spatial Data Quality Dashboard** — 7 checks, 0–100 quality score, auto-fix
+  (`ST_MakeValid`, dedup)
+- **pgRouting Network Wizard** — inspect → install pgRouting → build topology →
+  generate drive-time isochrones, step by step
+- **WFS Connector** — OGC WFS 2.0 GetCapabilities/GetFeature with CQL filters,
+  streamed onto the map
+- **GPX / KML Importer** — field GPS tracks, waypoints, routes → PostGIS with Z
+  and timestamps
+- **Thematic Style Generator** — Natural Breaks (Jenks), Quantile, Equal Interval
+  classification with color ramps
+- **Layer Snapshot + Change Diff** — snapshot a layer to a timestamped table and
+  spatially diff two snapshots (added / removed / geometry-changed)
+
+#### Removed
+- Generic DB-admin panels that duplicated pgAdmin (ERD, table diff, data
+  sampling, notifications, RLS manager, pg_cron scheduler, size analyzer,
+  column lineage, connection profiles dialog)
+
+#### Fixes
+- Map Viewer pan now uses Qt `ScrollHandDrag` with an explicit large sceneRect
+- Guarded `KeyError 'schema'` when WFS/SQL-result layers are selected
+- Instance Manager layout reworked (QScrollArea + QFormLayout) to stop
+  overlapping widgets on narrow viewports
+
 ## [1.0.0] — 2026-06-15
 
 ### First stable release

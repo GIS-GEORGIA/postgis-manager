@@ -2,42 +2,40 @@
 name=PostGIS Manager
 qgisMinimumVersion=3.34
 qgisMaximumVersion=4.99
-description=Comprehensive PostGIS spatial database manager — SQL editor, raster/vector import, pgRouting, topology, table designer, schema/role manager, backup/restore, dashboard and more.
-version=1.0.0
+description=Unique spatial-database GIS toolkit for PostGIS — geometry editor on canvas, CRS audit, spatial join GUI, data-quality scoring, pgRouting network wizard, WFS, GPX import, thematic classification and snapshot diff. Not a pgAdmin clone.
+version=1.1.0
 author=GIS GEORGIA | Giorgi Kapanadze
 email=kapan.gio777@gmail.com
 
-about=PostGIS Manager is a hybrid QGIS 4 plugin and standalone desktop application for managing PostGIS spatial databases. All 21 panels are accessible from a clean sidebar navigation (pgAdmin/DBeaver style). Fully bilingual: English and Georgian (ქართული) with runtime switching. Light and Dark themes.
+about=PostGIS Manager is a hybrid QGIS 4 plugin and standalone desktop app that fills the gap QGIS leaves in spatial database management — the "PostGIS as a GIS workspace" middle ground that neither QGIS nor pgAdmin covers well. Fully bilingual: English and Georgian (ქართული) with runtime switching. Light and Dark themes. Sidebar navigation (pgAdmin/DBeaver style).
 
-    PANELS & FEATURES
-    ─────────────────
-    • SQL Editor — syntax highlighting, persistent history, templates, CSV export
-    • Query Builder — visual filter builder, no SQL required
-    • Vector Import — Shapefile, GeoJSON, GeoPackage, KML; auto-CRS, append/replace
-    • Raster Import — raster2pgsql wrapper with tile, SRID, overview options
-    • Export — GeoPackage, Shapefile, GeoJSON, CSV with target SRID reprojection
-    • Backup / Restore — pg_dump / pg_restore / psql GUI with live progress log
-    • pgRouting — Dijkstra shortest path, Driving Distance, Isochrone
-    • Topology — create, validate and browse PostGIS topology errors
-    • Chainage — linear referencing, point-along-line, M-value assignment
-    • Geoprocessing — server-side Buffer, Simplify, Convex Hull, Centroid, Union
-    • Validation — invalid, null, duplicate, self-intersecting, wrong SRID
-    • Table Designer — create/alter tables, column types, constraints, indexes
-    • Schema / Role Manager — schemas, roles, GRANT/REVOKE GUI
-    • Function Browser — browse, view source, execute DB functions
-    • Materialized Views — create, REFRESH CONCURRENTLY, drop, preview
-    • Raster Tools — statistics, histogram, map algebra (NDVI/threshold/custom), reproject
-    • Style Manager — save/load QML styles to layer_styles table (QGIS-compatible)
-    • Versioning — pgVersion row-level commit, checkout, diff, branch
-    • 3DCityDB — auto-detect schema, feature counts by category, 6 SQL templates
-    • Instances — Docker/Podman PostGIS container launcher and manager
-    • Network Scan — LAN subnet scanner for PostgreSQL/PostGIS discovery
-    • DB Dashboard — live pg_stat_* metrics: connections, cache hit, active queries
+    UNIQUE GIS TOOLS
+    ────────────────
+    • Map Viewer + Geometry Editor — render PostGIS layers and draw geometry directly into the table
+    • CRS Browser & Reproject — search spatial_ref_sys, reproject a whole layer in place
+    • CRS Audit — declared vs. actual SRID mismatch detection with one-click UpdateGeometrySRID
+    • Spatial Join GUI — 7 predicates + KNN nearest, no SQL required
+    • Spatial Data Quality Dashboard — 7 checks, 0–100 score, auto-fix (ST_MakeValid, dedup)
+    • pgRouting Network Wizard — inspect → build topology → drive-time isochrones, no SQL
+    • WFS Connector — OGC WFS 2.0 with CQL filters, streamed onto the map
+    • GPX / KML Importer — field GPS tracks/waypoints/routes → PostGIS with Z + timestamps
+    • Thematic Style Generator — Natural Breaks (Jenks), Quantile, Equal Interval
+    • Layer Snapshot + Change Diff — spatial diff between timestamped snapshots
+
+    PRODUCTION DATABASE TOOLS
+    ─────────────────────────
+    • SQL Editor (Show-on-Map), Query Builder, Attribute Table with inline editing
+    • Vector/Raster Import, Export, Backup/Restore
+    • pgRouting, Topology, Chainage, Geoprocessing, Validation
+    • Table Designer, Schema/Role Manager, Function Browser, Materialized Views
+    • Raster Tools, Style Manager, Versioning, 3DCityDB
+    • Publishing (pg_featureserv/pg_tileserv), QGIS Bridge, Security/Audit
+    • Docker/Podman instances, LAN scan, live DB dashboard
 
     QGIS PROCESSING PROVIDER
     ────────────────────────
-    Adds 6 algorithms to QGIS Processing Toolbox:
-    Import Vector, Export Layer, Validate Geometry, Geoprocess, Fix Invalid Geometry, Network Scan
+    Adds algorithms to the QGIS Processing Toolbox: Import Vector, Export Layer,
+    Validate Geometry, Geoprocess, Fix Invalid Geometry, Network Scan
 
     REQUIREMENTS
     ────────────
@@ -48,7 +46,7 @@ tracker=https://github.com/GIS-GEORGIA/postgis-manager/issues
 repository=https://github.com/GIS-GEORGIA/postgis-manager
 homepage=https://pg.qgis.ge
 
-tags=postgis,postgresql,database,spatial,geometry,raster,routing,pgrouting,topology,geoprocessing,import,export,geopackage,shapefile,geojson,3dcitydb,versioning,validation,docker,backup,restore,sql,dashboard,schema,roles,materialized views,table designer,function browser,chainage,linear referencing,style manager,bilingual,georgian
+tags=postgis,postgresql,database,spatial,geometry,geometry editor,crs,reproject,srid,spatial join,data quality,validation,pgrouting,routing,isochrone,network,wfs,ogc,gpx,kml,gps,classification,jenks,natural breaks,thematic,snapshot,diff,raster,import,export,geopackage,shapefile,geojson,3dcitydb,versioning,docker,backup,restore,sql,dashboard,schema,roles,bilingual,georgian
 
 icon=icon.png
 experimental=False
@@ -58,14 +56,21 @@ hasProcessingProvider=True
 server=False
 
 changelog=
+    1.1.0 (2026-06-18)
+    - Strategic refocus: unique GIS tools, not a generic pgAdmin clone
+    - New: Map Viewer + Geometry Editor (draw geometry into the table)
+    - New: CRS Browser & Reproject, CRS Audit (SRID mismatch detection)
+    - New: Spatial Join GUI (7 predicates + KNN), no SQL required
+    - New: Spatial Data Quality Dashboard (7 checks, 0–100 score, auto-fix)
+    - New: pgRouting Network Wizard (topology + drive-time isochrones)
+    - New: WFS Connector, GPX/KML Importer, Thematic Style Generator
+    - New: Layer Snapshot + spatial Change Diff
+    - Removed: generic DB-admin panels that duplicated pgAdmin
+    - Fixes: map pan, KeyError on WFS layers, Instance Manager layout
+
     1.0.0 (2026-06-15)
-    - First stable release
-    - 21 panels in sidebar navigation (pgAdmin/DBeaver style)
-    - 38 automated tests (pytest, headless PyQt6)
-    - QGIS Processing Provider with 6 algorithms
-    - Website: pg.qgis.ge
-    - Full English + Georgian (ქართული) translations
-    - Light and Dark themes
+    - First stable release; 21 panels, sidebar navigation
+    - QGIS Processing Provider; full EN + KA translations; light/dark themes
 
     0.1.0 (2026-05-01)
     - Initial release targeting QGIS 3.34+ / Qt6
