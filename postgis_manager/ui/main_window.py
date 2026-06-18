@@ -39,6 +39,15 @@ from .panels.schema_role_manager import SchemaRolePanel
 from .panels.matview_panel import MatViewPanel
 from .panels.raster_tools import RasterToolsPanel
 from .panels.map_viewer import MapViewerPanel
+from .panels.crs_browser_panel import CRSBrowserPanel
+from .panels.spatial_join_panel import SpatialJoinPanel
+from .panels.wfs_panel import WFSPanel
+from .panels.spatial_quality_panel import SpatialQualityPanel
+from .panels.network_wizard_panel import NetworkWizardPanel
+from .panels.gpx_importer_panel import GPXImporterPanel
+from .panels.crs_audit_panel import CRSAuditPanel
+from .panels.style_generator_panel import StyleGeneratorPanel
+from .panels.layer_snapshot_panel import LayerSnapshotPanel
 from .panels.qgis_bridge_panel import QGISBridgePanel
 from .panels.publishing_panel import PublishingPanel
 from .panels.health_panel import HealthPanel
@@ -343,11 +352,55 @@ class MainWindow(QMainWindow):
         self.query_builder = QueryBuilderPanel(self.db, self)
         _add(self.query_builder, "🔍", "tab_query_builder")
 
+
+        self.crs_browser = CRSBrowserPanel(self.db, self)
+        _add(self.crs_browser, "🌐", "tab_crs")
+
+        self.spatial_join = SpatialJoinPanel(self.db, self)
+        _add(self.spatial_join, "⚡", "tab_spatial_join")
+
+        self.wfs_panel = WFSPanel(self)
+        self.wfs_panel.layer_loaded.connect(self._on_wfs_layer_loaded)
+        _add(self.wfs_panel, "🌊", "tab_wfs")
+
+        self.spatial_quality = SpatialQualityPanel(self.db, self)
+        _add(self.spatial_quality, "🩺", "tab_spatial_quality")
+
+        self.network_wizard = NetworkWizardPanel(self.db, self)
+        self.network_wizard.isochrone_ready.connect(
+            lambda gj, name: (
+                self._show_page(self._stack.indexOf(self.map_viewer)),
+                self.map_viewer.add_geojson_layer(gj, name),
+            )
+        )
+        _add(self.network_wizard, "🕸", "tab_network_wizard")
+
+        self.crs_audit = CRSAuditPanel(self.db, self)
+        _add(self.crs_audit, "📐", "tab_crs_audit")
+
+        self.style_generator = StyleGeneratorPanel(self.db, self)
+        self.style_generator.style_ready.connect(self._on_style_ready)
+        _add(self.style_generator, "🎨", "tab_style_generator")
+
+        self.layer_snapshot = LayerSnapshotPanel(self.db, self)
+        self.layer_snapshot.diff_layer_ready.connect(
+            lambda gj, name: (
+                self._show_page(self._stack.indexOf(self.map_viewer)),
+                self.map_viewer.add_geojson_layer(gj, name),
+            )
+        )
+        _add(self.layer_snapshot, "📸", "tab_layer_snapshot")
+
         # ── Import / Export ───────────────────────────────────────────────────
         self._nav.add_group(i18n.t("nav_grp_import"))
 
         self.raster_panel = RasterImportPanel(self.db, self)
         _add(self.raster_panel, "📥", "tab_raster")
+
+        self.gpx_importer = GPXImporterPanel(self.db, self)
+        self.gpx_importer.layer_imported.connect(
+            lambda schema, table: self.browser.refresh())
+        _add(self.gpx_importer, "🧭", "tab_gpx_importer")
 
         self.geodata_panel = ImportExportPanel(db=self.db, parent=self)
         self.geodata_panel.import_done.connect(self.browser.refresh)
@@ -535,6 +588,22 @@ class MainWindow(QMainWindow):
         self.browser.clear()
         self.log(i18n.t("log_disconnected"), "warn")
 
+    def _on_style_ready(self, style: dict):
+        """Apply thematic style dict from StyleGeneratorPanel to map viewer."""
+        try:
+            self._show_page(self._stack.indexOf(self.map_viewer))
+            self.map_viewer.apply_thematic_style(style)
+        except Exception as e:
+            self.log(f"Style apply warning: {e}", "warn")
+
+    def _on_wfs_layer_loaded(self, geojson: dict, name: str):
+        """Forward WFS GeoJSON layer into Map Viewer."""
+        try:
+            self._show_page(self._stack.indexOf(self.map_viewer))
+            self.map_viewer.add_geojson_layer(geojson, name)
+        except Exception as e:
+            self.log(f"WFS layer load warning: {e}", "warn")
+
     def _on_connect_success(self, info: dict):
         self._set_conn_status("connected")
         postgis_ver = info.get("postgis_version", "N/A")
@@ -576,6 +645,19 @@ class MainWindow(QMainWindow):
             self.sql_editor.refresh_completions()
         except Exception as e:
             self.log(f"Completions warning: {e}", "warn")
+
+        for panel in (
+            self.crs_browser, self.spatial_join,
+            self.spatial_quality, self.network_wizard,
+            self.crs_audit, self.style_generator,
+            self.layer_snapshot, self.gpx_importer,
+        ):
+            try:
+                panel.set_db(self.db)
+                if hasattr(panel, "refresh_schemas"):
+                    panel.refresh_schemas()
+            except Exception as e:
+                self.log(f"Panel init warning ({type(panel).__name__}): {e}", "warn")
 
         # Restore pending project map state (set when project was opened before connect)
         pending = getattr(self, "_pending_map_state", None)
