@@ -887,8 +887,10 @@ class MapCanvas(QGraphicsView):
             QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setResizeAnchor(
             QGraphicsView.ViewportAnchor.AnchorViewCenter)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.horizontalScrollBar().setStyleSheet("height:0px;")
+        self.verticalScrollBar().setStyleSheet("width:0px;")
         self.setBackgroundBrush(QBrush(QColor("#1A1F2E")))
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setMouseTracking(True)
@@ -1461,12 +1463,10 @@ class MapCanvas(QGraphicsView):
         if self._panning:
             delta = e.position() - self._pan_start
             self._pan_start = e.position()
-            # Convert pixel delta → scene units, then shift the scene center
-            sx = self.transform().m11() or 1.0
-            sy = self.transform().m22() or 1.0
-            center = self.mapToScene(self.viewport().rect().center())
-            self.centerOn(center.x() - delta.x() / sx,
-                          center.y() - delta.y() / sy)
+            self.horizontalScrollBar().setValue(
+                self.horizontalScrollBar().value() - int(delta.x()))
+            self.verticalScrollBar().setValue(
+                self.verticalScrollBar().value() - int(delta.y()))
             e.accept()
             return
         super().mouseMoveEvent(e)
