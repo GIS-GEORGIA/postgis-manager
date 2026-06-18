@@ -2394,7 +2394,7 @@ class MapViewerPanel(QWidget):
         d = item.data(Qt.ItemDataRole.UserRole)
         if not isinstance(d, dict) or "schema" not in d:
             return
-        key = self._layer_key(d["schema"], d["table"], d["geom_col"])
+        key = self._layer_key(d.get("schema",""), d.get("table",""), d.get("geom_col",""))
         data = self._layers_data.get(key, [])
         cols = self._layers_columns.get(key, [])
         if fid >= len(data):
@@ -2550,7 +2550,7 @@ class MapViewerPanel(QWidget):
         d = item.data(Qt.ItemDataRole.UserRole)
         if not isinstance(d, dict) or "schema" not in d:
             return
-        key = self._layer_key(d["schema"], d["table"], d["geom_col"])
+        key = self._layer_key(d.get("schema",""), d.get("table",""), d.get("geom_col",""))
         data = self._layers_data.get(key, [])
         cols = self._layers_columns.get(key, [])
         for fid, (_wkb, _gtype, attrs) in enumerate(data):
@@ -2791,7 +2791,7 @@ class MapViewerPanel(QWidget):
         for i in range(self._layer_list.count()):
             item = self._layer_list.item(i)
             d = item.data(Qt.ItemDataRole.UserRole)
-            if d and self._layer_key(d["schema"], d["table"], d["geom_col"]) == key:
+            if d and self._layer_key(d.get("schema",""), d.get("table",""), d.get("geom_col","")) == key:
                 return item
         return None
 
@@ -2892,8 +2892,8 @@ class MapViewerPanel(QWidget):
             self._canvas.clear_basemap()
             self._layer_list.takeItem(self._layer_list.row(item))
             return
-        if d:
-            key = self._layer_key(d["schema"], d["table"], d["geom_col"])
+        if d and "schema" in d:
+            key = self._layer_key(d.get("schema",""), d.get("table",""), d.get("geom_col",""))
             self._layers_data.pop(key, None)
             self._layers_columns.pop(key, None)
         row = self._layer_list.row(item)
@@ -2968,7 +2968,7 @@ class MapViewerPanel(QWidget):
         d = item.data(Qt.ItemDataRole.UserRole)
         if not isinstance(d, dict) or d.get("type") == "basemap":
             return
-        key = self._layer_key(d["schema"], d["table"], d["geom_col"])
+        key = self._layer_key(d.get("schema",""), d.get("table",""), d.get("geom_col",""))
         cols = self._layers_columns.get(key, [])
         dlg = _LabelDialog(cols, d.get("label_col"), parent=self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
@@ -2990,7 +2990,7 @@ class MapViewerPanel(QWidget):
         d = item.data(Qt.ItemDataRole.UserRole)
         if not isinstance(d, dict) or d.get("type") == "basemap":
             return
-        key = self._layer_key(d["schema"], d["table"], d["geom_col"])
+        key = self._layer_key(d.get("schema",""), d.get("table",""), d.get("geom_col",""))
         cols = self._layers_columns.get(key, [])
         dlg = _FilterDialog(cols, d.get("filter_expr", ""), parent=self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
@@ -3015,7 +3015,12 @@ class MapViewerPanel(QWidget):
         if not self.db.is_connected():
             return
         d = lw_item.data(Qt.ItemDataRole.UserRole)
-        if not d:
+        if not d or not isinstance(d, dict):
+            return
+        # WFS / sql_result layers are already loaded — nothing to fetch from DB
+        if d.get("type") in ("wfs", "sql_result"):
+            return
+        if "schema" not in d:
             return
 
         if self._load_worker and self._load_worker.isRunning():
@@ -3049,7 +3054,7 @@ class MapViewerPanel(QWidget):
         if not isinstance(d, dict) or not all(
                 k in d for k in ("schema", "table", "geom_col")):
             return
-        key = self._layer_key(d["schema"], d["table"], d["geom_col"])
+        key = self._layer_key(d.get("schema",""), d.get("table",""), d.get("geom_col",""))
         self._layers_columns[key] = cols
         # If this is the currently selected layer, update table headers
         if self._layer_list.currentItem() is lw_item:
@@ -3063,7 +3068,7 @@ class MapViewerPanel(QWidget):
         if not isinstance(d, dict) or not all(
                 k in d for k in ("schema", "table", "geom_col")):
             return
-        key = self._layer_key(d["schema"], d["table"], d["geom_col"])
+        key = self._layer_key(d.get("schema",""), d.get("table",""), d.get("geom_col",""))
         self._layers_data[key] = data
 
         # Store features inside the item's UserRole data too (for draw_all)
@@ -3103,7 +3108,7 @@ class MapViewerPanel(QWidget):
             self._table.blockSignals(False)
             return
 
-        key = self._layer_key(d["schema"], d["table"], d["geom_col"])
+        key = self._layer_key(d.get("schema",""), d.get("table",""), d.get("geom_col",""))
         cols = self._layers_columns.get(key, [])
         data = self._layers_data.get(key, [])
 
@@ -3121,15 +3126,17 @@ class MapViewerPanel(QWidget):
 
         if self._attr_win and lw_item:
             d = lw_item.data(Qt.ItemDataRole.UserRole)
-            if d:
+            if d and isinstance(d, dict):
+                schema_ = d.get("schema", "")
+                table_  = d.get("table", "")
+                gcol_   = d.get("geom_col", "")
                 self._attr_win.set_layer_title(
-                    f'{d["schema"]}.{d["table"]}  [{d["geom_col"]}]  '
-                    f'({len(data)} features)')
+                    f'{schema_}.{table_}  [{gcol_}]  ({len(data)} features)')
                 self._attr_win.update_row_count(len(data))
-                # Pass edit context (detect primary key lazily)
                 pkey = self._layer_pkeys.get(key, [])
-                self._attr_win.set_edit_context(
-                    self.db, d["schema"], d["table"], pkey, cols)
+                if schema_ and table_:
+                    self._attr_win.set_edit_context(
+                        self.db, schema_, table_, pkey, cols)
 
     # ── Layer list signals ────────────────────────────────────────────────
     def _on_layer_selected(self, current: Optional[QListWidgetItem],
@@ -3142,9 +3149,9 @@ class MapViewerPanel(QWidget):
         self._populate_attr_table(current)
         if current and self._attr_win:
             d = current.data(Qt.ItemDataRole.UserRole)
-            if d and "geom_col" in d:
+            if d and isinstance(d, dict) and "geom_col" in d:
                 self._attr_win.set_layer_title(
-                    f'{d["schema"]}.{d["table"]}  [{d["geom_col"]}]')
+                    f'{d.get("schema","")}.{d.get("table","")}  [{d.get("geom_col","")}]')
         # Load primary key for this layer if not cached
         if current and self.db.is_connected():
             d = current.data(Qt.ItemDataRole.UserRole)
@@ -3238,7 +3245,7 @@ class MapViewerPanel(QWidget):
         d = current.data(Qt.ItemDataRole.UserRole)
         if not d:
             return
-        key = self._layer_key(d["schema"], d["table"], d["geom_col"])
+        key = self._layer_key(d.get("schema",""), d.get("table",""), d.get("geom_col",""))
         feature_data = self._layers_data.get(key, [])
         cols = self._layers_columns.get(key, [])
         if not feature_data or not cols:
@@ -3251,8 +3258,10 @@ class MapViewerPanel(QWidget):
         col = cols[col_idx]
         new_val = item.text()
 
-        schema = d["schema"]
-        table  = d["table"]
+        schema = d.get("schema", "")
+        table  = d.get("table", "")
+        if not schema or not table:
+            return
 
         pk_col = cols[0] if cols else None
         if not pk_col:
