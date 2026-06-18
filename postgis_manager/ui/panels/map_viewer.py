@@ -2370,7 +2370,7 @@ class MapViewerPanel(QWidget):
 
         dlg = _SaveGeometryDialog(
             d["schema"], d["table"], d["geom_col"],
-            d.get("srid", 4326), wkt, gtype, self._db, self)
+            d.get("srid", 4326), wkt, gtype, self.db, self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             item = self._layer_list.currentItem()
             if item:
