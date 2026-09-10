@@ -29,3 +29,6 @@ PostGIS_Manager_*.zip
 postgis_manager_plugin.zip
 .pytest_cache/
 .ruff_cache/
+
+# scratch project files, not part of the package
+postgis_manager/test_folder/
