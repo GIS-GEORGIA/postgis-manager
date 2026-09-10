@@ -3,7 +3,7 @@ name=PostGIS Manager
 qgisMinimumVersion=3.40
 qgisMaximumVersion=4.99
 description=Unique spatial-database GIS toolkit for PostGIS — geometry editor on canvas, CRS audit, spatial join GUI, data-quality scoring, pgRouting network wizard, WFS, GPX import, thematic classification and snapshot diff. Not a pgAdmin clone.
-version=1.2.0
+version=1.2.1
 author=GIS GEORGIA | Giorgi Kapanadze
 email=kapan.gio777@gmail.com
 
@@ -56,6 +56,8 @@ hasProcessingProvider=True
 server=False
 
 changelog=
+    1.2.1 (2026-09-10)
+    - Georgian UI: "ფლაგინი" is now "დანამატი", matching the wording used across GIS GEORGIA's plugins and plugins.qgis.ge
     1.2.0 (2026-09-10)
     - Runs on QGIS 3.40+ (Qt5) as well as QGIS 4.x (Qt6), from the same build
     - Qt is now imported through postgis_manager.qtcompat, which resolves qgis.PyQt inside QGIS and falls back to PyQt6/PyQt5 for the standalone app
