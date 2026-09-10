@@ -1,12 +1,12 @@
 """pgRouting panel."""
 
 from __future__ import annotations
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QFormLayout, QLabel,
     QLineEdit, QPushButton, QSpinBox, QDoubleSpinBox,
     QTableWidget, QTableWidgetItem, QTabWidget, QMessageBox, QHeaderView,
 )
-from PyQt6.QtCore import QThread, pyqtSignal
+from ...qtcompat.QtCore import QThread, pyqtSignal
 from ...db.connection import DBManager
 from ...utils import i18n
 from ...utils.workers import launch

@@ -13,9 +13,9 @@ import time
 from typing import Optional
 
 import psycopg2
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
-from PyQt6.QtGui import QColor, QFont
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtCore import Qt, QThread, pyqtSignal, QTimer
+from ...qtcompat.QtGui import QColor, QFont
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QTextEdit,
     QProgressBar, QApplication, QMessageBox, QAbstractItemView,

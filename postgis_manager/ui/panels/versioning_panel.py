@@ -1,13 +1,13 @@
-"""pgVersion row-level versioning panel — PyQt6."""
+"""pgVersion row-level versioning panel — Qt via qtcompat."""
 
 from __future__ import annotations
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox,
     QLabel, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem,
     QHeaderView, QAbstractItemView, QMessageBox, QTextEdit,
 )
-from PyQt6.QtCore import QThread, pyqtSignal
-from PyQt6.QtGui import QColor
+from ...qtcompat.QtCore import QThread, pyqtSignal
+from ...qtcompat.QtGui import QColor
 
 from ...db.connection import DBManager
 from ...utils import i18n
@@ -293,5 +293,5 @@ class VersioningPanel(QWidget):
             self.parent().log(msg, level)
 
     def _bold_font(self):
-        from PyQt6.QtGui import QFont
+        from ...qtcompat.QtGui import QFont
         f = QFont(); f.setBold(True); return f

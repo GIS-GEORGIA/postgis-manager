@@ -4,9 +4,9 @@ from __future__ import annotations
 import os
 import subprocess
 import shutil
-from PyQt6.QtCore import QThread, pyqtSignal
-from PyQt6.QtGui import QFont
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtCore import QThread, pyqtSignal
+from ...qtcompat.QtGui import QFont
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTextEdit, QLineEdit, QComboBox, QGroupBox, QFormLayout,
     QSpinBox, QDoubleSpinBox, QCheckBox, QFileDialog, QMessageBox, QTabWidget, QProgressBar,

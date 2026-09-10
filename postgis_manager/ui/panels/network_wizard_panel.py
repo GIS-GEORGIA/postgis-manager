@@ -1,8 +1,9 @@
 """pgRouting Network Setup Wizard — prepare edge table for pgRouting."""
 
 from __future__ import annotations
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtCore import Qt, QThread, pyqtSignal
+from ...qtcompat.QtGui import QFont
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QComboBox, QLineEdit, QProgressBar, QTextEdit, QWizard,
     QWizardPage, QFormLayout, QCheckBox, QSpinBox, QGroupBox,
@@ -300,7 +301,7 @@ class NetworkWizardPanel(QWidget):
         self._log = QTextEdit()
         self._log.setReadOnly(True)
         self._log.setMaximumHeight(160)
-        self._log.setFont(__import__("PyQt6.QtGui", fromlist=["QFont"]).QFont("Courier New", 9))
+        self._log.setFont(QFont("Courier New", 9))
         s3v.addWidget(self._log)
         root.addWidget(step3)
 

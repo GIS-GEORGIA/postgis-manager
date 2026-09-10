@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 import math
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtCore import Qt, QThread, pyqtSignal
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QComboBox, QSpinBox, QFormLayout, QGroupBox, QTableWidget,
     QTableWidgetItem, QHeaderView, QColorDialog, QMessageBox,
     QProgressBar,
 )
-from PyQt6.QtGui import QColor
+from ...qtcompat.QtGui import QColor
 
 
 # ── classification algorithms ─────────────────────────────────────────────────

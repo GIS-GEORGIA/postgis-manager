@@ -1,6 +1,6 @@
-"""Topology panel — PyQt6."""
+"""Topology panel — Qt via qtcompat."""
 
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox,
     QLabel, QLineEdit, QPushButton, QDoubleSpinBox, QSpinBox,
     QTableWidget, QTableWidgetItem, QMessageBox, QComboBox, QHeaderView,

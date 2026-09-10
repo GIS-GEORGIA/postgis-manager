@@ -1,12 +1,12 @@
-"""Vector import dialog — PyQt6."""
+"""Vector import dialog — Qt via qtcompat."""
 
 from __future__ import annotations
 import os
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QPushButton, QComboBox, QProgressBar,
     QDialogButtonBox, QFileDialog, QMessageBox, QTextEdit,
 )
-from PyQt6.QtCore import QThread, pyqtSignal
+from ...qtcompat.QtCore import QThread, pyqtSignal
 
 from ...db.connection import DBManager
 from ...utils import i18n

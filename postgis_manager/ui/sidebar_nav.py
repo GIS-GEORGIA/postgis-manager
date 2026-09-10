@@ -1,12 +1,12 @@
 """Sidebar navigation widget — groups + icon/label buttons, maps to QStackedWidget."""
 
 from __future__ import annotations
-from PyQt6.QtWidgets import (
+from ..qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton,
     QScrollArea, QSizePolicy, QFrame,
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont
+from ..qtcompat.QtCore import Qt, pyqtSignal
+from ..qtcompat.QtGui import QFont
 
 
 class NavSidebar(QWidget):

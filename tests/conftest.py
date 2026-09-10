@@ -13,7 +13,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 @pytest.fixture(scope="session")
 def qapp():
     """Single QApplication for the whole test session."""
-    from PyQt6.QtWidgets import QApplication
+    from postgis_manager.qtcompat.QtWidgets import QApplication
     app = QApplication.instance() or QApplication(sys.argv)
     yield app
 

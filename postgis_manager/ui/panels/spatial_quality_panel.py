@@ -1,9 +1,9 @@
 """Spatial Data Quality Dashboard — layer health checks with batch fix."""
 
 from __future__ import annotations
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QColor, QBrush, QFont
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtCore import Qt, QThread, pyqtSignal
+from ...qtcompat.QtGui import QColor, QBrush, QFont
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QComboBox, QTableWidget, QTableWidgetItem, QHeaderView,
     QProgressBar, QSplitter, QTextEdit, QTabWidget,

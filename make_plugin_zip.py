@@ -18,7 +18,8 @@ PLUGIN  = os.path.join(ROOT, "qgis_plugin")
 PACKAGE = os.path.join(ROOT, "postgis_manager")
 OUT_ZIP = os.path.join(ROOT, "postgis_manager_plugin.zip")
 
-SKIP_DIRS  = {"__pycache__", ".git", ".venv", "node_modules"}
+# test_folder holds a scratch project file, not part of the plugin.
+SKIP_DIRS  = {"__pycache__", ".git", ".venv", "node_modules", "test_folder"}
 SKIP_EXTS  = {".pyc", ".pyo", ".pyd"}
 
 

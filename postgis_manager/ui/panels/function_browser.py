@@ -1,13 +1,13 @@
 """Function Browser — browse, view source and execute PostgreSQL functions/procedures."""
 
 from __future__ import annotations
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
     QSplitter, QTextEdit, QLineEdit, QComboBox,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QFont, QColor
+from ...qtcompat.QtCore import Qt, QThread, pyqtSignal
+from ...qtcompat.QtGui import QFont, QColor
 
 from ...db.connection import DBManager
 from ...utils import i18n

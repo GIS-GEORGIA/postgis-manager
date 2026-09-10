@@ -10,9 +10,9 @@ def main():
     if root not in sys.path:
         sys.path.insert(0, root)
 
-    from PyQt6.QtWidgets import QApplication, QMessageBox
-    from PyQt6.QtCore import Qt
-    from PyQt6.QtGui import QFont
+    from postgis_manager.qtcompat.QtWidgets import QApplication, QMessageBox
+    from postgis_manager.qtcompat.QtCore import Qt
+    from postgis_manager.qtcompat.QtGui import QFont
 
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)

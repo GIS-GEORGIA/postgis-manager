@@ -1,14 +1,14 @@
 """Layer Snapshot + Change Diff View — save/compare spatial snapshots."""
 
 from __future__ import annotations
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtCore import Qt, QThread, pyqtSignal
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QComboBox, QTableWidget, QTableWidgetItem, QHeaderView,
     QMessageBox, QProgressBar, QGroupBox, QFormLayout, QLineEdit,
     QTabWidget, QSplitter, QTextEdit,
 )
-from PyQt6.QtGui import QColor
+from ...qtcompat.QtGui import QColor
 
 
 SNAPSHOT_SCHEMA = "_postgis_manager_snapshots"

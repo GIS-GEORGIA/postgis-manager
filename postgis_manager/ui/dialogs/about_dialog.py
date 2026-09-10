@@ -1,10 +1,10 @@
-"""About dialog — PyQt6."""
+"""About dialog — Qt via qtcompat."""
 
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QPushButton, QFrame,
 )
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
+from ...qtcompat.QtCore import Qt
+from ...qtcompat.QtGui import QFont
 
 from ...utils import i18n
 

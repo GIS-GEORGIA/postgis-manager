@@ -1,14 +1,14 @@
 """Schema & Role Manager — manage schemas, users, roles and privileges."""
 
 from __future__ import annotations
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
     QGroupBox, QComboBox, QLineEdit, QCheckBox, QMessageBox,
     QTabWidget, QFormLayout,
 )
-from PyQt6.QtCore import QThread, pyqtSignal
-from PyQt6.QtGui import QColor
+from ...qtcompat.QtCore import QThread, pyqtSignal
+from ...qtcompat.QtGui import QColor
 
 from ...db.connection import DBManager
 from ...utils import i18n

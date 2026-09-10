@@ -4,12 +4,12 @@ from __future__ import annotations
 import subprocess
 import shutil
 import os
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLabel,
     QLineEdit, QPushButton, QComboBox, QCheckBox,
     QFileDialog, QMessageBox, QTextEdit,
 )
-from PyQt6.QtCore import QThread, pyqtSignal
+from ...qtcompat.QtCore import QThread, pyqtSignal
 from ...db.connection import DBManager
 from ...utils import i18n
 

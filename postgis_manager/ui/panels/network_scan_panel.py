@@ -3,14 +3,14 @@
 from __future__ import annotations
 import ipaddress
 import socket
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox,
     QLabel, QLineEdit, QPushButton, QSpinBox, QDoubleSpinBox,
     QTableWidget, QTableWidgetItem, QHeaderView,
     QAbstractItemView, QProgressBar, QMessageBox, QSplitter, QScrollArea, QSizePolicy,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QColor
+from ...qtcompat.QtCore import Qt, QThread, pyqtSignal
+from ...qtcompat.QtGui import QColor
 
 from ...utils import i18n, config
 from ...utils.network_scanner import scan_network, mdns_discover, parse_targets

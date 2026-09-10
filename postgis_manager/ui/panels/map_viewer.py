@@ -8,7 +8,7 @@ import urllib.request
 import urllib.parse
 from typing import Optional
 
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
     QToolBar, QComboBox, QLabel, QTableWidget, QTableWidgetItem,
     QGraphicsView, QGraphicsScene, QGraphicsItem,
@@ -19,10 +19,10 @@ from PyQt6.QtWidgets import (
     QTabWidget, QScrollArea, QTextEdit, QCheckBox,
     QSlider, QSpinBox, QDoubleSpinBox, QColorDialog, QMenu,
 )
-from PyQt6.QtCore import (
+from ...qtcompat.QtCore import (
     Qt, QThread, pyqtSignal, QPointF, QRectF, QObject, QTimer,
 )
-from PyQt6.QtGui import (
+from ...qtcompat.QtGui import (
     QPainter, QPainterPath, QColor, QPen, QBrush,
     QWheelEvent, QMouseEvent, QAction, QTransform, QPixmap, QIcon, QImage,
     QFont,
@@ -1066,7 +1066,7 @@ class MapCanvas(QGraphicsView):
             ]
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QBrush(QColor("#FFFFFF")))
-            from PyQt6.QtGui import QPolygonF
+            from ...qtcompat.QtGui import QPolygonF
             painter.drawPolygon(QPolygonF(north))
             # S (south, dark)
             south = [
@@ -1113,7 +1113,7 @@ class MapCanvas(QGraphicsView):
         if act is None:
             return
         if copy_act and act == copy_act:
-            from PyQt6.QtWidgets import QApplication
+            from ...qtcompat.QtWidgets import QApplication
             QApplication.clipboard().setText(coord_str)
         elif act == zi_act:
             self.centerOn(scene_pos)
@@ -1197,7 +1197,7 @@ class MapCanvas(QGraphicsView):
 
     def _add_label(self, path: QPainterPath, text: str,
                    color: str, z: int):
-        from PyQt6.QtWidgets import QGraphicsSimpleTextItem
+        from ...qtcompat.QtWidgets import QGraphicsSimpleTextItem
         center = path.boundingRect().center()
         ti = QGraphicsSimpleTextItem(text)
         ti.setPos(center)
@@ -1636,7 +1636,7 @@ class AttributeTableWindow(QDialog):
         self.table.itemChanged.connect(self._on_cell_changed)
 
     def _show_context_menu(self, pos):
-        from PyQt6.QtWidgets import QMenu, QApplication
+        from ...qtcompat.QtWidgets import QMenu, QApplication
         item = self.table.itemAt(pos)
         menu = QMenu(self.table)
 
@@ -1744,7 +1744,7 @@ class AttributeTableWindow(QDialog):
             unique = len(set(text_vals))
             lines.append(f"<b>Unique text values:</b> {unique}")
 
-        from PyQt6.QtWidgets import QMessageBox
+        from ...qtcompat.QtWidgets import QMessageBox
         msg = QMessageBox(self)
         msg.setWindowTitle(f"Statistics — {col_name}")
         msg.setText("<br>".join(lines))
@@ -2006,7 +2006,7 @@ class _SaveGeometryDialog(QDialog):
             conn.close()
             self.accept()
         except Exception as e:
-            from PyQt6.QtWidgets import QMessageBox
+            from ...qtcompat.QtWidgets import QMessageBox
             QMessageBox.critical(self, "Insert error", str(e))
 
 
@@ -2361,7 +2361,7 @@ class MapViewerPanel(QWidget):
         # find current layer
         item = self._layer_list.currentItem()
         if not item:
-            from PyQt6.QtWidgets import QMessageBox
+            from ...qtcompat.QtWidgets import QMessageBox
             QMessageBox.information(self, "Draw", "Select a layer first.")
             return
         d = item.data(Qt.ItemDataRole.UserRole)
@@ -2402,12 +2402,12 @@ class MapViewerPanel(QWidget):
                 val = ""
             lines.append(f"<b>{col}:</b> {val}")
         html = "<br>".join(lines)
-        from PyQt6.QtWidgets import QToolTip
+        from ...qtcompat.QtWidgets import QToolTip
         QToolTip.showText(screen_pt, f"<div style='font-size:12px'>{html}</div>",
                           self._canvas)
 
     def _export_map_image(self):
-        from PyQt6.QtWidgets import QFileDialog, QInputDialog
+        from ...qtcompat.QtWidgets import QFileDialog, QInputDialog
         path, sel_filter = QFileDialog.getSaveFileName(
             self, "Export Map", "map_export.png",
             "PNG Image (*.png);;JPEG Image (*.jpg);;PDF Print Layout (*.pdf)")
@@ -2431,12 +2431,12 @@ class MapViewerPanel(QWidget):
     def _export_print_layout(self, path: str):
         """Full print layout: title + map + legend + scale bar."""
         try:
-            from PyQt6.QtPrintSupport import QPrinter
+            from ...qtcompat.QtPrintSupport import QPrinter
         except ImportError:
-            self._status.setText("PDF export needs PyQt6.QtPrintSupport")
+            self._status.setText("PDF export needs Qt print support (QtPrintSupport)")
             return
 
-        from PyQt6.QtWidgets import QInputDialog
+        from ...qtcompat.QtWidgets import QInputDialog
         title, ok = QInputDialog.getText(
             self, "Map Title", "Title for the print layout:",
             text="Map Export")
@@ -2446,7 +2446,7 @@ class MapViewerPanel(QWidget):
         printer = QPrinter(QPrinter.PrinterMode.HighResolution)
         printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
         printer.setOutputFileName(path)
-        from PyQt6.QtGui import QPageSize
+        from ...qtcompat.QtGui import QPageSize
         printer.setPageSize(QPageSize(QPageSize.PageSizeId.A4))
         printer.setPageOrientation(
             printer.pageLayout().orientation().Landscape
@@ -2466,7 +2466,7 @@ class MapViewerPanel(QWidget):
         p.setPen(QPen(QColor("#111111")))
         f = QFont("Arial", 18, QFont.Weight.Bold)
         p.setFont(f)
-        from PyQt6.QtCore import QRectF as _QRF
+        from ...qtcompat.QtCore import QRectF as _QRF
         p.drawText(_QRF(margin, margin, pw - margin * 2, title_h),
                    Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter,
                    title)
@@ -2559,13 +2559,13 @@ class MapViewerPanel(QWidget):
 
     # ── Bookmarks ─────────────────────────────────────────────────────────
     def _bookmarks(self) -> dict:
-        from PyQt6.QtCore import QSettings
+        from ...qtcompat.QtCore import QSettings
         raw = QSettings("PostGISManager", "mapbookmarks").value(
             "bookmarks", {})
         return raw if isinstance(raw, dict) else {}
 
     def _save_bookmarks(self, bm: dict):
-        from PyQt6.QtCore import QSettings
+        from ...qtcompat.QtCore import QSettings
         QSettings("PostGISManager", "mapbookmarks").setValue("bookmarks", bm)
 
     def _current_extent(self) -> dict:
@@ -2598,7 +2598,7 @@ class MapViewerPanel(QWidget):
             return
         data = act.data()
         if act == save_act:
-            from PyQt6.QtWidgets import QInputDialog
+            from ...qtcompat.QtWidgets import QInputDialog
             name, ok = QInputDialog.getText(
                 self, "Save Bookmark", "Bookmark name:")
             if ok and name.strip():
@@ -2608,7 +2608,7 @@ class MapViewerPanel(QWidget):
         elif isinstance(data, tuple):
             if data[0] == "goto":
                 ext = data[2]
-                from PyQt6.QtCore import QRectF
+                from ...qtcompat.QtCore import QRectF
                 r = QRectF(ext["x"], ext["y"], ext["w"], ext["h"])
                 self._canvas.fitInView(
                     r, Qt.AspectRatioMode.KeepAspectRatio)
@@ -3402,7 +3402,7 @@ class MapViewerPanel(QWidget):
         self._canvas.draw_all(self._layer_list)
 
         # Fit view to the result extent
-        from PyQt6.QtCore import QTimer as _QTimer
+        from ...qtcompat.QtCore import QTimer as _QTimer
         _QTimer.singleShot(100, lambda: self._canvas.fit_extent())
 
         self._status.setText(
@@ -3470,7 +3470,7 @@ class MapViewerPanel(QWidget):
             (geojson.get("features") or [{}])[0].get("properties", {}).keys())
 
         self._canvas.draw_all(self._layer_list)
-        from PyQt6.QtCore import QTimer as _QTimer
+        from ...qtcompat.QtCore import QTimer as _QTimer
         _QTimer.singleShot(100, lambda: self._canvas.fit_extent())
         self._status.setText(f"✔ WFS: {len(parsed)} features from {name}")
 
@@ -3578,8 +3578,8 @@ class MapViewerPanel(QWidget):
         # Restore viewport extent after a short delay (let canvas settle)
         extent = state.get("extent")
         if extent:
-            from PyQt6.QtCore import QTimer, QRectF
-            from PyQt6.QtCore import Qt as _Qt
+            from ...qtcompat.QtCore import QTimer, QRectF
+            from ...qtcompat.QtCore import Qt as _Qt
             def _apply_extent():
                 r = QRectF(extent["x"], extent["y"], extent["w"], extent["h"])
                 self._canvas.fitInView(r, _Qt.AspectRatioMode.KeepAspectRatio)

@@ -11,16 +11,16 @@ from __future__ import annotations
 import json
 
 import psycopg2
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QColor, QFont
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtCore import Qt, QThread, pyqtSignal
+from ...qtcompat.QtGui import QColor, QFont
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QLineEdit, QComboBox,
     QTextEdit, QGroupBox, QMessageBox, QDialog, QDialogButtonBox,
     QHeaderView, QAbstractItemView, QFileDialog, QDateEdit,
     QCheckBox, QFormLayout, QTabWidget,
 )
-from PyQt6.QtCore import QDate
+from ...qtcompat.QtCore import QDate
 
 from ...utils.workers import launch
 from ...utils.audit_manager import (

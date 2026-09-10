@@ -3,9 +3,9 @@
 from __future__ import annotations
 import psycopg2
 import psycopg2.extras
-from PyQt6.QtCore import QThread, pyqtSignal, QTimer
-from PyQt6.QtGui import QFont, QColor
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtCore import QThread, pyqtSignal, QTimer
+from ...qtcompat.QtGui import QFont, QColor
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QTabWidget, QLineEdit,
     QComboBox, QTextEdit, QGroupBox, QFormLayout, QSpinBox,

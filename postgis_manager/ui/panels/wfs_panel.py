@@ -4,8 +4,8 @@ from __future__ import annotations
 import urllib.request
 import urllib.parse
 import json
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtCore import Qt, QThread, pyqtSignal
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QLineEdit, QListWidget, QListWidgetItem, QProgressBar,
     QMessageBox, QComboBox, QSplitter, QTextEdit, QSpinBox,

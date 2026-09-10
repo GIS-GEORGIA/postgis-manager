@@ -1,6 +1,6 @@
-"""Chainage panel — PyQt6."""
+"""Chainage panel — Qt via qtcompat."""
 
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QFormLayout, QLabel, QLineEdit,
     QPushButton, QDoubleSpinBox, QMessageBox,
 )

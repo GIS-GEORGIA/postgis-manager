@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 import csv
-from PyQt6.QtWidgets import (
+from ..qtcompat.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
     QPushButton, QLabel, QTextEdit, QGroupBox, QComboBox,
     QFileDialog, QMessageBox, QHeaderView, QAbstractItemView,
     QWidget, QLineEdit,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QFont
+from ..qtcompat.QtCore import Qt, QThread, pyqtSignal
+from ..qtcompat.QtGui import QFont
 
 from ..db.connection import DBManager
 from ..utils import i18n
@@ -398,7 +398,9 @@ class AttributeTableDialog(QDialog):
         self._filter_edit.setFocus()
 
     def _show_tpl_menu(self, btn, templates):
-        menu = __import__("PyQt6.QtWidgets", fromlist=["QMenu"]).QMenu(self)
+        from ..qtcompat.QtWidgets import QMenu
+
+        menu = QMenu(self)
         for label, sql in templates:
             act = menu.addAction(f"{label}  —  {sql}")
             act.setData(sql)

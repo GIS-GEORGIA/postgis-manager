@@ -1,13 +1,13 @@
-"""Visual Query Builder panel — PyQt6."""
+"""Visual Query Builder panel — Qt via qtcompat."""
 
 from __future__ import annotations
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox,
     QLabel, QLineEdit, QPushButton, QComboBox, QTableWidget,
     QTableWidgetItem, QHeaderView, QAbstractItemView, QCheckBox,
     QSpinBox, QTextEdit, QSplitter, QMessageBox,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from ...qtcompat.QtCore import Qt, QThread, pyqtSignal
 
 from ...db.connection import DBManager
 from ...utils import i18n, config
@@ -382,7 +382,7 @@ class QueryBuilderPanel(QWidget):
     def _save_query(self):
         sql = self._sql_edit.toPlainText().strip()
         if not sql: return
-        from PyQt6.QtWidgets import QInputDialog
+        from ...qtcompat.QtWidgets import QInputDialog
         name, ok = QInputDialog.getText(
             self, i18n.t("qb_save"), i18n.t("qb_save_name"))
         if ok and name.strip():

@@ -1,11 +1,11 @@
-"""DB Style Manager panel — PyQt6."""
+"""DB Style Manager panel — Qt via qtcompat."""
 
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLabel,
     QLineEdit, QPushButton, QListWidget, QCheckBox, QMessageBox,
     QFileDialog, QListWidgetItem,
 )
-from PyQt6.QtCore import Qt
+from ...qtcompat.QtCore import Qt
 from ...db.connection import DBManager
 from ...utils import i18n
 

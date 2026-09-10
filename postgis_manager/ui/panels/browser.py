@@ -1,14 +1,14 @@
 """Layer Browser Panel — schema/table/view/raster tree with context menu."""
 
 from __future__ import annotations
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTreeWidget, QTreeWidgetItem,
     QPushButton, QLineEdit, QLabel, QMenu, QSizePolicy, QMessageBox,
     QApplication, QDialog, QTableWidget, QTableWidgetItem,
     QAbstractItemView,
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QThread, pyqtSlot
-from PyQt6.QtGui import QColor, QBrush, QFont
+from ...qtcompat.QtCore import Qt, pyqtSignal, QThread, pyqtSlot
+from ...qtcompat.QtGui import QColor, QBrush, QFont
 
 
 def _unicode_font() -> QFont:

@@ -4,13 +4,13 @@ from __future__ import annotations
 import json
 import urllib.request
 import urllib.error
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QFont
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtCore import Qt, QThread, pyqtSignal
+from ...qtcompat.QtGui import QFont
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTextEdit, QLineEdit, QComboBox, QGroupBox, QFormLayout,
     QTableWidget, QTableWidgetItem, QTabWidget, QAbstractItemView, QSplitter, QSpinBox, QMessageBox,
-    QTreeWidget, QTreeWidgetItem,
+    QTreeWidget, QTreeWidgetItem, QApplication,
 )
 
 from ...utils.workers import launch
@@ -146,9 +146,8 @@ class APITesterPanel(QWidget):
 
         btn_row = QHBoxLayout()
         btn_copy = QPushButton("📋 Copy response")
-        btn_copy.clicked.connect(lambda: __import__(
-            'PyQt6.QtWidgets', fromlist=['QApplication']
-        ).QApplication.clipboard().setText(self._resp_body.toPlainText()))
+        btn_copy.clicked.connect(
+            lambda: QApplication.clipboard().setText(self._resp_body.toPlainText()))
         btn_fmt = QPushButton("{ } Format JSON")
         btn_fmt.clicked.connect(self._format_json)
         btn_row.addWidget(btn_copy)

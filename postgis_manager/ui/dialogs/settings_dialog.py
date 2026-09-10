@@ -1,11 +1,11 @@
-"""Settings dialog — PyQt6."""
+"""Settings dialog — Qt via qtcompat."""
 
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QComboBox,
     QSpinBox, QCheckBox, QDialogButtonBox, QGroupBox,
 )
-from PyQt6.QtGui import QFont
-from PyQt6.QtWidgets import QApplication
+from ...qtcompat.QtGui import QFont
+from ...qtcompat.QtWidgets import QApplication
 
 from ...utils import i18n, theme, config
 

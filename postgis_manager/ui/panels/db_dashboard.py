@@ -1,13 +1,13 @@
 """DB Dashboard — server statistics, table sizes, connections, health."""
 
 from __future__ import annotations
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
     QGroupBox, QFrame, QProgressBar, QSplitter,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
-from PyQt6.QtGui import QColor, QFont
+from ...qtcompat.QtCore import Qt, QThread, pyqtSignal, QTimer
+from ...qtcompat.QtGui import QColor, QFont
 
 from ...db.connection import DBManager
 from ...utils import i18n

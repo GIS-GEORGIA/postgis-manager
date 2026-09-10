@@ -1,7 +1,7 @@
 """SQL Editor panel — syntax highlighting, autocomplete, EXPLAIN, history."""
 
 from __future__ import annotations
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
     QTableWidget, QTableWidgetItem, QPushButton,
     QLabel, QComboBox, QFileDialog, QMessageBox, QHeaderView,
@@ -9,11 +9,11 @@ from PyQt6.QtWidgets import (
     QDialog, QDialogButtonBox, QListWidget, QListWidgetItem,
     QLineEdit, QTextEdit as _QTextEdit,
 )
-from PyQt6.QtGui import (
+from ...qtcompat.QtGui import (
     QFont, QSyntaxHighlighter, QTextCharFormat, QColor,
     QKeySequence, QShortcut, QTextCursor,
 )
-from PyQt6.QtCore import (
+from ...qtcompat.QtCore import (
     Qt, QThread, pyqtSignal, QRegularExpression,
     QRect,
 )
@@ -653,13 +653,13 @@ class SQLEditorPanel(QWidget):
     # ── Save / load ───────────────────────────────────────────────────────
 
     def _save_query(self):
-        from PyQt6.QtWidgets import QInputDialog
+        from ...qtcompat.QtWidgets import QInputDialog
         name, ok = QInputDialog.getText(self, "Save Query", "Query name:")
         if ok and name:
             config.save_query(name, self._editor.toPlainText())
 
     def _load_query(self):
-        from PyQt6.QtWidgets import QInputDialog
+        from ...qtcompat.QtWidgets import QInputDialog
         queries = config.get_saved_queries()
         if not queries:
             QMessageBox.information(self, "Info", "No saved queries.")
@@ -950,7 +950,7 @@ class _HistoryDialog(QDialog):
         self._populate(self._search.text())
 
     def _clear_all(self):
-        from PyQt6.QtWidgets import QMessageBox
+        from ...qtcompat.QtWidgets import QMessageBox
         if QMessageBox.question(
                 self, "Clear history", "Delete all query history?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No

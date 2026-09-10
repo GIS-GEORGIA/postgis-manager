@@ -4,14 +4,14 @@ from __future__ import annotations
 import os
 from typing import Optional
 
-from PyQt6.QtWidgets import (
+from ..qtcompat.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
     QStatusBar, QToolBar, QApplication,
     QLabel, QComboBox, QSizePolicy, QMessageBox, QDialog,
     QStackedWidget, QFrame, QFileDialog,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize
-from PyQt6.QtGui import QFont, QAction
+from ..qtcompat.QtCore import Qt, QThread, pyqtSignal, QSize
+from ..qtcompat.QtGui import QFont, QAction
 
 from ..db.connection import DBManager
 from ..utils import i18n, theme, config, project as _project
@@ -772,13 +772,13 @@ class MainWindow(QMainWindow):
         self._apply_theme()
 
     def _export_config(self):
-        from PyQt6.QtWidgets import QFileDialog
+        from ..qtcompat.QtWidgets import QFileDialog
         path, _ = QFileDialog.getSaveFileName(
             self, i18n.t("cfg_export_title"), "postgis_manager_config.json",
             "JSON (*.json)")
         if not path:
             return
-        from PyQt6.QtWidgets import QInputDialog
+        from ..qtcompat.QtWidgets import QInputDialog
         inc_pw, ok = QInputDialog.getItem(
             self, i18n.t("cfg_export_title"),
             i18n.t("cfg_include_passwords"),
@@ -794,7 +794,7 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Error", str(e))
 
     def _import_config(self):
-        from PyQt6.QtWidgets import QFileDialog, QInputDialog
+        from ..qtcompat.QtWidgets import QFileDialog, QInputDialog
         path, _ = QFileDialog.getOpenFileName(
             self, i18n.t("cfg_import_title"), "", "JSON (*.json)")
         if not path:

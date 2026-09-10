@@ -3,9 +3,9 @@
 from __future__ import annotations
 import psycopg2
 import psycopg2.extras
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QFont
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtCore import Qt, QThread, pyqtSignal
+from ...qtcompat.QtGui import QFont
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QTabWidget, QLineEdit,
     QComboBox, QTextEdit, QGroupBox, QFormLayout, QMessageBox, QCheckBox, QHeaderView, QAbstractItemView,
@@ -555,7 +555,7 @@ class DeveloperPanel(QWidget):
             self._notify_btn.setText("▶ Start Listening")
 
     def _on_notify(self, channel: str, pid: str, payload: str):
-        from PyQt6.QtCore import QDateTime
+        from ...qtcompat.QtCore import QDateTime
         ts = QDateTime.currentDateTime().toString("HH:mm:ss.zzz")
         self._notify_log.append(
             f'<span style="color:#3fb950;">[{ts}]</span> '
@@ -693,5 +693,5 @@ class DeveloperPanel(QWidget):
             f'<span style="color:{colors.get(level,"#aaa")};">{msg}</span>')
 
     def _copy_text(self, text: str):
-        from PyQt6.QtWidgets import QApplication
+        from ...qtcompat.QtWidgets import QApplication
         QApplication.clipboard().setText(text)

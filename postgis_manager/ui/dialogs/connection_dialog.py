@@ -1,6 +1,6 @@
-"""Connection profile dialog — PyQt6."""
+"""Connection profile dialog — Qt via qtcompat."""
 
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QLabel, QLineEdit,
     QPushButton, QCheckBox, QComboBox, QSpinBox, QHBoxLayout,
     QDialogButtonBox,

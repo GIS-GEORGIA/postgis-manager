@@ -29,7 +29,7 @@ def _qsettings_pg_connections() -> list[dict]:
             from qgis.core import QgsSettings
             s = QgsSettings()
         else:
-            from PyQt6.QtCore import QSettings
+            from ..qtcompat.QtCore import QSettings
             # Try QGIS3 then QGIS4 key
             s = None
             for app in ("QGIS3", "QGIS4", "QGIS"):

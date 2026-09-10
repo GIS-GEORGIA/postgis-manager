@@ -1,14 +1,14 @@
 """3DCityDB integration panel — explore, query and export 3DCityDB schemas."""
 
 from __future__ import annotations
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
     QGroupBox, QComboBox, QTextEdit, QSplitter, QTreeWidget, QTreeWidgetItem,
     QProgressBar,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QColor, QFont
+from ...qtcompat.QtCore import Qt, QThread, pyqtSignal
+from ...qtcompat.QtGui import QColor, QFont
 
 from ...db.connection import DBManager
 from ...utils import i18n
@@ -423,7 +423,7 @@ class CityDBPanel(QWidget):
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _card(label: str, value: str):
-    from PyQt6.QtWidgets import QFrame
+    from ...qtcompat.QtWidgets import QFrame
     frame = QFrame()
     frame.setFrameShape(QFrame.Shape.StyledPanel)
     frame.setMinimumWidth(100)

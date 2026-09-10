@@ -4,15 +4,15 @@ from __future__ import annotations
 import json
 import math
 import psycopg2
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QTreeWidget, QTreeWidgetItem,
     QPushButton, QLabel, QTextEdit, QSplitter, QWidget,
     QHeaderView, QProgressBar, QMessageBox, QTabWidget,
     QGraphicsView, QGraphicsScene, QGraphicsItem,
     QGraphicsRectItem, QGraphicsTextItem, QGraphicsPathItem,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QRectF, QPointF
-from PyQt6.QtGui import (
+from ...qtcompat.QtCore import Qt, QThread, pyqtSignal, QRectF, QPointF
+from ...qtcompat.QtGui import (
     QColor, QFont, QBrush, QPainter, QPen, QPainterPath,
 )
 

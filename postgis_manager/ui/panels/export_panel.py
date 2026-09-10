@@ -1,12 +1,12 @@
-"""Export panel — PyQt6."""
+"""Export panel — Qt via qtcompat."""
 
 from __future__ import annotations
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLabel,
     QLineEdit, QPushButton, QComboBox, QListWidget, QFileDialog,
     QMessageBox, QAbstractItemView, QProgressBar,
 )
-from PyQt6.QtCore import QThread, pyqtSignal
+from ...qtcompat.QtCore import QThread, pyqtSignal
 from ...db.connection import DBManager
 from ...utils import i18n
 

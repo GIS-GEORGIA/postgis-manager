@@ -3,14 +3,14 @@
 from __future__ import annotations
 from typing import Optional
 
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
     QTableWidget, QTableWidgetItem, QPushButton,
     QLabel, QAbstractItemView, QGroupBox, QLineEdit, QFormLayout,
     QMessageBox, QToolBar,
 )
-from PyQt6.QtCore import QThread, pyqtSignal
-from PyQt6.QtGui import QColor, QAction
+from ...qtcompat.QtCore import QThread, pyqtSignal
+from ...qtcompat.QtGui import QColor, QAction
 
 from ...db.connection import DBManager
 from ...utils import i18n, config
@@ -417,7 +417,7 @@ class QGISBridgePanel(QWidget):
 
     # ── Export / Import connections JSON ──────────────────────────────────
     def _export_connections(self):
-        from PyQt6.QtWidgets import QFileDialog
+        from ...qtcompat.QtWidgets import QFileDialog
         import json
         path, _ = QFileDialog.getSaveFileName(
             self, i18n.t("cfg_export_title"),
@@ -433,7 +433,7 @@ class QGISBridgePanel(QWidget):
                                 i18n.t("cfg_export_done", path=path))
 
     def _import_connections(self):
-        from PyQt6.QtWidgets import QFileDialog
+        from ...qtcompat.QtWidgets import QFileDialog
         import json
         path, _ = QFileDialog.getOpenFileName(
             self, i18n.t("cfg_import_title"), "", "JSON (*.json)")

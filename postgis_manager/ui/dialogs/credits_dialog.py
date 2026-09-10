@@ -1,6 +1,6 @@
-"""Credits dialog — PyQt6."""
+"""Credits dialog — Qt via qtcompat."""
 
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QPushButton
+from ...qtcompat.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QPushButton
 from ...utils import i18n
 
 

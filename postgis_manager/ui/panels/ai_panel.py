@@ -5,9 +5,9 @@ import json
 import urllib.request
 import urllib.error
 import psycopg2
-from PyQt6.QtCore import QThread, pyqtSignal
-from PyQt6.QtGui import QFont
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtCore import QThread, pyqtSignal
+from ...qtcompat.QtGui import QFont
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTextEdit, QLineEdit, QComboBox, QGroupBox, QFormLayout,
     QMessageBox, QTabWidget, QCheckBox,
@@ -475,7 +475,7 @@ class AIPanel(QWidget):
             self.sql_ready.emit(sql)
 
     def _copy_sql(self):
-        from PyQt6.QtWidgets import QApplication
+        from ...qtcompat.QtWidgets import QApplication
         sql = self._sql_preview.toPlainText().strip()
         if sql:
             QApplication.clipboard().setText(sql)

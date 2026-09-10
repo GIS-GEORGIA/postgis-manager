@@ -12,9 +12,9 @@ import shutil
 import urllib.request
 from typing import Optional
 
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
-from PyQt6.QtGui import QColor, QFont
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtCore import Qt, QThread, pyqtSignal, QTimer
+from ...qtcompat.QtGui import QColor, QFont
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QTabWidget, QLineEdit,
     QTextEdit, QGroupBox, QFormLayout, QCheckBox, QMessageBox,

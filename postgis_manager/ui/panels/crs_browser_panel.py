@@ -1,8 +1,8 @@
 """CRS Browser — search EPSG codes, preview projections, reproject layers."""
 
 from __future__ import annotations
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtCore import Qt, QThread, pyqtSignal
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QLineEdit, QTableWidget, QTableWidgetItem, QHeaderView,
     QSplitter, QTextEdit, QComboBox, QDialog, QFormLayout,

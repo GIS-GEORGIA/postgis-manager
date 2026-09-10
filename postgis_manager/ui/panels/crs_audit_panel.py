@@ -1,13 +1,13 @@
 """CRS Audit — detect SRID mismatches across all geometry layers."""
 
 from __future__ import annotations
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtCore import Qt, QThread, pyqtSignal
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QTableWidget, QTableWidgetItem, QHeaderView, QProgressBar,
     QGroupBox, QFormLayout, QComboBox, QMessageBox, QCheckBox,
 )
-from PyQt6.QtGui import QColor
+from ...qtcompat.QtGui import QColor
 
 
 class _AuditWorker(QThread):

@@ -89,15 +89,16 @@ These sit alongside a full set of **production database tools** below.
 ```
 postgis_manager/        ← Core package (no QGIS dependency)
   db/                   ← DBManager, queries, PostGIS helpers
-  ui/                   ← PyQt6 panels, dialogs, sidebar navigation
+  ui/                   ← Qt panels, dialogs, sidebar navigation
+  qtcompat/             ← Qt binding shim: qgis.PyQt → PyQt6 → PyQt5
   i18n/                 ← en.json, ka.json (English, Georgian)
   utils/                ← theme, config, i18n engine
 
-qgis_plugin/            ← Thin QGIS 4.x / Qt6 plugin wrapper
+qgis_plugin/            ← Thin QGIS plugin wrapper (3.40+ Qt5 and 4.x Qt6)
   plugin.py             ← classFactory, initGui, unload
   processing_provider.py ← QGIS Processing algorithms
   algorithms/           ← processing algorithms
-  metadata.txt          ← supportsQt6=True, qgisMinimumVersion=4.0
+  metadata.txt          ← supportsQt6=True, qgisMinimumVersion=3.40, qgisMaximumVersion=4.99
 
 standalone/             ← Standalone launcher
   app.py                ← QApplication + MainWindow
@@ -143,11 +144,32 @@ chmod +x install.sh run.sh
 
 ---
 
+## Qt / QGIS compatibility
+
+The same code runs in three places. Nothing outside `postgis_manager/qtcompat/` imports
+`PyQt5` or `PyQt6` directly:
+
+| Where | Qt | Resolved as |
+|---|---|---|
+| QGIS 4.x plugin | Qt 6 | `qgis.PyQt` |
+| QGIS 3.40+ plugin | Qt 5 | `qgis.PyQt` |
+| Standalone app | Qt 6 (Qt 5 fallback) | `PyQt6`, else `PyQt5` |
+
+Two rules keep the shared code portable: **scoped enums only**
+(`Qt.AlignmentFlag.AlignLeft`, never `Qt.AlignLeft`) and **`exec()`, never `exec_()`**.
+The shim also re-exports the classes Qt 6 moved from QtWidgets to QtGui (`QAction`,
+`QShortcut`, `QActionGroup`, `QFileSystemModel`, `QUndoStack`) from *both* modules, so an
+import never has to know which Qt is underneath.
+
+`python tools/qt_rewrite.py` re-checks that no module has slipped back to a direct binding import.
+
+---
+
 ## Requirements
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| PyQt6 | ≥6.4 | GUI (provided by QGIS 4.x in plugin mode) |
+| PyQt6 | ≥6.4 | GUI for the standalone app. In plugin mode Qt comes from QGIS instead — Qt5 on QGIS 3.40+, Qt6 on QGIS 4.x — and `postgis_manager.qtcompat` picks the right one. |
 | psycopg2-binary | ≥2.9 | PostgreSQL adapter |
 | geopandas | ≥0.13 | Geospatial data I/O |
 | shapely | ≥2.0 | Geometry operations |

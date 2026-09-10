@@ -1,13 +1,13 @@
 """Raster Tools — statistics, histogram, map algebra, focal operations."""
 
 from __future__ import annotations
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
     QGroupBox, QComboBox, QLineEdit, QSpinBox, QTextEdit, QTabWidget, QFormLayout, QMessageBox,
 )
-from PyQt6.QtCore import QThread, pyqtSignal
-from PyQt6.QtGui import QFont
+from ...qtcompat.QtCore import QThread, pyqtSignal
+from ...qtcompat.QtGui import QFont
 
 from ...db.connection import DBManager
 from ...utils import i18n

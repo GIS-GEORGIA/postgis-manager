@@ -4,15 +4,15 @@ from __future__ import annotations
 import subprocess
 import shutil
 import textwrap
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QComboBox,
     QMessageBox, QAbstractItemView, QGroupBox, QLineEdit,
     QTextEdit, QDialog, QTabWidget, QSpinBox, QCheckBox,
     QScrollArea, QApplication, QFileDialog,
 )
-from PyQt6.QtCore import QThread, pyqtSignal, QTimer, Qt
-from PyQt6.QtGui import QColor, QFont
+from ...qtcompat.QtCore import QThread, pyqtSignal, QTimer, Qt
+from ...qtcompat.QtGui import QColor, QFont
 
 from ...utils import i18n, config
 from ...utils.docker_utils import (
@@ -267,7 +267,7 @@ class InstanceManagerPanel(QWidget):
         self._build_ui()
 
     def _build_ui(self):
-        from PyQt6.QtWidgets import QFormLayout, QSizePolicy as QSP
+        from ...qtcompat.QtWidgets import QFormLayout, QSizePolicy as QSP
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)

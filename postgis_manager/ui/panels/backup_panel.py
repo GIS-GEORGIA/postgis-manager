@@ -4,12 +4,13 @@ from __future__ import annotations
 import os
 import shutil
 import datetime
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QGroupBox, QComboBox, QLineEdit, QCheckBox, QTextEdit,
     QFileDialog, QMessageBox, QProgressBar, QFormLayout, QSplitter,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from ...qtcompat.QtCore import Qt, QThread, pyqtSignal
+from ...qtcompat.QtGui import QFont
 
 from ...db.connection import DBManager
 from ...utils import i18n, config
@@ -205,8 +206,7 @@ class BackupRestorePanel(QWidget):
         layout.addWidget(QLabel(f"<b>{i18n.t('bak_log')}</b>"))
         self._log = QTextEdit()
         self._log.setReadOnly(True)
-        self._log.setFont(__import__("PyQt6.QtGui", fromlist=["QFont"]).QFont(
-            "Courier New", 10))
+        self._log.setFont(QFont("Courier New", 10))
         self._log.setMaximumHeight(160)
         layout.addWidget(self._log)
 

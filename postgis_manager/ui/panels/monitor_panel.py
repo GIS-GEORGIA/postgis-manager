@@ -3,9 +3,9 @@
 from __future__ import annotations
 import psycopg2
 import psycopg2.extras
-from PyQt6.QtCore import QThread, pyqtSignal, QTimer, Qt
-from PyQt6.QtGui import QFont, QColor, QBrush
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtCore import QThread, pyqtSignal, QTimer, Qt
+from ...qtcompat.QtGui import QFont, QColor, QBrush
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QTabWidget, QSpinBox,
     QAbstractItemView, QMessageBox,
@@ -389,7 +389,7 @@ class MonitorPanel(QWidget):
         w.start()
 
     def _on_data(self, rows: list, cols: list, tag: str):
-        from PyQt6.QtCore import QDateTime
+        from ...qtcompat.QtCore import QDateTime
         self._last_updated.setText(
             QDateTime.currentDateTime().toString("HH:mm:ss"))
         tbl_map = {

@@ -4,13 +4,13 @@ so child widget layouts are never broken by cascaded background rules.
 """
 
 from datetime import datetime
-from PyQt6.QtWidgets import (
+from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTextEdit,
     QPushButton, QFileDialog, QLineEdit, QLabel, QFrame,
     QSizePolicy,
 )
-from PyQt6.QtGui import QTextCharFormat, QColor, QFont, QTextCursor
-from PyQt6.QtCore import Qt
+from ...qtcompat.QtGui import QTextCharFormat, QColor, QFont, QTextCursor
+from ...qtcompat.QtCore import Qt
 
 from ...utils import theme as _theme
 
