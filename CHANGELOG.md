@@ -2,6 +2,17 @@
 
 All notable changes to PostGIS Manager are documented here.
 
+## [1.3.0] — 2026-10-13
+
+### Processing: database tools and headless use
+
+- **Backup database (pg_dump)**, **Restore database (pg_restore / psql)** and **CRS audit** are now Processing algorithms (Toolbox, Model Builder, `qgis_process`, Python). Restore refuses to run unless its confirmation box is ticked.
+- Passwords reach `pg_dump` / `pg_restore` / `psql` through `PGPASSWORD`, never on the command line; a saved QGIS login (authentication configuration) can be used instead of typing user and password.
+- The Backup and CRS Audit panels share their logic with the algorithms (`utils/pg_tools.py`). The CRS audit SQL now uses quoted identifiers and bound parameters instead of string formatting.
+- Fixed: the existing database algorithms (validate, import, export, geoprocess, fix invalid geometries, network scan) failed with `No module named 'postgis_manager.db'` in a ZIP install until the manager window had been opened once.
+- Fixed: the Processing provider was not visible to `qgis_process`; it is now registered from `initProcessing()` / `initGui()` (idempotent) instead of the constructor.
+- Tests: `tests/test_pg_tools.py` (pytest, no database) and `tools/test_processing.py` (run with a QGIS Python; optional real-server checks via `PGTEST_*` variables).
+
 ## [1.1.0] — 2026-06-18
 
 ### Strategic refocus — unique GIS tools, not a generic DB clone
