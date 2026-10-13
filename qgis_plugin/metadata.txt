@@ -3,9 +3,9 @@ name=PostGIS Manager
 qgisMinimumVersion=3.40
 qgisMaximumVersion=4.99
 description=Unique spatial-database GIS toolkit for PostGIS — geometry editor on canvas, CRS audit, spatial join GUI, data-quality scoring, pgRouting network wizard, WFS, GPX import, thematic classification and snapshot diff. Not a pgAdmin clone.
-version=1.3.0
+version=1.3.1
 author=GIS GEORGIA | Giorgi Kapanadze
-email=kapan.gio777@gmail.com
+email=aigroegsig@gmail.com
 
 about=PostGIS Manager is a hybrid QGIS plugin (3.40+ and 4.x) and standalone desktop app that fills the gap QGIS leaves in spatial database management — the "PostGIS as a GIS workspace" middle ground that neither QGIS nor pgAdmin covers well. Fully bilingual: English and Georgian (ქართული) with runtime switching. Light and Dark themes. Sidebar navigation (pgAdmin/DBeaver style).
 
@@ -56,6 +56,7 @@ hasProcessingProvider=True
 server=False
 
 changelog=
+    1.3.1 - Contact e-mail is now aigroegsig@gmail.com.
     1.3.0
     - Processing: new algorithms Backup database (pg_dump), Restore database (pg_restore / psql, needs an explicit confirmation) and CRS audit (declared vs. actual SRID, optional fix). Passwords are passed through PGPASSWORD, a saved QGIS login (authentication configuration) can be used instead
     - Backup and CRS Audit panels share their logic with the algorithms (utils/pg_tools.py); the CRS audit SQL now uses quoted identifiers and bound parameters
