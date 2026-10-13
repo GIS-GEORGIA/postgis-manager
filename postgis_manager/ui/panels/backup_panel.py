@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 import os
-import shutil
 import datetime
 from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
