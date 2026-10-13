@@ -46,9 +46,8 @@ class NetworkScanAlgorithm(QgsProcessingAlgorithm):
 
         try:
             import sys, os, json
-            plugin_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            if plugin_dir not in sys.path:
-                sys.path.insert(0, plugin_dir)
+            from ..plugin import _register_core_package
+            _register_core_package()  # no-op once registered
 
             from postgis_manager.utils.network_scanner import scan_network
 

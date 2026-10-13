@@ -23,64 +23,14 @@ class _AuditWorker(QThread):
     def run(self):
         try:
             import psycopg2
+            from ...utils import pg_tools
             conn = psycopg2.connect(**self._db.params)
-            cur  = conn.cursor()
-
-            self.progress.emit(10, "Loading geometry columns…")
-            where = ""
-            if self._schema_filter and self._schema_filter != "(all)":
-                where = f"WHERE f_table_schema = '{self._schema_filter}'"
-            cur.execute(f"""
-                SELECT f_table_schema, f_table_name, f_geometry_column, coord_dimension, srid, type
-                FROM geometry_columns
-                {where}
-                ORDER BY f_table_schema, f_table_name
-            """)
-            cols = cur.fetchall()
-
-            rows = []
-            total = len(cols)
-            for i, (schema, table, geom_col, dim, declared_srid, geom_type) in enumerate(cols):
-                self.progress.emit(10 + int(80 * i / max(total, 1)),
-                                   f"Checking {schema}.{table}…")
-                # actual srids present in data
-                try:
-                    cur.execute(f"""
-                        SELECT DISTINCT ST_SRID("{geom_col}") as actual_srid, count(*)
-                        FROM "{schema}"."{table}"
-                        WHERE "{geom_col}" IS NOT NULL
-                        GROUP BY actual_srid
-                        ORDER BY count DESC
-                        LIMIT 5
-                    """)
-                    actual = cur.fetchall()
-                except Exception:
-                    actual = []
-
-                actual_srids = [r[0] for r in actual]
-                unique_count = len(actual_srids)
-                dominant = actual_srids[0] if actual_srids else None
-
-                status = "OK"
-                issue  = ""
-                if dominant is None:
-                    status = "EMPTY"; issue = "No geometries"
-                elif declared_srid == 0 and dominant != 0:
-                    status = "WARN"; issue = f"Declared SRID=0, actual={dominant}"
-                elif declared_srid != 0 and dominant != declared_srid:
-                    status = "ERROR"; issue = f"Declared={declared_srid}, actual={dominant}"
-                elif unique_count > 1:
-                    status = "WARN"; issue = f"Mixed SRIDs: {actual_srids}"
-
-                rows.append({
-                    "schema": schema, "table": table, "col": geom_col,
-                    "type": geom_type, "declared": declared_srid,
-                    "actual": dominant, "unique_srids": unique_count,
-                    "status": status, "issue": issue,
-                })
-
-            conn.close()
-            self.progress.emit(100, "Done")
+            try:
+                rows = pg_tools.audit_crs(
+                    conn, self._schema_filter,
+                    progress=lambda p, msg: self.progress.emit(p, msg))
+            finally:
+                conn.close()
             self.done.emit(rows)
         except Exception as e:
             self.error.emit(str(e))
@@ -97,18 +47,12 @@ class _FixWorker(QThread):
     def run(self):
         try:
             import psycopg2
+            from ...utils import pg_tools
             conn = psycopg2.connect(**self._db.params)
-            cur  = conn.cursor()
-            n = 0
-            for f in self._fixes:
-                schema = f["schema"]; table = f["table"]
-                col    = f["col"];    old   = f["declared"]; new = f["actual"]
-                if old == new or new is None: continue
-                cur.execute(f"""
-                    SELECT UpdateGeometrySRID('{schema}','{table}','{col}',{new})
-                """)
-                n += 1
-            conn.commit(); conn.close()
+            try:
+                n = pg_tools.fix_crs(conn, self._fixes)
+            finally:
+                conn.close()
             self.done.emit(n)
         except Exception as e:
             self.error.emit(str(e))

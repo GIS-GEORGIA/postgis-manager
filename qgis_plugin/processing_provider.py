@@ -31,6 +31,9 @@ class PostGISManagerProvider(QgsProcessingProvider):
         from .algorithms.geoprocess        import GeoprocessAlgorithm
         from .algorithms.network_scan      import NetworkScanAlgorithm
         from .algorithms.fix_invalid_geom  import FixInvalidGeomAlgorithm
+        from .algorithms.backup_database   import BackupDatabaseAlgorithm
+        from .algorithms.restore_database  import RestoreDatabaseAlgorithm
+        from .algorithms.crs_audit         import CrsAuditAlgorithm
 
         for alg in [
             ImportVectorAlgorithm(),
@@ -39,6 +42,9 @@ class PostGISManagerProvider(QgsProcessingProvider):
             GeoprocessAlgorithm(),
             NetworkScanAlgorithm(),
             FixInvalidGeomAlgorithm(),
+            BackupDatabaseAlgorithm(),
+            RestoreDatabaseAlgorithm(),
+            CrsAuditAlgorithm(),
         ]:
             self.addAlgorithm(alg)
 

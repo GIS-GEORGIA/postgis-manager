@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 import os
-import shutil
 import datetime
 from ...qtcompat.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
@@ -13,26 +12,12 @@ from ...qtcompat.QtCore import Qt, QThread, pyqtSignal
 from ...qtcompat.QtGui import QFont
 
 from ...db.connection import DBManager
-from ...utils import i18n, config
+from ...utils import i18n, config, pg_tools
 
 
 def _find_tool(name: str) -> str | None:
-    """Find pg_dump / psql etc. either on PATH or near known pg installs."""
-    found = shutil.which(name)
-    if found:
-        return found
-    # Common Windows install paths
-    for base in [
-        r"C:\Program Files\PostgreSQL",
-        r"C:\Program Files (x86)\PostgreSQL",
-        r"C:\Program Files\pgAdmin 4\runtime",
-    ]:
-        if os.path.isdir(base):
-            for ver in sorted(os.listdir(base), reverse=True):
-                candidate = os.path.join(base, ver, "bin", name + ".exe")
-                if os.path.isfile(candidate):
-                    return candidate
-    return None
+    """Find pg_dump / psql etc. (shared with the Processing algorithms)."""
+    return pg_tools.find_tool(name)
 
 
 class BackupWorker(QThread):

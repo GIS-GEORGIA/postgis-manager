@@ -70,15 +70,19 @@ class PostGISManagerPlugin:
         self._window = None
         self._action = None
         self._provider = None
-        self.initProcessing()
 
     def initProcessing(self):
+        # Called by QGIS (GUI) from initGui below and by qgis_process on its own for
+        # plugins with hasProcessingProvider=True; must be idempotent.
+        if self._provider is not None:
+            return
         from .processing_provider import PostGISManagerProvider
         self._provider = PostGISManagerProvider()
         from qgis.core import QgsApplication
         QgsApplication.processingRegistry().addProvider(self._provider)
 
     def initGui(self):
+        self.initProcessing()
         icon_path = os.path.join(os.path.dirname(__file__), "icon.png")
         self._action = QAction(
             QIcon(icon_path) if os.path.exists(icon_path) else QIcon(),
@@ -100,6 +104,7 @@ class PostGISManagerPlugin:
         if self._provider:
             from qgis.core import QgsApplication
             QgsApplication.processingRegistry().removeProvider(self._provider)
+            self._provider = None
         del self._action
 
     def _toggle_manager(self, checked: bool):
