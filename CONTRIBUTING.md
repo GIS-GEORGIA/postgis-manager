@@ -66,5 +66,5 @@ ruff check postgis_manager/ standalone/ --select E,F,W --ignore E501
 ## Contact
 
 - GitHub Issues: https://github.com/GIS-GEORGIA/postgis-manager/issues
-- Author: Giorgi Kapanadze — kapan.gio777@gmail.com
+- Author: Giorgi Kapanadze — aigroegsig@gmail.com, kapan.gio777@gmail.com
 - Website: https://pg.qgis.ge
